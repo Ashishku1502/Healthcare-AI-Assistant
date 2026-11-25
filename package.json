@@ -1,10 +1,13 @@
 {
-  "name": "healthcare-ai-assistant-root",
+  "name": "healthcare-ai-assistant",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "frontend"
+  ],
   "scripts": {
-    "dev": "npm --prefix frontend run dev",
     "build": "npm --prefix frontend run build",
+    "dev": "npm --prefix frontend run dev",
     "start": "npm --prefix frontend run start"
   }
 }
