@@ -1,18 +1,19 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .config import ORIGIN
+from .config import ORIGIN, LOGIN_RATE, DB_URL
 from .database import Base, engine, SessionLocal
 from .models import Clinic, User, Doctor
 from .security import hash_pw
 from .routes import api, whatsapp, voice
 import time
-from .config import LOGIN_RATE
 from collections import defaultdict
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
 def init_db():
     Base.metadata.create_all(engine)
+    if "test" in DB_URL:
+        return
     db = SessionLocal()
     try:
         if not db.query(Clinic).first():
