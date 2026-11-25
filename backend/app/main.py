@@ -1,14 +1,40 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .config import ORIGIN
-from .database import Base, engine
+from .database import Base, engine, SessionLocal
+from .models import Clinic, User, Doctor
+from .security import hash_pw
 from .routes import api, whatsapp, voice
 import time
 from .config import LOGIN_RATE
 from collections import defaultdict
 from fastapi import Request
 from fastapi.responses import JSONResponse
-Base.metadata.create_all(engine)
+
+def init_db():
+    Base.metadata.create_all(engine)
+    db = SessionLocal()
+    try:
+        if not db.query(Clinic).first():
+            c = Clinic(
+                name="Care Clinic",
+                address="12 MG Road, Nagpur",
+                hours="Mon-Sat 9 AM - 5 PM",
+                fees="Consultation Rs 300",
+                is_demo=False,
+            )
+            db.add(c)
+            db.flush()
+            db.add_all([
+                User(clinic_id=c.id, email="owner@clinic.com", password_hash=hash_pw("clinic1234"), role="owner"),
+                User(clinic_id=c.id, email="desk@clinic.com", password_hash=hash_pw("clinic1234"), role="receptionist"),
+                Doctor(clinic_id=c.id, name="Neha Sharma", speciality="General Physician", days="0,1,2,3,4,5", start_hour=9, end_hour=17, slot_minutes=15, active=True),
+            ])
+            db.commit()
+    finally:
+        db.close()
+
+init_db()
 app = FastAPI(title="Parchi AI API")
 app.add_middleware(
     CORSMiddleware,
