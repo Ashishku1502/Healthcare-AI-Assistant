@@ -1,0 +1,4 @@
+# Defense prep (60 min, no tools). Practise answering out loud.
+**They will change a constraint:** (1) Ceiling drops to Rs 700: shrink forwarded share, cap minutes, push WhatsApp, raise price for heavy clinics. (2) Meera insists on human-sounding voice: refuse deception; offer a warmer voice + disclosure. (3) Clinics won't forward: then cloud-number clinics only (6 of 40), WhatsApp for the rest.
+**Likely probes:** Why rules before an LLM? (safety, cost, testable). What if "dil mein bhaari-pan"? (misses; LLM classifier behind rules; recall gate). Double-booking? (unique partial index). Status stale? (90 min, say "not confirmed"). Why mean call length? (cost follows total minutes). Show formulas in cost_sheet.xlsx. Where is consent decided? (first contact flag; owner sets retention).
+**Know the weak points:** no real telephony; sequential not concurrent booking test; Marathi only safety lines; assumptions 35% forward / 50% templated unverified.

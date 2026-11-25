@@ -1,0 +1,1 @@
+module.exports = { content: ["./src/**/*.{ts,tsx}"], theme: { extend: { colors: { brand: "#6D28D9", deep: "#27135D", lav: "#F1E9FF", bg: "#FAF8FF", ink: "#1D1B35", ok: "#2F9E63" }, fontFamily: { sans: ["Inter", "system-ui", "sans-serif"] } } } };
