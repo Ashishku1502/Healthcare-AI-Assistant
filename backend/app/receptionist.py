@@ -21,7 +21,7 @@ MEDICAL = (
 REPORT = r"report|riport|prescription|test result|रिपोर्ट"
 SALES = r"pharma|medical rep|representative|sales|company se|marketing"
 RELAY = r"bol dena|bata dena|tell the doctor|aa raha hoon|aa rahe hain|coming in \d+|ka beta|ka bete|landlord"
-NOMSG = r"message mat|msg mat|don'?t (send|message)|do not (send|message)|मैसेज मत"
+NOMSG = r"message mat|msg mat|don'?t (send|message|msg)|do not (send|message|msg)|no whatsapp|no messages|मेसेज पाठवू नका|मैसेज मत"
 YES = r"^(yes|y|confirm|haan|han|ha|ok|theek hai|hoy|हाँ|हां|होय)\b"
 NO = r"^(no|n|cancel|nahi|nahin|nope|nako|नहीं|नको)\b"
 
@@ -34,10 +34,10 @@ def lang(t: str) -> str:
     return "hinglish" if re.search(r"\b(kya|hai|kab|kitna|mujhe|haan|nahi|aap|aa gaye|chahiye|batao|hain|bol)\b", low) else "en"
 
 DISC = {
-    "en": "I'm Parchi, the clinic's AI assistant. ",
-    "hinglish": "Main Parchi hoon, clinic ka AI sahayak. ",
-    "hi": "मैं पारची हूँ, क्लिनिक की AI सहायक। ",
-    "mr": "मी पारची, क्लिनिकची AI सहाय्यक. "
+    "en": "I'm Parchi, the clinic's automated assistant. ",
+    "hinglish": "Main Parchi hoon, clinic ka automated assistant. ",
+    "hi": "मैं पारची हूँ, क्लिनिक की ऑटोमेटेड सहायक (automated assistant)। ",
+    "mr": "मी पारची, क्लिनिकची ऑटोमेटेड सहाय्यक (automated assistant). "
 }
 
 M = {
@@ -319,9 +319,11 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
     t = text.strip()
     low = t.lower()
     L = lang(t)
-    first = s.event_id is None
+    first = s.event_id is None and not (s.pending or {}).get("disclosed")
     pre = DISC[L] if first else ""
     def done(msg):
+        if first:
+            s.pending = {**(s.pending or {}), "disclosed": True}
         db.commit()
         return pre + msg
 
@@ -497,12 +499,14 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
 
 def unclear_turn(db: Session, s: ChatSession) -> tuple[str, bool]:
     """Speech not understood: 1st time ONE yes/no question; 2nd time human callback. Never a menu."""
+    first = s.event_id is None and not (s.pending or {}).get("disclosed")
     n = int((s.pending or {}).get("unclear", 0)) + 1
-    s.pending = {**(s.pending or {}), "unclear": n}
+    s.pending = {**(s.pending or {}), "unclear": n, "disclosed": True}
+    pre = DISC["hinglish"] if first else ""
     if n >= 2:
         _event(db, s, "other", "handoff", "Caller not understood twice - call back now")
         s.pending = {}
         db.commit()
-        return "Main clinic staff ko aapka number de rahi hoon, woh abhi aapko call karenge.", True
+        return pre + "Main clinic staff ko aapka number de rahi hoon, woh abhi aapko call karenge.", True
     db.commit()
-    return "Kya aap doctor sahab ke aane ke baare mein pooch rahe hain? Haan ya nahi boliye.", False
+    return pre + "Kya aap doctor sahab ke aane ke baare mein pooch rahe hain? Haan ya nahi boliye.", False

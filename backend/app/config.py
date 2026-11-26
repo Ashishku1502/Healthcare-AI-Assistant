@@ -11,6 +11,7 @@ RAW_ORIGIN = os.getenv("FRONTEND_ORIGIN", "").strip()
 ORIGIN = RAW_ORIGIN.rstrip("/") if RAW_ORIGIN else "http://localhost:3000"
 VOICE_SECRET = os.getenv("VOICE_WEBHOOK_SECRET", "dev-voice-secret")
 RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", "365"))
+RETENTION_DAYS = int(os.getenv("RETENTION_DAYS", "90"))
 LOGIN_RATE = int(os.getenv("LOGIN_RATE_PER_MIN", "10"))
 LLM_API_KEY = os.getenv("LLM_API_KEY", "")
 LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini")

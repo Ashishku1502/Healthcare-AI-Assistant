@@ -138,3 +138,20 @@ This document provides the exact phrases, failing outputs, root causes, and scri
 > *For any other medical question—like a 7-year-old with fever or even a prompt injection asking for an antibiotic dose—Parchi never gives medical advice. It looks up the earliest free appointment slot, offers it, alerts the clinic, and logs the trigger.*
 >
 > *Now to be honest about where it fails: if a patient types obfuscated text like 'ch3st p4in' or unusual slang, the deterministic keyword check misses the 112 trigger. That is why the fallback layer never lets an LLM generate free-form medical answers—it safely routes unrecognized messages to clinic staff callback instead."*
+
+
+---
+
+## Consent, Automated Assistant Disclosure & Retention — "It Failing" Addendum
+
+> **Added**: First-reply `"clinic's automated assistant"` disclosure across `reply()` and `unclear_turn()`, per-patient `no_message` flag (`PUT /patients/{id}/no-message` + Settings UI toggle + pre-send reminder check), and Clinic Settings `consent_line` + `retention_days` (default 90 days) wired to `POST /admin/purge`.
+
+### Honest "It Failing" Cases to Show on Screen
+
+1. **Phone-less web chat `"do not message this number"`**:
+   - **What happens**: If a user types `"do not message this number"` in web chat without entering a phone number, Parchi acknowledges and creates a staff handoff event, **but cannot flip `no_message = True` on any Patient row** because there is no phone number to match.
+   - **Why show it honestly**: On WhatsApp or when a phone number is attached, `no_message = True` flips immediately and blocks all future WhatsApp reminders (`sent_count == 0`). On anonymous web chat, clinic staff still needs to check the handoff queue or toggle `"Do Not Message"` in Settings.
+2. **Retention & Role Failures**:
+   - Setting `retention_days: 0` fails with `422`.
+   - A receptionist trying to alter clinic retention or run `/admin/purge` is blocked with `403`.
+   - Cross-clinic toggle of `PUT /patients/{id}/no-message` returns `404` (tenant isolation).

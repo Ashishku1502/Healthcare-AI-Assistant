@@ -752,8 +752,11 @@ function Sim() {
 
 function Settings({ userRole }: { userRole?: string }) {
   const { data, err, loading, reload } = useLoad<any>("/clinic");
+  const patients = useLoad<any[]>("/patients");
   const [f, setF] = useState<any>(null);
   const [msg, setMsg] = useState("");
+  const [purgeMsg, setPurgeMsg] = useState("");
+  const [patMsg, setPatMsg] = useState("");
 
   // Owner-only rules state
   const isOwner = userRole === "owner";
@@ -768,12 +771,49 @@ function Settings({ userRole }: { userRole?: string }) {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
+    setMsg("");
     try {
-      await api("/clinic", { method: "PUT", body: JSON.stringify(f) });
+      await api("/clinic", {
+        method: "PUT",
+        body: JSON.stringify({
+          name: f.name || "",
+          address: f.address || "",
+          hours: f.hours || "",
+          fees: f.fees || "",
+          staff_phone: f.staff_phone || "",
+          consent_line: f.consent_line || "",
+          retention_days: Number(f.retention_days) || 90,
+        }),
+      });
       setMsg("Settings saved successfully.");
       reload();
     } catch (x: any) {
       setMsg(x.message);
+    }
+  }
+
+  async function runPurge() {
+    setPurgeMsg("");
+    try {
+      const r = await api<any>("/admin/purge", { method: "POST" });
+      setPurgeMsg(`Purged ${r.events_deleted} old event(s) older than ${r.retention_days ?? (f?.retention_days || 90)} days.`);
+    } catch (x: any) {
+      setPurgeMsg(x.message);
+    }
+  }
+
+  async function toggleNoMessage(p: any) {
+    setPatMsg("");
+    try {
+      const next = !p.no_message;
+      await api(`/patients/${p.id}/no-message`, {
+        method: "PUT",
+        body: JSON.stringify({ no_message: next }),
+      });
+      setPatMsg(`${p.name}: "Do not message this number" ${next ? "enabled" : "disabled"}.`);
+      patients.reload();
+    } catch (x: any) {
+      setPatMsg(x.message);
     }
   }
 
@@ -797,7 +837,7 @@ function Settings({ userRole }: { userRole?: string }) {
       <form onSubmit={save} className="card space-y-3">
         <div className="flex items-center gap-2 border-b border-lav pb-2 mb-1">
           <IconSettings className="w-5 h-5 text-brand" />
-          <h2 className="font-bold text-deep text-lg">Clinic Information & Triage Facts</h2>
+          <h2 className="font-bold text-deep text-lg">Clinic Information, Consent & Data Retention</h2>
         </div>
         {["name", "address", "hours", "fees", "staff_phone"].map((k) => (
           <label key={k} className="block text-sm font-medium capitalize">
@@ -809,12 +849,90 @@ function Settings({ userRole }: { userRole?: string }) {
             />
           </label>
         ))}
+
+        <label className="block text-sm font-medium">
+          Patient Consent Line (DPDP & WhatsApp)
+          <textarea
+            className="inp mt-1 text-sm min-h-[72px]"
+            maxLength={500}
+            value={f.consent_line ?? ""}
+            onChange={(e) => setF({ ...f, consent_line: e.target.value })}
+            placeholder="By messaging or sharing your phone number, you consent to clinic updates and reminders (reply STOP to opt out)."
+          />
+        </label>
+
+        <div className="grid sm:grid-cols-2 gap-3 items-end">
+          <label className="block text-sm font-medium">
+            Data Retention Period (Days — default 90)
+            <input
+              type="number"
+              min={1}
+              max={3650}
+              className="inp mt-1 text-sm"
+              value={f.retention_days ?? 90}
+              onChange={(e) => setF({ ...f, retention_days: Number(e.target.value) })}
+            />
+          </label>
+          {isOwner && (
+            <button
+              type="button"
+              onClick={runPurge}
+              className="btn2 text-xs py-2.5 px-4 flex items-center justify-center gap-1.5"
+            >
+              <IconClock className="w-3.5 h-3.5 text-brand" />
+              Purge Events Older Than {f.retention_days ?? 90} Days
+            </button>
+          )}
+        </div>
+        {purgeMsg && <p role="status" className="text-xs text-brand font-medium">{purgeMsg}</p>}
+
         <button className="btn text-sm py-2.5 px-5 flex items-center gap-1.5">
           <IconCheckCircle className="w-4 h-4" />
           Save Information
         </button>
         {msg && <p role="status" className="text-sm text-ok">{msg}</p>}
       </form>
+
+      {/* Per-Patient "Do not message this number" Flag */}
+      <div className="card space-y-3">
+        <div className="flex items-center justify-between border-b border-lav pb-2">
+          <div className="flex items-center gap-2">
+            <IconShieldCheck className="w-5 h-5 text-brand" />
+            <div>
+              <h2 className="font-bold text-deep text-lg">Patient Messaging Consent (&ldquo;Do not message this number&rdquo;)</h2>
+              <p className="text-xs text-gray-500">Checked automatically before any WhatsApp reminder is sent</p>
+            </div>
+          </div>
+        </div>
+        <State loading={patients.loading} err={patients.err} empty={patients.data?.length === 0} />
+        {patMsg && <p role="status" className="text-xs text-ok font-medium">{patMsg}</p>}
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {patients.data?.map((p) => (
+            <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-lav/30 border border-lav">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold text-deep truncate">
+                  {p.name} <span className="font-mono text-xs text-gray-500">({p.phone})</span>
+                </p>
+                <p className="text-xs text-gray-600">
+                  Consent: <b>{p.consent ? "Yes" : "No"}</b> · Opted out: <b>{p.opted_out ? "Yes" : "No"}</b> ·{" "}
+                  Do not message: <b className={p.no_message ? "text-red-700" : "text-emerald-700"}>{p.no_message ? "BLOCKED" : "Allowed"}</b>
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => toggleNoMessage(p)}
+                className={`text-xs px-3 py-1.5 rounded-lg font-semibold border shrink-0 transition-colors ${
+                  p.no_message
+                    ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
+                    : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
+                }`}
+              >
+                {p.no_message ? "Allow Messages" : "Do Not Message"}
+              </button>
+            </div>
+          ))}
+        </div>
+      </div>
 
       {/* Owner-Only Clinic Rules (Tension 8) */}
       <div className="card space-y-4">

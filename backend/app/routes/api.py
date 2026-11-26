@@ -93,12 +93,25 @@ def auth_me(u: User = Depends(current_user), db: Session = Depends(get_db)):
     }
 @r.get("/clinic")
 def clinic(u: User = Depends(current_user), db: Session = Depends(get_db)):
-    c = db.get(Clinic, u.clinic_id); return {"id": c.id, "name": c.name, "address": c.address, "hours": c.hours, "fees": c.fees, "staff_phone": c.staff_phone, "is_demo": c.is_demo}
+    c = db.get(Clinic, u.clinic_id)
+    return {
+        "id": c.id,
+        "name": c.name,
+        "address": c.address,
+        "hours": c.hours,
+        "fees": c.fees,
+        "staff_phone": c.staff_phone,
+        "consent_line": c.consent_line,
+        "retention_days": c.retention_days if c.retention_days is not None else 90,
+        "is_demo": c.is_demo,
+    }
 @r.put("/clinic")
 def upd_clinic(b: ClinicIn, u: User = Depends(owner_only), db: Session = Depends(get_db)):
     c = db.get(Clinic, u.clinic_id)
     for k, v in b.model_dump().items(): setattr(c, k, v)
-    db.add(Audit(clinic_id=c.id, actor=u.email, action="update clinic")); db.commit(); return {"ok": True}
+    db.add(Audit(clinic_id=c.id, actor=u.email, action=f"update clinic (retention={c.retention_days}d)"))
+    db.commit()
+    return {"ok": True, "consent_line": c.consent_line, "retention_days": c.retention_days}
 def own(db, model, id, u):
     o = db.get(model, id)
     if not o or o.clinic_id != u.clinic_id: raise HTTPException(404, "Not found")  # tenant isolation
@@ -125,6 +138,14 @@ def patients(q: str = "", u: User = Depends(current_user), db: Session = Depends
 def add_patient(b: PatientIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
     if db.query(Patient).filter_by(clinic_id=u.clinic_id, phone=b.phone).first(): raise HTTPException(409, "Phone already registered")
     p = Patient(clinic_id=u.clinic_id, **b.model_dump()); db.add(p); db.commit(); return p
+@r.put("/patients/{id}/no-message", response_model=PatientOut)
+def set_patient_no_message(id: int, b: NoMessageIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Toggle the per-patient 'do not message this number' flag."""
+    p = own(db, Patient, id, u)
+    p.no_message = b.no_message
+    db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"patient {id} no_message={b.no_message}"))
+    db.commit()
+    return p
 @r.get("/appointments", response_model=list[ApptOut])
 def appts(u: User = Depends(current_user), db: Session = Depends(get_db)):
     return db.query(Appointment).filter_by(clinic_id=u.clinic_id).order_by(Appointment.start).limit(200).all()
@@ -152,7 +173,7 @@ def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_d
             db.add(p); db.flush()
         elif b.patient_name and p.name != b.patient_name:
             p.name = b.patient_name; db.flush()
-    return {"reply": receptionist.reply(db, c, s, p, b.message), "ai_disclosure": "AI receptionist"}
+    return {"reply": receptionist.reply(db, c, s, p, b.message), "ai_disclosure": "clinic's automated assistant"}
 @r.get("/analytics")
 def analytics(days: int = 30, u: User = Depends(current_user), db: Session = Depends(get_db)):
     since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
@@ -251,7 +272,10 @@ def run_reminders(u: User = Depends(owner_only), db: Session = Depends(get_db)):
 @r.post("/admin/purge")
 def purge(u: User = Depends(owner_only), db: Session = Depends(get_db)):
     from ..retention import purge_old
-    return purge_old(db, u.clinic_id)
+    from ..config import RETENTION_DAYS
+    c = db.get(Clinic, u.clinic_id)
+    days = c.retention_days if (c and c.retention_days) else RETENTION_DAYS
+    return purge_old(db, u.clinic_id, days=days)
 
 # ---- Owner-only Clinic Rules Settings ----
 @r.get("/rules", response_model=list[RuleOut])

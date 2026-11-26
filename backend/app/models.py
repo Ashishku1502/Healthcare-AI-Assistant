@@ -12,6 +12,11 @@ class Clinic(Base):
     fees: Mapped[str] = mapped_column(String(300), default="")
     is_demo: Mapped[bool] = mapped_column(Boolean, default=False)
     staff_phone: Mapped[str] = mapped_column(String(20), default="")  # receptionist number: may text status commands, receives handoff transfers
+    consent_line: Mapped[str] = mapped_column(
+        String(500),
+        default="By messaging or sharing your phone number with the clinic, you consent to receive appointment updates and reminders (reply STOP anytime to opt out).",
+    )
+    retention_days: Mapped[int] = mapped_column(Integer, default=90)
 class User(Base):
     __tablename__ = "users"
     id: Mapped[int] = mapped_column(primary_key=True)

@@ -19,13 +19,25 @@ class DoctorIn(BaseModel):
 class DoctorOut(DoctorIn):
     model_config = ConfigDict(from_attributes=True); id: int; current_token: int = 0; status_state: str = "unknown"; late_minutes: int = 0; status_at: datetime | None = None
 class PatientIn(BaseModel):
-    name: str = Field(min_length=2); phone: str = Field(pattern=r"^\+?\d{10,13}$"); consent: bool = False
+    name: str = Field(min_length=2); phone: str = Field(pattern=r"^\+?\d{10,13}$"); consent: bool = False; no_message: bool = False
 class PatientOut(PatientIn):
     model_config = ConfigDict(from_attributes=True); id: int; opted_out: bool
+class NoMessageIn(BaseModel):
+    no_message: bool
 class ApptIn(BaseModel): doctor_id: int; patient_id: int; start: datetime; confirmed: bool
 class ApptOut(BaseModel):
     model_config = ConfigDict(from_attributes=True); id: int; doctor_id: int; patient_id: int; start: datetime; status: str; channel: str
-class ClinicIn(BaseModel): name: str; address: str = ""; hours: str = ""; fees: str = ""; staff_phone: str = ""
+class ClinicIn(BaseModel):
+    name: str
+    address: str = ""
+    hours: str = ""
+    fees: str = ""
+    staff_phone: str = ""
+    consent_line: str = Field(
+        default="By messaging or sharing your phone number with the clinic, you consent to receive appointment updates and reminders (reply STOP anytime to opt out).",
+        max_length=500,
+    )
+    retention_days: int = Field(default=90, ge=1, le=3650)
 class ChatIn(BaseModel): session_id: str = Field(min_length=3, max_length=60); message: str = Field(min_length=1, max_length=500); patient_name: str | None = None; patient_phone: str | None = None
 class StatusIn(BaseModel): state: str = Field(pattern="^(in|late|out)$"); late_minutes: int = Field(0, ge=0, le=480)
 class RuleIn(BaseModel):

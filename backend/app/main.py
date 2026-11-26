@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import inspect, text
 from .config import ORIGIN, LOGIN_RATE, DB_URL
 from .database import Base, engine, SessionLocal
 from .models import Clinic, User, Doctor
@@ -10,9 +11,25 @@ from collections import defaultdict
 from fastapi import Request
 from fastapi.responses import JSONResponse
 
+def _ensure_clinic_columns():
+    """Idempotently add new clinic settings columns when running on an existing DB without Alembic."""
+    try:
+        cols = {c["name"] for c in inspect(engine).get_columns("clinics")}
+        with engine.begin() as conn:
+            if "consent_line" not in cols:
+                conn.execute(text(
+                    "ALTER TABLE clinics ADD COLUMN consent_line VARCHAR(500) DEFAULT "
+                    "'By messaging or sharing your phone number with the clinic, you consent to receive appointment updates and reminders (reply STOP anytime to opt out).'"
+                ))
+            if "retention_days" not in cols:
+                conn.execute(text("ALTER TABLE clinics ADD COLUMN retention_days INTEGER DEFAULT 90"))
+    except Exception as e:
+        print(f"ensure_clinic_columns note: {e}")
+
 def init_db():
     try:
         Base.metadata.create_all(engine)
+        _ensure_clinic_columns()
         if "test" in DB_URL:
             return
         db = SessionLocal()

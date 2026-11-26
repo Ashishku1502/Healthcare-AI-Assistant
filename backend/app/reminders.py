@@ -14,8 +14,12 @@ def due_reminders(db: Session, now: datetime, hours_ahead: int = 24, clinic_id: 
 def send_due_reminders(db: Session, now: datetime, send, clinic_id: int | None = None) -> int:
     n = 0
     for r in due_reminders(db, now, clinic_id=clinic_id):
+        appt = db.get(Appointment, r["appt"])
+        p = db.get(Patient, appt.patient_id) if appt else None
+        if not p or not p.consent or p.opted_out or p.no_message:
+            continue
         if send(r["to"], r["text"]):
-            db.get(Appointment, r["appt"]).reminded = True; n += 1
+            appt.reminded = True; n += 1
     db.commit(); return n
 def log_sender(db: Session, clinic_id: int):
     def send(to, text):  # replace with the WhatsApp provider adapter; this only writes an audit line
