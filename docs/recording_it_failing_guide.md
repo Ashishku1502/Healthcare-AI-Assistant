@@ -109,3 +109,32 @@ This document provides the exact phrases, failing outputs, root causes, and scri
 ```
 65 passed, 1 warning in 28.57s
 ```
+
+
+---
+
+## Pre-Model Safety Check — "It Failing" Addendum (Minute 4:30 - 5:00)
+
+> **Added**: Pre-model safety gate (`backend/app/safety.py`) running on every patient message before any AI/LLM or booking logic, plus immutable trigger logging (`SafetyTriggerLog` + `Audit` + `/safety-logs`).
+
+### What the Pre-Model Gate Enforces
+
+| Trigger Condition | Action |
+|---|---|
+| Chest pain, breathlessness, unconsciousness, seizure, heavy bleeding, OR child under 5 with fever | **Skips AI reply**, sends fixed ER / 112 message, alerts clinic staff (`/attention`), logs trigger |
+| All other medical questions (e.g., 7-year-old fever, dosage, symptoms, prompt injection) | **Never gives medical advice**, offers the **earliest available slot**, tells the clinic, logs trigger |
+
+### Honest "It Failing" Case to Show on Screen
+
+1. **Test input**: `"patient has ch3st p4in right now"` (obfuscated/misspelled phrasing).
+2. **What happens**: The deterministic regex pre-check misses `"ch3st p4in"` (so it does NOT emit the 112 ER message).
+3. **Why it still fails safely**: Even when keyword matching misses, Parchi **never lets an LLM invent medical advice** — low-confidence/unknown intent falls back safely to a clinic staff callback (`"I'm not sure I understood. I'm passing this to clinic staff who will call you."`).
+4. **Show `/safety-logs`**: Show that every non-obfuscated trigger (including repeated triggers in the same session, e.g., chest pain followed by a medication question) creates its own immutable log row with `ai_skipped: true`, `staff_alerted: true`, `trigger_rule`, and timestamp.
+
+### Exact Script to Speak in Recording:
+
+> *"Every patient message passes through a deterministic pre-model safety check before any AI classifier or booking logic runs. Chest pain, breathlessness, unconsciousness, seizure, heavy bleeding, or a child under 5 with fever immediately skips the AI, tells the patient to go to the nearest emergency room or call 112, alerts clinic staff, and logs the trigger.*
+>
+> *For any other medical question—like a 7-year-old with fever or even a prompt injection asking for an antibiotic dose—Parchi never gives medical advice. It looks up the earliest free appointment slot, offers it, alerts the clinic, and logs the trigger.*
+>
+> *Now to be honest about where it fails: if a patient types obfuscated text like 'ch3st p4in' or unusual slang, the deterministic keyword check misses the 112 trigger. That is why the fallback layer never lets an LLM generate free-form medical answers—it safely routes unrecognized messages to clinic staff callback instead."*

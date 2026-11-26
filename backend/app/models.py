@@ -97,3 +97,17 @@ class ClinicRule(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     created_by: Mapped[str] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+class SafetyTriggerLog(Base):
+    """Immutable audit log recording every pre-model safety gate trigger."""
+    __tablename__ = "safety_trigger_logs"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    clinic_id: Mapped[int] = mapped_column(ForeignKey("clinics.id"), index=True)
+    channel: Mapped[str] = mapped_column(String(20), default="web")
+    session_id: Mapped[str] = mapped_column(String(80), default="")
+    category: Mapped[str] = mapped_column(String(20))  # urgent | medical
+    trigger_rule: Mapped[str] = mapped_column(String(80))
+    message_excerpt: Mapped[str] = mapped_column(String(300), default="")
+    staff_alerted: Mapped[bool] = mapped_column(Boolean, default=True)
+    ai_skipped: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)

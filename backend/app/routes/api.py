@@ -216,6 +216,24 @@ def set_token(id: int, b: dict, u: User = Depends(current_user), db: Session = D
 def attention(u: User = Depends(current_user), db: Session = Depends(get_db)):
     rows = db.query(Event).filter(Event.clinic_id == u.clinic_id, Event.outcome.in_(["handoff", "urgent"]), Event.resolved == False).order_by(Event.id.desc()).limit(30).all()
     return [{"id": e.id, "outcome": e.outcome, "intent": e.intent, "channel": e.channel, "note": e.note, "at": e.created_at} for e in rows]
+@r.get("/safety-logs")
+def safety_logs(u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """List every pre-model safety check trigger logged for this clinic."""
+    rows = db.query(SafetyTriggerLog).filter_by(clinic_id=u.clinic_id).order_by(SafetyTriggerLog.id.desc()).limit(100).all()
+    return [
+        {
+            "id": x.id,
+            "channel": x.channel,
+            "session_id": x.session_id,
+            "category": x.category,
+            "trigger_rule": x.trigger_rule,
+            "message_excerpt": x.message_excerpt,
+            "staff_alerted": x.staff_alerted,
+            "ai_skipped": x.ai_skipped,
+            "created_at": x.created_at,
+        }
+        for x in rows
+    ]
 @r.post("/attention/{id}/resolve")
 def resolve(id: int, u: User = Depends(current_user), db: Session = Depends(get_db)):
     own(db, Event, id, u).resolved = True; db.commit(); return {"ok": True}

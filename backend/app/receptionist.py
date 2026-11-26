@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from .models import Clinic, Doctor, Patient, ChatSession, Event, ClinicRule, now
 from .booking import book, BookingError, free_slots
 from . import llm
+from .safety import pre_model_safety_check, log_safety_trigger
 
 URGENT = (
     r"chest pain|dil (?:mein|me|mai) (?:dard|bhaari|bhari|jalan)|dil.*(?:ghabra|dhadkan)|ghabrahat|"
@@ -41,16 +42,16 @@ DISC = {
 
 M = {
  "urgent": {
-    "en": "This could be urgent. Please call 112 or go to the nearest hospital right now. I am alerting clinic staff to call you.",
-    "hinglish": "Yeh urgent ho sakta hai. Abhi 112 par call karein ya nazdeeki hospital jaayein. Main clinic staff ko aapko call karne ke liye bata rahi hoon.",
-    "hi": "यह आपात स्थिति हो सकती है। अभी 112 पर कॉल करें या नज़दीकी अस्पताल जाएँ। मैं क्लिनिक स्टाफ को आपको कॉल करने के लिए सूचित कर रही हूँ।",
-    "mr": "हे आपत्कालीन असू शकते. आत्ताच 112 वर कॉल करा किंवा जवळच्या रुग्णालयात जा. मी क्लिनिक स्टाफला कळवत आहे."
+    "en": "This could be urgent. Please go to the nearest emergency room or call 112 right now. I am alerting the clinic staff to call you.",
+    "hinglish": "Yeh urgent ho sakta hai. Abhi nazdeeki emergency room jaayein ya 112 par call karein. Main clinic staff ko alert kar rahi hoon, woh aapko call karenge.",
+    "hi": "यह आपात स्थिति हो सकती है। कृपया अभी नज़दीकी इमरजेंसी रूम जाएँ या 112 पर कॉल करें। मैं क्लिनिक स्टाफ को अलर्ट कर रही हूँ, वे आपको कॉल करेंगे।",
+    "mr": "हे आपत्कालीन असू शकते. कृपया आत्ताच जवळच्या इमरजेंसी रूम (रुग्णालयात) जा किंवा 112 वर कॉल करा. मी क्लिनिक स्टाफला अलर्ट करत आहे."
  },
  "medical": {
-    "en": "I can't give medical advice. I've sent your question to the doctor's team and they will call you back. If the child has trouble breathing, is very drowsy or has a seizure, call 112 now. I can also check the earliest appointment: say 'availability'.",
-    "hinglish": "Main medical salah nahi de sakti. Aapka sawal doctor ki team ko bhej diya hai, woh aapko call karenge. Agar bachche ko saans mein dikkat, bahut neend ya daura ho to abhi 112 karein. Sabse jaldi appointment ke liye 'availability' bolein.",
-    "hi": "मैं चिकित्सकीय सलाह नहीं दे सकती। आपका सवाल डॉक्टर की टीम को भेज दिया है, वे आपको कॉल करेंगे। साँस में तकलीफ़, बहुत नींद या दौरा हो तो अभी 112 करें।",
-    "mr": "मी वैद्यकीय सल्ला देऊ शकत नाही. तुमचा प्रश्न डॉक्टरांच्या टीमला पाठवला आहे, ते तुम्हाला कॉल करतील. श्वास घेण्यास त्रास किंवा झटके आल्यास लगेच 112 करा."
+    "en": "I can't give medical advice. I've told the clinic staff and they will call you back.",
+    "hinglish": "Main medical salah nahi de sakti. Maine clinic staff ko bata diya hai, woh aapko call karenge.",
+    "hi": "मैं चिकित्सकीय सलाह नहीं दे सकती। मैंने क्लिनिक स्टाफ को सूचित कर दिया है, वे आपको कॉल करेंगे।",
+    "mr": "मी वैद्यकीय सल्ला देऊ शकत नाही. मी क्लिनिक स्टाफला कळवले आहे, ते तुम्हाला कॉल करतील. आपत्कालीन स्थितीत 112 वर कॉल करा."
  },
  "unknown": {
     "en": "I'm not sure I understood. I'm passing this to clinic staff who will call you.",
@@ -273,6 +274,47 @@ def _format_availability(db: Session, docs: list[Doctor]) -> str:
             lines.append(f"Dr {d.name} ({d.speciality}): no free slots available soon")
     return ("\n".join(lines) or "No doctors listed.") + "\nTo book: 'book <doctor> YYYY-MM-DD HH:MM'"
 
+def _earliest_slot_for_clinic(db: Session, clinic_id: int) -> tuple[Doctor | None, datetime | None]:
+    docs = db.query(Doctor).filter_by(clinic_id=clinic_id, active=True).all()
+    best_doc, best_slot = None, None
+    today = datetime.now()
+    for d in docs:
+        for offset in range(0, 7):
+            target_day = today + timedelta(days=offset)
+            slots = free_slots(db, d, target_day, limit=1)
+            if slots:
+                if best_slot is None or slots[0] < best_slot:
+                    best_doc, best_slot = d, slots[0]
+                break
+    return best_doc, best_slot
+
+
+def _medical_handoff_reply(db: Session, clinic_id: int, L: str) -> str:
+    base = M["medical"][L]
+    doc, slot_dt = _earliest_slot_for_clinic(db, clinic_id)
+    if doc and slot_dt:
+        dt_str = f"{slot_dt:%d %b %Y, %I:%M %p}"
+        cmd = f"book {doc.name} {slot_dt:%Y-%m-%d %H:%M}"
+        if L == "hinglish":
+            offer = f"Sabse jaldi available slot: Dr {doc.name}, {dt_str} (book karne ke liye '{cmd}' likhein)."
+        elif L == "hi":
+            offer = f"सबसे जल्दी उपलब्ध अपॉइंटमेंट: डॉ. {doc.name}, {dt_str} (बुक करने के लिए '{cmd}' लिखें)।"
+        elif L == "mr":
+            offer = f"लवकरच उपलब्ध अपॉइंटमेंट: डॉ. {doc.name}, {dt_str}."
+        else:
+            offer = f"Earliest available slot: Dr {doc.name} on {dt_str} (say '{cmd}' to request it)."
+    else:
+        if L == "hinglish":
+            offer = "Sabse jaldi appointment slot ke liye 'availability' bolein."
+        elif L == "hi":
+            offer = "सबसे जल्दी स्लॉट के लिए 'availability' लिखें।"
+        elif L == "mr":
+            offer = "लवकरच्या स्लॉटसाठी 'availability' विचारा."
+        else:
+            offer = "Say 'availability' to check the next open slot."
+    return f"{base} {offer}"
+
+
 def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, text: str) -> str:
     t = text.strip()
     low = t.lower()
@@ -283,11 +325,19 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
         db.commit()
         return pre + msg
 
-    # Safety: always check emergency first
-    if re.search(URGENT, low):
+    # Pre-model safety gate on EVERY patient message (runs before any AI/LLM or booking logic)
+    safety = pre_model_safety_check(t)
+    if safety.category == "urgent":
         s.pending = {}
-        _event(db, s, "urgent", "urgent", "URGENT symptom mentioned - call patient now")
+        _event(db, s, "urgent", "urgent", f"URGENT ({safety.trigger_rule}) - alert clinic staff now: {t}")
+        log_safety_trigger(db, clinic.id, s.channel, s.external_id, safety, t, staff_alerted=True)
         return done(M["urgent"][L])
+
+    if safety.category == "medical":
+        s.pending = {}
+        _event(db, s, "medical", "handoff", f"Medical question ({safety.trigger_rule}) - clinic notified: {t}")
+        log_safety_trigger(db, clinic.id, s.channel, s.external_id, safety, t, staff_alerted=True)
+        return done(_medical_handoff_reply(db, clinic.id, L))
 
     p = dict(s.pending or {})
     # Confirmation of pending booking
@@ -347,10 +397,6 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
     if re.search(RELAY, low):  # message relay, no queue-jumping
         _event(db, s, "relay", "handoff", t)
         return done("I've passed your message to the clinic staff. Visits are in token order unless the clinic says otherwise.")
-
-    if re.search(MEDICAL, low):
-        _event(db, s, "medical", "handoff", "Medical question - doctor/staff callback needed: " + t)
-        return done(M["medical"][L])
 
     # Load versioned local rules set by clinic owner (Tension 8: local rules)
     rules = {r.rule_key: r.rule_value for r in db.query(ClinicRule).filter_by(clinic_id=clinic.id, active=True).all()}
