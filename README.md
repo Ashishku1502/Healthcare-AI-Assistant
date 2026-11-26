@@ -1,6 +1,12 @@
 # Parchi AI — AI front desk for small clinics (MVP)
 Next.js + FastAPI + SQLAlchemy. Admin dashboard, safe rule-based receptionist (Hindi/Hinglish/English), server-enforced booking, WhatsApp webhook, analytics.
 
+## Live Deployment
+- **Frontend (Vercel)**: [https://frontend-bice-eight-7xnlf654ep.vercel.app](https://frontend-bice-eight-7xnlf654ep.vercel.app)
+- **Demo Login**: `owner@clinic.com` / `clinic1234` (Owner) or `desk@clinic.com` / `clinic1234` (Receptionist)
+- **GitHub Repository**: [https://github.com/Ashishku1502/Healthcare-AI-Assistant](https://github.com/Ashishku1502/Healthcare-AI-Assistant)
+- **Backend (Render Ready)**: Configured with `render.yaml`, `Procfile`, and serverless Postgres (`pool_pre_ping`).
+
 ## Run locally
 ```bash
 # backend

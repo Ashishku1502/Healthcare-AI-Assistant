@@ -1,5 +1,5 @@
 # Parchi: requirements status against the Asymmetri brief (current)
-Status words: DONE (built or written, and tested where it is code), PARTIAL, NOT DONE, YOU DO (only you can produce it). 55 backend tests pass; frontend build passes.
+Status words: DONE (built or written, and tested where it is code), PARTIAL, NOT DONE, YOU DO (only you can produce it). 55 backend tests pass; frontend build passes; live on Vercel: https://frontend-bice-eight-7xnlf654ep.vercel.app.
 ## Hard constraints
 - Price Rs 2,500: **DONE** (cost sheet, landing page).
 - Variable cost at most Rs 1,000: **PARTIAL**. All-calls options cost Rs 8,930 and Rs 3,322 (over). Hybrid design is Rs 818 but rests on two unverified assumptions (35% forwarded, 50% templated).
