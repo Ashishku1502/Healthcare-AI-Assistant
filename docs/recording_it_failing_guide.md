@@ -155,3 +155,20 @@ This document provides the exact phrases, failing outputs, root causes, and scri
    - Setting `retention_days: 0` fails with `422`.
    - A receptionist trying to alter clinic retention or run `/admin/purge` is blocked with `403`.
    - Cross-clinic toggle of `PUT /patients/{id}/no-message` returns `404` (tenant isolation).
+
+
+---
+
+## Marathi & Voice Prompt Rule — "It Failing" Addendum
+
+> **Added**: Expanded Marathi detection (`lang()`) and full Marathi reply templates (`nomsg`, `sales`, `report`, `relay`, `priority`, `availability`, `hours`, `address`, `fees`, `wait`, `booking`), `llm.py` prompt updates for Marathi + voice rules, and deterministic voice enforcement (`< 2` sentences, never ask caller to press a button) across `/webhooks/voice`, `/chat/unclear`, and Call Simulator (`channel="voice"`).
+
+### Honest "It Failing" Cases to Show on Screen
+
+1. **Ambiguous short loanword / Hindi-Marathi overlap**:
+   - **Test input**: `"fees?"` or `"डॉक्टर आज कब आएंगे"`
+   - **What happens**: Single-word loanwords (`"fees?"`) or sentences without Marathi-specific markers (`आहे`, `किती`, `काय`, `ळ`, `aahe`, `kiti`) fall back to `"en"` or `"hi"` instead of `"mr"`.
+   - **Why it's honest**: Rule-based detection requires at least one Marathi grammatical or lexical token to avoid falsely switching Hindi or English patients into Marathi.
+2. **Owner rule attempting an IVR button menu on Voice**:
+   - **Test input**: Clinic owner writes `"Elderly patients go first. Please press 1 on your phone for desk. Bring ID card."` and a caller asks on voice.
+   - **What happens**: On voice, `_enforce_voice_reply` strips `"Please press 1..."` and keeps the spoken reply strictly under 2 sentences (1 sentence).

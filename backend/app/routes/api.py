@@ -164,7 +164,7 @@ def cancel(id: int, u: User = Depends(current_user), db: Session = Depends(get_d
     db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"cancel appt {id}")); db.commit(); return a
 @r.post("/chat")
 def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
-    c = db.get(Clinic, u.clinic_id); s = receptionist.get_session(db, c.id, "web", b.session_id)
+    c = db.get(Clinic, u.clinic_id); s = receptionist.get_session(db, c.id, b.channel, b.session_id)
     p = None
     if b.patient_phone:
         p = db.query(Patient).filter_by(clinic_id=c.id, phone=b.patient_phone).first()

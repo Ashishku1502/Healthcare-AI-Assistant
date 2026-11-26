@@ -1,5 +1,5 @@
-"""Deterministic administrative receptionist: en / Hinglish / Hindi / Marathi (safety lines only for mr).
-Rules: never diagnose; urgent -> emergency path; wait info only from receptionist-set live state; no report/identity disclosure."""
+"""Deterministic administrative receptionist: en / Hinglish / Hindi / Marathi.
+Rules: never diagnose; urgent -> emergency path; wait info only from receptionist-set live state; no report/identity disclosure; voice replies < 2 sentences and never ask caller to press a button."""
 import re
 from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
@@ -27,7 +27,14 @@ NO = r"^(no|n|cancel|nahi|nahin|nope|nako|नहीं|नको)\b"
 
 def lang(t: str) -> str:
     low = t.lower()
-    if re.search(r"\b(aahe|kay|kiti|nahi aahe|aale ka|aale|mala|tumhi|vel|patta|kuthe|kadhi|hoy|nako|udya|kara|karayche)\b|आहे|काय|किती|आले|पत्ता|वेळ|कुठे|केव्हा|होय|नको|उद्या|करा|ळ", low):
+    if re.search(
+        r"\b(aahe|aahet|aahat|kay|kiti|nahi aahe|aale ka|aale|mala|tumhi|tumcha|tumchi|vel|patta|"
+        r"kuthe|kothe|kadhi|hoy|nako|udya|kara|karayche|ushir|sanga|krupaya|mazhya|maza|mazi|bhetel|"
+        r"dukhate|dukhat|tap|aushadh)\b|"
+        r"आहे|आहेत|काय|किती|आले|आलेत|नाहीत|पत्ता|वेळ|वेळा|कुठे|कोठे|केव्हा|होय|नको|उद्या|करा|"
+        r"उशीर|माझ्या|माझा|माझी|तुम्ही|तुमचा|तुमची|सांगा|कृपया|दुखत|दुखते|भेटतील|मिळेल|औषध|गोळी|पाठवू नका|ळ",
+        low,
+    ):
         return "mr"
     if re.search(r"[\u0900-\u097F]", t):
         return "hi"
@@ -110,6 +117,22 @@ M = {
  "not_set": {
     "en": "not set; staff will confirm",
     "mr": "निश्चित नाही; स्टाफ पुष्टी करेल"
+ },
+ "nomsg": {
+    "en": "Understood. I will not send messages to this number. I can still help on calls.",
+    "mr": "समजले. मी या नंबरवर मेसेज पाठवणार नाही. मी कॉलवर मदत करू शकते."
+ },
+ "sales": {
+    "en": "Thank you. I've noted your request and passed it to the clinic staff, who will get back to you if the doctor can meet.",
+    "mr": "धन्यवाद. मी तुमचा निरोप क्लिनिक स्टाफकडे पाठवला आहे, डॉक्टर भेटू शकतील तर ते संपर्क करतील."
+ },
+ "report": {
+    "en": "I can't share report details here because I can't verify who is asking. The clinic staff will check and call you back.",
+    "mr": "ओळख पटल्याशिवाय मी रिपोर्टची माहिती देऊ शकत नाही. क्लिनिक स्टाफ तपासून तुम्हाला कॉल करतील."
+ },
+ "relay": {
+    "en": "I've passed your message to the clinic staff. Visits are in token order unless the clinic says otherwise.",
+    "mr": "मी तुमचा निरोप क्लिनिक स्टाफला दिला आहे. क्लिनिकच्या टोकन क्रमानुसारच भेटी होतील."
  }
 }
 
@@ -262,17 +285,70 @@ def parse_booking_request(low: str, docs: list[Doctor]):
 
     return matched_doc, date_val, time_val
 
-def _format_availability(db: Session, docs: list[Doctor]) -> str:
+def _format_availability(db: Session, docs: list[Doctor], L: str = "en", voice: bool = False) -> str:
+    if voice:
+        for d in docs:
+            day, slots = find_earliest_free_slots(db, d)
+            if slots and day:
+                day_str = "tomorrow" if (day.date() - datetime.now().date()).days == 1 else day.strftime("%A, %d %b")
+                if L == "mr":
+                    return f"डॉ. {d.name} यांचा पुढचा उपलब्ध स्लॉट {slots[0]:%I:%M %p} आहे, बुक करण्यासाठी कृपया तारीख आणि वेळ सांगा."
+                return f"Earliest slot for Dr {d.name} is {day_str} at {slots[0]:%I:%M %p}, just say the date and time you want to book."
+        return "कोणताही मोकळा स्लॉट नाही, स्टाफ तुम्हाला कॉल करतील." if L == "mr" else "No free slots are open soon, so clinic staff will call you back."
+
     lines = []
     for d in docs:
         day, slots = find_earliest_free_slots(db, d)
         if slots and day:
-            day_str = "tomorrow" if (day.date() - datetime.now().date()).days == 1 else day.strftime("%A, %d %b")
-            slot_strs = ", ".join(f"{x:%Y-%m-%d %H:%M}" for x in slots)
-            lines.append(f"Dr {d.name} ({d.speciality}): {slot_strs} ({day_str})")
+            if L == "mr":
+                day_str = "उद्या" if (day.date() - datetime.now().date()).days == 1 else day.strftime("%d %b")
+                slot_strs = ", ".join(f"{x:%Y-%m-%d %H:%M}" for x in slots)
+                lines.append(f"डॉ. {d.name} ({d.speciality}): {slot_strs} ({day_str})")
+            else:
+                day_str = "tomorrow" if (day.date() - datetime.now().date()).days == 1 else day.strftime("%A, %d %b")
+                slot_strs = ", ".join(f"{x:%Y-%m-%d %H:%M}" for x in slots)
+                lines.append(f"Dr {d.name} ({d.speciality}): {slot_strs} ({day_str})")
         else:
-            lines.append(f"Dr {d.name} ({d.speciality}): no free slots available soon")
+            if L == "mr":
+                lines.append(f"डॉ. {d.name} ({d.speciality}): लवकर स्लॉट उपलब्ध नाहीत")
+            else:
+                lines.append(f"Dr {d.name} ({d.speciality}): no free slots available soon")
+    if L == "mr":
+        return ("\n".join(lines) or "कोणतेही डॉक्टर उपलब्ध नाहीत.") + "\nबुक करण्यासाठी: 'book <doctor> YYYY-MM-DD HH:MM'"
     return ("\n".join(lines) or "No doctors listed.") + "\nTo book: 'book <doctor> YYYY-MM-DD HH:MM'"
+
+
+_BUTTON_PROMPT_RE = re.compile(
+    r"(?:please\s+)?(?:press|dial|hit|push|tap)\s+(?:a\s+|any\s+|the\s+)?(?:button|key|digit|number|star|hash|pound|\d|\*|#)(?:\s+[^.!?।\n]*)?|"
+    r"बटन\s*दबा[^.!?।\n]*|बटण\s*दाब[^.!?।\n]*|button\s+daba[^.!?।\n]*",
+    re.I,
+)
+
+
+def _protect_dots(text: str) -> str:
+    text = re.sub(r"\b(Dr|Mr|Mrs|Ms|St|No|Rs)\.", r"\1<DOT>", text)
+    text = re.sub(r"(\d)\.(\d)", r"\1<DOT>\2", text)
+    return text
+
+
+def _restore_dots(text: str) -> str:
+    return text.replace("<DOT>", ".")
+
+
+def _enforce_voice_reply(text: str) -> str:
+    """Enforce voice prompt rule: < 2 sentences and never ask caller to press a button."""
+    cleaned = _BUTTON_PROMPT_RE.sub("", text)
+    cleaned = re.sub(r"[,;:\-\s]+([.!?।])", r"\1", cleaned)
+    cleaned = re.sub(r"\s{2,}", " ", cleaned).strip()
+    if not cleaned:
+        return "Clinic staff will assist you shortly."
+
+    protected = _protect_dots(cleaned)
+    parts = [p.strip() for p in re.split(r"(?<=[.!?।])\s+", protected) if p.strip()]
+    first_sentence = _restore_dots(parts[0]) if parts else _restore_dots(protected)
+    if first_sentence and first_sentence[-1] not in ".!?।":
+        first_sentence += "."
+    return first_sentence
 
 def _earliest_slot_for_clinic(db: Session, clinic_id: int) -> tuple[Doctor | None, datetime | None]:
     docs = db.query(Doctor).filter_by(clinic_id=clinic_id, active=True).all()
@@ -289,9 +365,19 @@ def _earliest_slot_for_clinic(db: Session, clinic_id: int) -> tuple[Doctor | Non
     return best_doc, best_slot
 
 
-def _medical_handoff_reply(db: Session, clinic_id: int, L: str) -> str:
-    base = M["medical"][L]
+def _medical_handoff_reply(db: Session, clinic_id: int, L: str, voice: bool = False) -> str:
     doc, slot_dt = _earliest_slot_for_clinic(db, clinic_id)
+    if voice:
+        slot_part = f"Dr {doc.name} on {slot_dt:%d %b at %I:%M %p}" if (doc and slot_dt) else "the next open slot"
+        if L == "mr":
+            return f"मी वैद्यकीय सल्ला देऊ शकत नाही, क्लिनिक स्टाफ तुम्हाला कॉल करतील आणि आपत्कालीन स्थितीत 112 वर कॉल करा किंवा पुढचा स्लॉट {slot_part} उपलब्ध आहे."
+        if L == "hinglish":
+            return f"Main medical salah nahi de sakti, maine clinic staff ko bata diya hai aur sabse jaldi slot {slot_part} hai."
+        if L == "hi":
+            return f"मैं चिकित्सकीय सलाह नहीं दे सकती, क्लिनिक स्टाफ को सूचित कर दिया है और सबसे जल्दी स्लॉट {slot_part} उपलब्ध है।"
+        return f"I can't give medical advice, so I've told clinic staff to call you and our earliest slot is {slot_part}."
+
+    base = M["medical"][L]
     if doc and slot_dt:
         dt_str = f"{slot_dt:%d %b %Y, %I:%M %p}"
         cmd = f"book {doc.name} {slot_dt:%Y-%m-%d %H:%M}"
@@ -315,17 +401,35 @@ def _medical_handoff_reply(db: Session, clinic_id: int, L: str) -> str:
     return f"{base} {offer}"
 
 
+def _urgent_voice_reply(L: str) -> str:
+    if L == "mr":
+        return "हे आपत्कालीन असू शकते, कृपया आत्ताच जवळच्या इमरजेंसी रूममध्ये जा किंवा 112 वर कॉल करा आणि मी क्लिनिक स्टाफला अलर्ट करत आहे."
+    if L == "hinglish":
+        return "Yeh urgent ho sakta hai, abhi nazdeeki emergency room jaayein ya 112 par call karein aur clinic staff aapko call karenge."
+    if L == "hi":
+        return "यह आपात स्थिति हो सकती है, कृपया अभी नज़दीकी इमरजेंसी रूम जाएँ या 112 पर कॉल करें और क्लिनिक स्टाफ आपको कॉल करेंगे।"
+    return "This could be urgent, so please go to the nearest emergency room or call 112 right now while I alert clinic staff."
+
+
 def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, text: str) -> str:
     t = text.strip()
     low = t.lower()
     L = lang(t)
+    is_voice = s.channel in ("voice", "voice-sim")
     first = s.event_id is None and not (s.pending or {}).get("disclosed")
-    pre = DISC[L] if first else ""
+    if first:
+        pre = (DISC[L].rstrip(".। ") + " — ") if is_voice else DISC[L]
+    else:
+        pre = ""
+
     def done(msg):
         if first:
             s.pending = {**(s.pending or {}), "disclosed": True}
+        out = pre + msg
+        if is_voice:
+            out = _enforce_voice_reply(out)
         db.commit()
-        return pre + msg
+        return out
 
     # Pre-model safety gate on EVERY patient message (runs before any AI/LLM or booking logic)
     safety = pre_model_safety_check(t)
@@ -333,13 +437,13 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
         s.pending = {}
         _event(db, s, "urgent", "urgent", f"URGENT ({safety.trigger_rule}) - alert clinic staff now: {t}")
         log_safety_trigger(db, clinic.id, s.channel, s.external_id, safety, t, staff_alerted=True)
-        return done(M["urgent"][L])
+        return done(_urgent_voice_reply(L) if is_voice else M["urgent"][L])
 
     if safety.category == "medical":
         s.pending = {}
         _event(db, s, "medical", "handoff", f"Medical question ({safety.trigger_rule}) - clinic notified: {t}")
         log_safety_trigger(db, clinic.id, s.channel, s.external_id, safety, t, staff_alerted=True)
-        return done(_medical_handoff_reply(db, clinic.id, L))
+        return done(_medical_handoff_reply(db, clinic.id, L, voice=is_voice))
 
     p = dict(s.pending or {})
     # Confirmation of pending booking
@@ -386,40 +490,42 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
         if patient:
             patient.no_message = True
         _event(db, s, "privacy", "handoff", "Patient asked: do NOT message this number")
-        return done("Understood. I will not send messages to this number. I can still help on calls.")
+        return done(M["nomsg"]["mr" if L == "mr" else "en"])
 
     if re.search(SALES, low):
         _event(db, s, "sales", "handoff", "Sales/rep enquiry - staff to decide")
-        return done("Thank you. I've noted your request and passed it to the clinic staff, who will get back to you if the doctor can meet.")
+        return done(M["sales"]["mr" if L == "mr" else "en"])
 
     if re.search(REPORT, low):  # no identity proof by voice/number: never disclose
         _event(db, s, "report", "handoff", "Report query - verify identity, then answer")
-        return done("I can't share report details here because I can't verify who is asking. The clinic staff will check and call you back.")
+        return done(M["report"]["mr" if L == "mr" else "en"])
 
     if re.search(RELAY, low):  # message relay, no queue-jumping
         _event(db, s, "relay", "handoff", t)
-        return done("I've passed your message to the clinic staff. Visits are in token order unless the clinic says otherwise.")
+        return done(M["relay"]["mr" if L == "mr" else "en"])
 
     # Load versioned local rules set by clinic owner (Tension 8: local rules)
     rules = {r.rule_key: r.rule_value for r in db.query(ClinicRule).filter_by(clinic_id=clinic.id, active=True).all()}
 
     # Local rule: queue priority (e.g. "elderly first")
-    if "queue_priority" in rules and re.search(r"\b(elderly|senior|buzurg|bujurg|old age|priority|pehla|first)\b", low):
+    if "queue_priority" in rules and re.search(r"\b(elderly|senior|buzurg|bujurg|old age|priority|pehla|first|ज्येष्ठ|प्राधान्य)\b", low):
         _event(db, s, "priority", "answered")
+        if L == "mr":
+            return done(f"क्लिनिकचे धोरण: {rules['queue_priority']}, कृपया आल्यावर रिसेप्शनवर कळवा.")
         return done(f"Clinic policy: {rules['queue_priority']}. Please let the reception desk know when you arrive.")
 
     docs = db.query(Doctor).filter_by(clinic_id=clinic.id, active=True).all()
 
     # Clinic Facts (local hours rule takes precedence over default clinic hours if set)
     effective_hours = rules.get("hours") or clinic.hours
-    if re.search(r"hours|timing|open|kab khult[aei]|samay|समय|vel|kadhi|केव्हा|वेळ|उघड", low):
+    if re.search(r"hours|timing|open|kab khult[aei]|samay|समय|vel|kadhi|केव्हा|वेळ|वेळा|सुरू|बंद|उघड", low):
         _event(db, s, "hours", "answered")
         if L == "mr":
             val = effective_hours or M["not_set"]["mr"]
             return done(M["hours"]["mr"].format(name=clinic.name, val=val))
         return done(f"{clinic.name} hours: {effective_hours or 'not set; staff will confirm'}.")
 
-    if re.search(r"address|location|kahan|pata|पता|patta|kothe|kuthe|पत्ता|कुठे", low):
+    if re.search(r"address|location|kahan|pata|पता|patta|kothe|kuthe|पत्ता|कुठे|कोठे", low):
         _event(db, s, "address", "answered")
         if L == "mr":
             val = clinic.address or M["not_set"]["mr"]
@@ -432,7 +538,7 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
     if re.search(r"late|wait|delay|intezaar|aa gaye|aaye|arrived|aale|देर|आ गए|ushir|उशीर|आले|kitna wait|kitni der|token|doctor (?:in|out|hai|aaye|aale)|is (?:the )?doctor in|how long.*wait", low):
         return done(wait_reply(db, s, docs, lang=L, user_token=user_token))
 
-    if re.search(r"fee|fees|charge|kitna|price|शुल्क|kiti|दर|फी", low):
+    if re.search(r"fee|fees|charge|kitna|price|शुल्क|kiti|दर|फी|फीस", low):
         _event(db, s, "fees", "answered")
         if L == "mr":
             val = clinic.fees or M["not_set"]["mr"]
@@ -444,6 +550,8 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
     if doc_cand and date_cand and time_cand:
         start_dt = datetime.combine(date_cand, datetime.min.time()).replace(hour=time_cand[0], minute=time_cand[1])
         if start_dt not in free_slots(db, doc_cand, start_dt, limit=500):
+            if L == "mr":
+                return done("हा स्लॉट उपलब्ध नाही. मोकळे स्लॉट पाहण्यासाठी 'availability' विचारा.")
             return done("That slot is not available. Say 'availability' to see free slots.")
         pending_data = {
             "awaiting": "confirm",
@@ -456,17 +564,21 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
         _event(db, s, "booking", "answered")
         dt_str = f"{start_dt:%d %b %Y, %I:%M %p}"
         if L == "mr":
+            if is_voice:
+                return done(f"कृपया पुष्टी करा: डॉ. {doc_cand.name}, {dt_str}, बुक करण्यासाठी होय किंवा रद्द करण्यासाठी नको बोला.")
             return done(M["booking_confirm_prompt"]["mr"].format(name=doc_cand.name, dt=dt_str))
+        if is_voice:
+            return done(f"Please confirm Dr {doc_cand.name} on {dt_str}, say YES to book or NO to cancel.")
         return done(f"Please confirm: Dr {doc_cand.name} on {dt_str}. Reply YES to book or NO to cancel.")
 
     # Doctor availability & schedule inquiry
-    if re.search(r"availab|doctor|slot|book|appointment|मिल", low):
+    if re.search(r"availab|doctor|slot|book|appointment|मिल|मोकळ|उपलब्ध|भेटतील|स्लॉट", low):
         _event(db, s, "availability", "answered")
-        return done(_format_availability(db, docs))
+        return done(_format_availability(db, docs, L=L, voice=is_voice))
 
     # LLM intent classifier fallback (only if cap not reached and confidence >= 0.7)
     if llm.check_and_increment_cap(clinic.id):
-        res = llm.classify(t, L)
+        res = llm.classify(t, L, s.channel)
         intent = res.get("intent", "other")
         confidence = float(res.get("confidence", 0.0))
         if confidence >= 0.7:
@@ -492,7 +604,7 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
                 return done(wait_reply(db, s, docs, lang=L, user_token=user_token))
             elif intent in ("availability", "booking"):
                 _event(db, s, "availability", "answered")
-                return done(_format_availability(db, docs))
+                return done(_format_availability(db, docs, L=L, voice=is_voice))
 
     _event(db, s, "other", "handoff", "Not understood: " + t)
     return done(M["unknown"][L])
@@ -500,13 +612,23 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
 def unclear_turn(db: Session, s: ChatSession) -> tuple[str, bool]:
     """Speech not understood: 1st time ONE yes/no question; 2nd time human callback. Never a menu."""
     first = s.event_id is None and not (s.pending or {}).get("disclosed")
+    is_voice = s.channel in ("voice", "voice-sim")
     n = int((s.pending or {}).get("unclear", 0)) + 1
     s.pending = {**(s.pending or {}), "unclear": n, "disclosed": True}
-    pre = DISC["hinglish"] if first else ""
+    if first:
+        pre = (DISC["hinglish"].rstrip(".। ") + " — ") if is_voice else DISC["hinglish"]
+    else:
+        pre = ""
     if n >= 2:
         _event(db, s, "other", "handoff", "Caller not understood twice - call back now")
         s.pending = {}
+        out = pre + "Main clinic staff ko aapka number de rahi hoon, woh abhi aapko call karenge."
+        if is_voice:
+            out = _enforce_voice_reply(out)
         db.commit()
-        return pre + "Main clinic staff ko aapka number de rahi hoon, woh abhi aapko call karenge.", True
+        return out, True
+    out = pre + "Kya aap doctor sahab ke aane ke baare mein pooch rahe hain, haan ya nahi boliye?"
+    if is_voice:
+        out = _enforce_voice_reply(out)
     db.commit()
-    return pre + "Kya aap doctor sahab ke aane ke baare mein pooch rahe hain? Haan ya nahi boliye.", False
+    return out, False

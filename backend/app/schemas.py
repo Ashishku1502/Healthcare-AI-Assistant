@@ -38,7 +38,7 @@ class ClinicIn(BaseModel):
         max_length=500,
     )
     retention_days: int = Field(default=90, ge=1, le=3650)
-class ChatIn(BaseModel): session_id: str = Field(min_length=3, max_length=60); message: str = Field(min_length=1, max_length=500); patient_name: str | None = None; patient_phone: str | None = None
+class ChatIn(BaseModel): session_id: str = Field(min_length=3, max_length=60); message: str = Field(min_length=1, max_length=500); patient_name: str | None = None; patient_phone: str | None = None; channel: str = Field(default="web", pattern="^(web|voice|voice-sim|whatsapp)$")
 class StatusIn(BaseModel): state: str = Field(pattern="^(in|late|out)$"); late_minutes: int = Field(0, ge=0, le=480)
 class RuleIn(BaseModel):
     rule_key: str = Field(min_length=2, max_length=50)

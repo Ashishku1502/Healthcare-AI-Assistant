@@ -29,8 +29,9 @@ def reset_daily_cap():
     """Testing helper to reset per-clinic daily counters."""
     _clinic_daily_calls.clear()
 
-def classify(text: str, lang: str = "en") -> dict:
+def classify(text: str, lang: str = "en", channel: str = "web") -> dict:
     """Classifies user intent using LLM with 1.5s timeout.
+    Supports English, Hindi, Hinglish, and Marathi.
     Returns: {"intent": one of [hours, address, fees, wait, availability, booking, other], "confidence": float}
     On timeout, error, missing key, or invalid response, returns {"intent": "other", "confidence": 0.0}.
     """
@@ -42,7 +43,9 @@ def classify(text: str, lang: str = "en") -> dict:
 
     system_prompt = (
         "You are an administrative intent classifier for a medical clinic front desk. "
+        "Supported languages: English, Hindi, Hinglish, and Marathi (Devanagari and Romanized Marathi). "
         "You must NEVER provide medical advice, diagnosis, or write user-facing answers. "
+        "Voice prompt rule: for voice calls, keep replies strictly under 2 sentences and never ask the caller to press a button or key. "
         "Classify the user utterance into exactly ONE label from: [hours, address, fees, wait, availability, booking, other]. "
         "Output ONLY a raw JSON object with keys 'intent' (string) and 'confidence' (float between 0.0 and 1.0)."
     )
@@ -51,7 +54,7 @@ def classify(text: str, lang: str = "en") -> dict:
         "model": LLM_MODEL,
         "messages": [
             {"role": "system", "content": system_prompt},
-            {"role": "user", "content": f"Language: {lang}\nMessage: {text}"}
+            {"role": "user", "content": f"Language: {lang}\nChannel: {channel}\nMessage: {text}"}
         ],
         "temperature": 0.0,
         "max_tokens": 50,

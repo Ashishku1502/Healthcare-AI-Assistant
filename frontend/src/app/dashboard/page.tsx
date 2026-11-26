@@ -186,8 +186,8 @@ function Now() {
           <div
             key={e.id}
             className={`rounded-2xl p-4 mb-2.5 border ${e.outcome === "urgent"
-                ? "bg-red-50 border-red-300 text-red-950"
-                : "bg-lav border-lav/80"
+              ? "bg-red-50 border-red-300 text-red-950"
+              : "bg-lav border-lav/80"
               }`}
           >
             <div className="flex items-center justify-between">
@@ -653,7 +653,7 @@ function Sim() {
       setLog((l) => [...l, { who: "parchi", t: "(filler) Ek second, main dekh rahi hoon" }]);
     }, 1500);
     try {
-      const r = await api("/chat", { method: "POST", body: JSON.stringify({ session_id: sid, message: text }) });
+      const r = await api("/chat", { method: "POST", body: JSON.stringify({ session_id: sid, message: text, channel: "voice" }) });
       clearTimeout(filler);
       const ms = Math.round(performance.now() - t0);
       setLog((l) => [...l, { who: "parchi", t: r.reply, ms }]);
@@ -921,11 +921,10 @@ function Settings({ userRole }: { userRole?: string }) {
               <button
                 type="button"
                 onClick={() => toggleNoMessage(p)}
-                className={`text-xs px-3 py-1.5 rounded-lg font-semibold border shrink-0 transition-colors ${
-                  p.no_message
+                className={`text-xs px-3 py-1.5 rounded-lg font-semibold border shrink-0 transition-colors ${p.no_message
                     ? "bg-red-50 text-red-700 border-red-300 hover:bg-red-100"
                     : "bg-white text-gray-700 border-gray-300 hover:bg-gray-50"
-                }`}
+                  }`}
               >
                 {p.no_message ? "Allow Messages" : "Do Not Message"}
               </button>
@@ -1126,8 +1125,8 @@ export default function Dashboard() {
               aria-current={isActive}
               onClick={() => setTab(t.id)}
               className={`whitespace-nowrap px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 ${isActive
-                  ? "bg-brand text-white shadow-sm"
-                  : "bg-white text-gray-700 border border-lav hover:bg-lav"
+                ? "bg-brand text-white shadow-sm"
+                : "bg-white text-gray-700 border border-lav hover:bg-lav"
                 }`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-gray-500"}`} />
