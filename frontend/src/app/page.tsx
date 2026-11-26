@@ -24,7 +24,7 @@ const features = [
     color: "bg-green-100 text-ok",
   },
   {
-    title: "Hindi · Hinglish · English",
+    title: "Hindi · Hinglish · Marathi · English",
     desc: "Replies in the language the patient speaks or types with native natural phrasing.",
     icon: IconMessageSquare,
     color: "bg-blue-100 text-blue-600",

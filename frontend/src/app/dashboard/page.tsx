@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { api } from "@/lib/api";
 import {
@@ -66,31 +66,62 @@ function State({ loading, err, empty }: { loading: boolean; err: string; empty?:
   return empty ? <p className="text-gray-500 text-sm py-2">Nothing here yet.</p> : null;
 }
 
+function parseUtc(ts?: string | null): Date | null {
+  if (!ts) return null;
+  const hasTz = ts.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(ts);
+  const d = new Date(hasTz ? ts : `${ts}Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function isStatusFresh(ts?: string | null): boolean {
+  const d = parseUtc(ts);
+  if (!d) return false;
+  const diffMins = (Date.now() - d.getTime()) / 60000;
+  return diffMins >= 0 && diffMins <= 30;
+}
+
+function Feedback({ msg }: { msg: { text: string; err?: boolean } | null }) {
+  if (!msg) return null;
+  return (
+    <div
+      role={msg.err ? "alert" : "status"}
+      className={`flex items-center gap-2 text-sm p-2.5 rounded-xl mt-2 ${
+        msg.err ? "text-red-700 bg-red-50 border border-red-200" : "text-ok bg-green-50 border border-green-200"
+      }`}
+    >
+      {msg.err ? <IconAlertTriangle className="w-4 h-4 text-red-600 shrink-0" /> : <IconCheckCircle className="w-4 h-4 text-ok shrink-0" />}
+      <span>{msg.text}</span>
+    </div>
+  );
+}
+
 function Now() {
   const doc = useLoad<any[]>("/doctors");
   const att = useLoad<any[]>("/attention");
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
 
   async function set(id: number, state: string, late = 0) {
+    setMsg(null);
     try {
       await api(`/doctors/${id}/status`, {
         method: "PUT",
         body: JSON.stringify({ state, late_minutes: late }),
       });
-      setMsg("Status updated. Parchi will now answer patients with this.");
+      setMsg({ text: "Status updated. Parchi will now answer patients with this." });
       doc.reload();
     } catch (x: any) {
-      setMsg(x.message);
+      setMsg({ text: x.message || "Failed to update status", err: true });
     }
   }
 
   async function nextToken(id: number) {
+    setMsg(null);
     try {
       const res = await api(`/doctors/${id}/next-token`, { method: "POST" });
-      setMsg(`Token advanced to #${res.current_token || 1}. Patients will be told this.`);
+      setMsg({ text: `Token advanced to #${res.current_token || 1}. Patients will be told this.` });
       doc.reload();
     } catch (x: any) {
-      setMsg(x.message);
+      setMsg({ text: x.message || "Failed to advance token", err: true });
     }
   }
 
@@ -115,10 +146,10 @@ function Now() {
           ?.filter((d) => d.active)
           .map((d) => (
             <div key={d.id} className="mb-4 bg-lav/40 p-3.5 rounded-2xl border border-lav">
-              <div className="flex items-center justify-between flex-wrap gap-1">
-                <p className="font-semibold text-deep flex items-center gap-1.5">
-                  <IconStethoscope className="w-4 h-4 text-brand" />
-                  Dr. {d.name}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <p className="font-semibold text-deep flex items-center gap-1.5 flex-wrap">
+                  <IconStethoscope className="w-4 h-4 text-brand shrink-0" />
+                  <span>Dr. {d.name}</span>
                   <span className="text-sm font-normal text-gray-600">
                     · Live:{" "}
                     <b className="capitalize text-brand">
@@ -128,6 +159,15 @@ function Now() {
                     <b className="text-brand font-mono font-bold">#{d.current_token || 0}</b>
                   </span>
                 </p>
+                <span
+                  className={`text-[11px] font-bold px-2.5 py-0.5 rounded-full ${
+                    isStatusFresh(d.status_at)
+                      ? "bg-emerald-100 text-emerald-800"
+                      : "bg-amber-100 text-amber-800"
+                  }`}
+                >
+                  {isStatusFresh(d.status_at) ? "Fresh (≤30m)" : "Unconfirmed (>30m)"}
+                </span>
               </div>
               <div className="flex gap-2 flex-wrap mt-2.5">
                 <button
@@ -168,12 +208,7 @@ function Now() {
               </div>
             </div>
           ))}
-        {msg && (
-          <div role="status" className="flex items-center gap-2 text-sm text-ok bg-green-50 p-2.5 rounded-xl mt-2">
-            <IconCheckCircle className="w-4 h-4 text-ok" />
-            <span>{msg}</span>
-          </div>
-        )}
+        <Feedback msg={msg} />
       </div>
 
       <div className="card">
@@ -228,42 +263,79 @@ function Now() {
 
 function Overview() {
   const { data, err, loading } = useLoad<any>("/analytics");
+  const safety = useLoad<any[]>("/safety-logs");
   return (
-    <div className="card">
-      <div className="flex items-center gap-2 mb-3">
-        <IconActivity className="w-5 h-5 text-brand" />
-        <h2 className="font-bold text-deep text-lg">Activity (Last 30 days)</h2>
-      </div>
-      <State loading={loading} err={err} />
-      {data && (
-        <div className="space-y-4">
-          <div className="bg-lav/50 p-4 rounded-2xl border border-lav">
-            <p className="text-3xl font-extrabold text-deep flex items-baseline gap-2">
-              {data.contacts}
-              <span className="text-sm font-normal text-gray-600">patient contacts handled</span>
-            </p>
-          </div>
-          <div className="grid sm:grid-cols-2 gap-3">
-            <div className="bg-white border border-lav p-3 rounded-xl">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Outcomes</span>
-              <p className="text-sm mt-1 font-medium">
-                {Object.entries(data.by_outcome)
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join(" · ") || "No interactions recorded yet"}
-              </p>
-            </div>
-            <div className="bg-white border border-lav p-3 rounded-xl">
-              <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Channels</span>
-              <p className="text-sm mt-1 font-medium">
-                {Object.entries(data.by_channel)
-                  .map(([k, v]) => `${k}: ${v}`)
-                  .join(" · ") || "No interactions recorded yet"}
-              </p>
-            </div>
-          </div>
-          <p className="text-xs text-gray-500">Source: {data.source}</p>
+    <div className="space-y-4">
+      <div className="card">
+        <div className="flex items-center gap-2 mb-3">
+          <IconActivity className="w-5 h-5 text-brand" />
+          <h2 className="font-bold text-deep text-lg">Activity (Last 30 days)</h2>
         </div>
-      )}
+        <State loading={loading} err={err} />
+        {data && (
+          <div className="space-y-4">
+            <div className="bg-lav/50 p-4 rounded-2xl border border-lav">
+              <p className="text-3xl font-extrabold text-deep flex items-baseline gap-2">
+                {data.contacts}
+                <span className="text-sm font-normal text-gray-600">patient contacts handled</span>
+              </p>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="bg-white border border-lav p-3 rounded-xl">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Outcomes</span>
+                <p className="text-sm mt-1 font-medium">
+                  {Object.entries(data.by_outcome)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(" · ") || "No interactions recorded yet"}
+                </p>
+              </div>
+              <div className="bg-white border border-lav p-3 rounded-xl">
+                <span className="text-xs font-bold text-gray-500 uppercase tracking-wider">Channels</span>
+                <p className="text-sm mt-1 font-medium">
+                  {Object.entries(data.by_channel)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(" · ") || "No interactions recorded yet"}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-gray-500">Source: {data.source}</p>
+          </div>
+        )}
+      </div>
+
+      {/* Pre-Model Safety Trigger Log */}
+      <div className="card">
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <IconShieldCheck className="w-5 h-5 text-brand" />
+            <h2 className="font-bold text-deep text-lg">Pre-Model Safety Trigger Log</h2>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-lav text-brand">
+            {safety.data?.length ?? 0} logged
+          </span>
+        </div>
+        <State loading={safety.loading} err={safety.err} empty={safety.data?.length === 0} />
+        <div className="space-y-2 max-h-64 overflow-y-auto">
+          {safety.data?.slice(0, 15).map((s) => (
+            <div
+              key={s.id}
+              className={`p-3 rounded-xl border text-xs flex items-start justify-between gap-2 ${
+                s.category === "urgent" ? "bg-red-50 border-red-200" : "bg-amber-50 border-amber-200"
+              }`}
+            >
+              <div className="min-w-0">
+                <p className="font-bold text-deep">
+                  <span className="uppercase">{s.category}</span> · {s.trigger_rule} · via {s.channel}
+                </p>
+                <p className="text-gray-700 mt-0.5 break-words">{s.message_excerpt}</p>
+              </div>
+              <span className="shrink-0 font-mono text-[10px] px-2 py-0.5 rounded bg-white border border-black/10">
+                {s.ai_skipped ? "AI skipped" : "checked"}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -271,25 +343,33 @@ function Overview() {
 function Doctors() {
   const { data, err, loading, reload } = useLoad<any[]>("/doctors");
   const [name, setName] = useState("");
-  const [msg, setMsg] = useState("");
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [noteText, setNoteText] = useState("");
+  const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
 
   async function add(e: React.FormEvent) {
     e.preventDefault();
-    setMsg("");
+    setMsg(null);
     try {
-      await api("/doctors", { method: "POST", body: JSON.stringify({ name }) });
+      await api("/doctors", { method: "POST", body: JSON.stringify({ name: name.trim() }) });
       setName("");
+      setMsg({ text: "Doctor added to clinic." });
       reload();
     } catch (x: any) {
-      setMsg(x.message);
+      setMsg({ text: x.message || "Could not add doctor", err: true });
     }
   }
 
-  async function note(d: any) {
-    const s = prompt("Status note (e.g. running 20 min late). Leave empty to clear.", d.status_note);
-    if (s === null) return;
-    await api(`/doctors/${d.id}`, { method: "PUT", body: JSON.stringify({ ...d, status_note: s }) });
-    reload();
+  async function saveNote(d: any) {
+    setMsg(null);
+    try {
+      await api(`/doctors/${d.id}`, { method: "PUT", body: JSON.stringify({ ...d, status_note: noteText.trim() }) });
+      setEditingId(null);
+      setMsg({ text: `Updated note for Dr. ${d.name}.` });
+      reload();
+    } catch (x: any) {
+      setMsg({ text: x.message || "Could not update note", err: true });
+    }
   }
 
   return (
@@ -315,28 +395,56 @@ function Doctors() {
           <IconCross className="w-4 h-4" />
           Add Doctor
         </button>
-        {msg && <p role="alert" className="text-red-700 text-sm w-full">{msg}</p>}
+        <div className="w-full">
+          <Feedback msg={msg} />
+        </div>
       </form>
       <State loading={loading} err={err} empty={data?.length === 0} />
       {data?.map((d) => (
-        <div className="card flex justify-between items-center gap-2 flex-wrap" key={d.id}>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
-              <IconStethoscope className="w-5 h-5 text-brand" />
+        <div className="card space-y-3" key={d.id}>
+          <div className="flex justify-between items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center shrink-0">
+                <IconStethoscope className="w-5 h-5 text-brand" />
+              </div>
+              <div>
+                <p className="font-semibold text-deep">
+                  Dr. {d.name} {!d.active && <span className="text-xs text-gray-500">(inactive)</span>}
+                </p>
+                <p className="text-sm text-gray-600">
+                  {d.speciality} · {d.start_hour}:00–{d.end_hour}:00 · {d.status_note || "No delay reported"}
+                </p>
+              </div>
             </div>
-            <div>
-              <p className="font-semibold text-deep">
-                Dr. {d.name} {!d.active && <span className="text-xs text-gray-500">(inactive)</span>}
-              </p>
-              <p className="text-sm text-gray-600">
-                {d.speciality} · {d.start_hour}:00–{d.end_hour}:00 · {d.status_note || "No delay reported"}
-              </p>
-            </div>
+            <button
+              type="button"
+              className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5"
+              onClick={() => {
+                if (editingId === d.id) {
+                  setEditingId(null);
+                } else {
+                  setEditingId(d.id);
+                  setNoteText(d.status_note || "");
+                }
+              }}
+            >
+              <IconClock className="w-3.5 h-3.5" />
+              {editingId === d.id ? "Cancel" : "Update Note"}
+            </button>
           </div>
-          <button className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5" onClick={() => note(d)}>
-            <IconClock className="w-3.5 h-3.5" />
-            Update Note
-          </button>
+          {editingId === d.id && (
+            <div className="flex gap-2 flex-wrap pt-2 border-t border-lav">
+              <input
+                className="inp text-sm flex-1 min-w-[200px]"
+                placeholder="e.g. Running 20 min late"
+                value={noteText}
+                onChange={(e) => setNoteText(e.target.value)}
+              />
+              <button type="button" className="btn text-xs py-2 px-4" onClick={() => saveNote(d)}>
+                Save Note
+              </button>
+            </div>
+          )}
         </div>
       ))}
     </div>
@@ -349,11 +457,37 @@ function Appointments() {
   const p = useLoad<any[]>("/patients");
   const [f, setF] = useState({ doctor_id: "", patient_id: "", start: "" });
   const [ok, setOk] = useState(false);
-  const [msg, setMsg] = useState("");
+  const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
+  const [showAddPatient, setShowAddPatient] = useState(false);
+  const [np, setNp] = useState({ name: "", phone: "", consent: true, no_message: false });
+  const [patMsg, setPatMsg] = useState<{ text: string; err?: boolean } | null>(null);
+
+  async function addPatient(e: React.FormEvent) {
+    e.preventDefault();
+    setPatMsg(null);
+    try {
+      const created = await api<any>("/patients", {
+        method: "POST",
+        body: JSON.stringify({
+          name: np.name.trim(),
+          phone: np.phone.trim(),
+          consent: np.consent,
+          no_message: np.no_message,
+        }),
+      });
+      setNp({ name: "", phone: "", consent: true, no_message: false });
+      setShowAddPatient(false);
+      setF((prev) => ({ ...prev, patient_id: String(created.id) }));
+      setPatMsg({ text: `Added patient ${created.name}.` });
+      p.reload();
+    } catch (x: any) {
+      setPatMsg({ text: x.message || "Could not register patient", err: true });
+    }
+  }
 
   async function book(e: React.FormEvent) {
     e.preventDefault();
-    setMsg("");
+    setMsg(null);
     try {
       await api("/appointments", {
         method: "POST",
@@ -366,77 +500,125 @@ function Appointments() {
       });
       setOk(false);
       a.reload();
-      setMsg("Appointment confirmed and booked.");
+      setMsg({ text: "Appointment confirmed and booked." });
     } catch (x: any) {
-      setMsg(x.message);
+      setMsg({ text: x.message || "Booking failed", err: true });
     }
   }
 
   return (
     <div className="space-y-4">
-      <form onSubmit={book} className="card grid sm:grid-cols-2 gap-3">
-        <label className="text-sm font-medium">
-          Doctor
-          <select
-            className="inp mt-1 text-sm"
-            required
-            value={f.doctor_id}
-            onChange={(e) => setF({ ...f, doctor_id: e.target.value })}
+      <div className="card space-y-3">
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <h2 className="font-bold text-deep text-base">Book Confirmed Appointment</h2>
+          <button
+            type="button"
+            className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5"
+            onClick={() => setShowAddPatient(!showAddPatient)}
           >
-            <option value="">Select Doctor</option>
-            {d.data
-              ?.filter((x) => x.active)
-              .map((x) => (
+            <IconUser className="w-3.5 h-3.5" />
+            {showAddPatient ? "Close Add Patient" : "+ Quick Add Patient"}
+          </button>
+        </div>
+
+        {(showAddPatient || p.data?.length === 0) && (
+          <form onSubmit={addPatient} className="bg-lav/40 border border-lav rounded-2xl p-3.5 grid sm:grid-cols-2 gap-2.5">
+            <p className="sm:col-span-2 text-xs font-bold text-deep uppercase tracking-wider">Register Patient</p>
+            <input
+              className="inp text-sm"
+              required
+              minLength={2}
+              placeholder="Patient full name"
+              value={np.name}
+              onChange={(e) => setNp({ ...np, name: e.target.value })}
+            />
+            <input
+              className="inp text-sm"
+              required
+              pattern="[0-9]{10,13}"
+              placeholder="Phone (10-13 digits)"
+              value={np.phone}
+              onChange={(e) => setNp({ ...np, phone: e.target.value.replace(/\D/g, "") })}
+            />
+            <label className="flex items-center gap-2 text-xs text-gray-700">
+              <input type="checkbox" checked={np.consent} onChange={(e) => setNp({ ...np, consent: e.target.checked })} />
+              Consent to updates/reminders
+            </label>
+            <label className="flex items-center gap-2 text-xs text-gray-700">
+              <input type="checkbox" checked={np.no_message} onChange={(e) => setNp({ ...np, no_message: e.target.checked })} />
+              Do not message this number
+            </label>
+            <button className="btn sm:col-span-2 text-xs py-2">Save Patient</button>
+          </form>
+        )}
+        <Feedback msg={patMsg} />
+
+        <form onSubmit={book} className="grid sm:grid-cols-2 gap-3 pt-1">
+          <label className="text-sm font-medium">
+            Doctor
+            <select
+              className="inp mt-1 text-sm"
+              required
+              value={f.doctor_id}
+              onChange={(e) => setF({ ...f, doctor_id: e.target.value })}
+            >
+              <option value="">Select Doctor</option>
+              {d.data
+                ?.filter((x) => x.active)
+                .map((x) => (
+                  <option key={x.id} value={x.id}>
+                    Dr. {x.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+          <label className="text-sm font-medium">
+            Patient
+            <select
+              className="inp mt-1 text-sm"
+              required
+              value={f.patient_id}
+              onChange={(e) => setF({ ...f, patient_id: e.target.value })}
+            >
+              <option value="">Select Patient</option>
+              {p.data?.map((x) => (
                 <option key={x.id} value={x.id}>
-                  Dr. {x.name}
+                  {x.name} ({x.phone})
                 </option>
               ))}
-          </select>
-        </label>
-        <label className="text-sm font-medium">
-          Patient
-          <select
-            className="inp mt-1 text-sm"
-            required
-            value={f.patient_id}
-            onChange={(e) => setF({ ...f, patient_id: e.target.value })}
+            </select>
+          </label>
+          <label className="text-sm font-medium">
+            Date & Time
+            <input
+              className="inp mt-1 text-sm"
+              type="datetime-local"
+              required
+              value={f.start}
+              onChange={(e) => setF({ ...f, start: e.target.value })}
+            />
+          </label>
+          <label className="flex items-center gap-2 text-sm self-end min-h-[44px]">
+            <input
+              type="checkbox"
+              className="rounded text-brand"
+              checked={ok}
+              onChange={(e) => setOk(e.target.checked)}
+            />
+            Patient has explicitly confirmed this appointment
+          </label>
+          <button
+            className="btn sm:col-span-2 text-sm py-2.5 flex items-center justify-center gap-2"
+            disabled={!ok}
           >
-            <option value="">Select Patient</option>
-            {p.data?.map((x) => (
-              <option key={x.id} value={x.id}>
-                {x.name} ({x.phone})
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm font-medium">
-          Date & Time
-          <input
-            className="inp mt-1 text-sm"
-            type="datetime-local"
-            required
-            value={f.start}
-            onChange={(e) => setF({ ...f, start: e.target.value })}
-          />
-        </label>
-        <label className="flex items-center gap-2 text-sm self-end min-h-[44px]">
-          <input
-            type="checkbox"
-            className="rounded text-brand"
-            checked={ok}
-            onChange={(e) => setOk(e.target.checked)}
-          />
-          Patient has explicitly confirmed this appointment
-        </label>
-        <button
-          className="btn sm:col-span-2 text-sm py-2.5 flex items-center justify-center gap-2"
-          disabled={!ok}
-        >
-          <IconCalendar className="w-4 h-4" />
-          Book Confirmed Slot
-        </button>
-        {msg && <p role="status" className="sm:col-span-2 text-sm text-ok">{msg}</p>}
-      </form>
+            <IconCalendar className="w-4 h-4" />
+            Book Confirmed Slot
+          </button>
+          <div className="sm:col-span-2">
+            <Feedback msg={msg} />
+          </div>
+        </form>
+      </div>
       <State loading={a.loading} err={a.err} empty={a.data?.length === 0} />
       {a.data?.map((x) => (
         <div className="card flex justify-between items-center gap-2" key={x.id}>
@@ -482,10 +664,16 @@ function Chat() {
   const [busy, setBusy] = useState(false);
   const [pn, setPn] = useState("");
   const [pp, setPp] = useState("");
+  const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
+  }, [msgs]);
 
   async function send(e: React.FormEvent) {
     e.preventDefault();
-    const m = t;
+    const m = t.trim();
+    if (!m || busy) return;
     setT("");
     setMsgs((x) => [...x, { who: "me", t: m }]);
     setBusy(true);
@@ -555,10 +743,11 @@ function Chat() {
         {[
           "Doctor aa gaye kya?",
           "Fees kitni hai?",
-          "Clinic address & hours?",
+          "क्लिनिकची वेळ काय आहे?",
           "Doctor availability?",
           "Bachche ko 102 bukhar hai",
           "Seene mein dard hai",
+          "Do not message this number",
           "YES",
           "NO"
         ].map((promptText) => (
@@ -573,7 +762,7 @@ function Chat() {
         ))}
       </div>
 
-      <div className="space-y-2 max-h-96 overflow-auto p-2 bg-gray-50/50 rounded-2xl" aria-live="polite">
+      <div ref={logRef} className="space-y-2 max-h-96 overflow-auto p-2 bg-gray-50/50 rounded-2xl" aria-live="polite">
         {msgs.map((m, i) => (
           <div key={i} className={`flex gap-2 ${m.who === "me" ? "justify-end" : "justify-start"}`}>
             {m.who === "ai" && (
@@ -626,6 +815,7 @@ const PRESETS: [string, string][] = [
   ],
   ["Call 6 · pharma rep", "I am a pharma rep, when is the doctor free to meet?"],
   ["Call 7 · message mat bhejna", "Mujhe visit chahiye. Is number pe message mat bhejna."],
+  ["Marathi · वेळ काय आहे?", "आज क्लिनिकची वेळ काय आहे?"],
 ];
 
 function Sim() {
@@ -692,9 +882,14 @@ function Sim() {
 
   return (
     <div className="card space-y-3">
-      <div className="flex items-center gap-2 border-b border-lav pb-2 mb-1">
-        <IconMic className="w-5 h-5 text-brand" />
-        <h2 className="font-bold text-deep text-lg">Inbound Call Speech Simulator</h2>
+      <div className="flex items-center justify-between flex-wrap gap-2 border-b border-lav pb-2 mb-1">
+        <div className="flex items-center gap-2">
+          <IconMic className="w-5 h-5 text-brand" />
+          <h2 className="font-bold text-deep text-lg">Inbound Call Speech Simulator</h2>
+        </div>
+        <span className="text-[11px] font-semibold bg-lav text-brand px-2.5 py-0.5 rounded-full">
+          Voice Rule: &lt;2 sentences · no button prompts
+        </span>
       </div>
       <p className="text-xs text-gray-500">
         Simulates an incoming telephone call directly in your browser. Latency is measured from speech input to audio reply.
@@ -754,16 +949,16 @@ function Settings({ userRole }: { userRole?: string }) {
   const { data, err, loading, reload } = useLoad<any>("/clinic");
   const patients = useLoad<any[]>("/patients");
   const [f, setF] = useState<any>(null);
-  const [msg, setMsg] = useState("");
-  const [purgeMsg, setPurgeMsg] = useState("");
-  const [patMsg, setPatMsg] = useState("");
+  const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
+  const [purgeMsg, setPurgeMsg] = useState<{ text: string; err?: boolean } | null>(null);
+  const [patMsg, setPatMsg] = useState<{ text: string; err?: boolean } | null>(null);
 
   // Owner-only rules state
   const isOwner = userRole === "owner";
   const rulesData = useLoad<any>(isOwner ? "/rules/history" : "");
   const [ruleKey, setRuleKey] = useState("queue_priority");
   const [ruleVal, setRuleVal] = useState("elderly first");
-  const [ruleMsg, setRuleMsg] = useState("");
+  const [ruleMsg, setRuleMsg] = useState<{ text: string; err?: boolean } | null>(null);
 
   useEffect(() => {
     if (data) setF(data);
@@ -771,7 +966,7 @@ function Settings({ userRole }: { userRole?: string }) {
 
   async function save(e: React.FormEvent) {
     e.preventDefault();
-    setMsg("");
+    setMsg(null);
     try {
       await api("/clinic", {
         method: "PUT",
@@ -785,49 +980,50 @@ function Settings({ userRole }: { userRole?: string }) {
           retention_days: Number(f.retention_days) || 90,
         }),
       });
-      setMsg("Settings saved successfully.");
+      setMsg({ text: "Settings saved successfully." });
       reload();
     } catch (x: any) {
-      setMsg(x.message);
+      setMsg({ text: x.message || "Failed to save settings", err: true });
     }
   }
 
   async function runPurge() {
-    setPurgeMsg("");
+    setPurgeMsg(null);
     try {
       const r = await api<any>("/admin/purge", { method: "POST" });
-      setPurgeMsg(`Purged ${r.events_deleted} old event(s) older than ${r.retention_days ?? (f?.retention_days || 90)} days.`);
+      setPurgeMsg({ text: `Purged ${r.events_deleted} old event(s) older than ${r.retention_days ?? (f?.retention_days || 90)} days.` });
     } catch (x: any) {
-      setPurgeMsg(x.message);
+      setPurgeMsg({ text: x.message || "Failed to run purge", err: true });
     }
   }
 
   async function toggleNoMessage(p: any) {
-    setPatMsg("");
+    setPatMsg(null);
     try {
       const next = !p.no_message;
       await api(`/patients/${p.id}/no-message`, {
         method: "PUT",
         body: JSON.stringify({ no_message: next }),
       });
-      setPatMsg(`${p.name}: "Do not message this number" ${next ? "enabled" : "disabled"}.`);
+      setPatMsg({ text: `${p.name}: "Do not message this number" ${next ? "enabled" : "disabled"}.` });
       patients.reload();
     } catch (x: any) {
-      setPatMsg(x.message);
+      setPatMsg({ text: x.message || "Failed to update preference", err: true });
     }
   }
 
   async function saveRule(e: React.FormEvent) {
     e.preventDefault();
+    setRuleMsg(null);
     try {
       await api("/rules", {
         method: "POST",
         body: JSON.stringify({ rule_key: ruleKey, rule_value: ruleVal }),
       });
-      setRuleMsg(`Rule '${ruleKey}' saved and audited successfully.`);
+      setRuleMsg({ text: `Rule '${ruleKey}' saved and audited successfully.` });
       rulesData.reload();
     } catch (x: any) {
-      setRuleMsg(x.message);
+      setRuleMsg({ text: x.message || "Rule rejected", err: true });
     }
   }
 
@@ -884,13 +1080,13 @@ function Settings({ userRole }: { userRole?: string }) {
             </button>
           )}
         </div>
-        {purgeMsg && <p role="status" className="text-xs text-brand font-medium">{purgeMsg}</p>}
+        <Feedback msg={purgeMsg} />
 
         <button className="btn text-sm py-2.5 px-5 flex items-center gap-1.5">
           <IconCheckCircle className="w-4 h-4" />
           Save Information
         </button>
-        {msg && <p role="status" className="text-sm text-ok">{msg}</p>}
+        <Feedback msg={msg} />
       </form>
 
       {/* Per-Patient "Do not message this number" Flag */}
@@ -905,7 +1101,7 @@ function Settings({ userRole }: { userRole?: string }) {
           </div>
         </div>
         <State loading={patients.loading} err={patients.err} empty={patients.data?.length === 0} />
-        {patMsg && <p role="status" className="text-xs text-ok font-medium">{patMsg}</p>}
+        <Feedback msg={patMsg} />
         <div className="space-y-2 max-h-64 overflow-y-auto">
           {patients.data?.map((p) => (
             <div key={p.id} className="flex items-center justify-between gap-3 p-3 rounded-xl bg-lav/30 border border-lav">
@@ -989,7 +1185,7 @@ function Settings({ userRole }: { userRole?: string }) {
                 <IconCheckCircle className="w-3.5 h-3.5" />
                 Save Versioned Rule
               </button>
-              {ruleMsg && <p className="text-xs text-ok">{ruleMsg}</p>}
+              <Feedback msg={ruleMsg} />
             </form>
 
             {/* Active Rules List */}
