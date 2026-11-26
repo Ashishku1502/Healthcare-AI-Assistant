@@ -18,24 +18,26 @@ body {
   overflow-wrap: break-word;
 }
 
-.card {
-  @apply bg-white border border-lav rounded-3xl p-5 sm:p-6 shadow-sm;
-  word-break: break-word;
-  overflow-wrap: break-word;
-}
+@layer components {
+  .card {
+    @apply bg-white border border-lav rounded-3xl p-5 sm:p-6 shadow-sm;
+    word-break: break-word;
+    overflow-wrap: break-word;
+  }
 
-.btn {
-  @apply inline-flex items-center justify-center rounded-full bg-brand text-white px-4 sm:px-5 min-h-[44px] font-semibold hover:bg-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 transition-colors;
-  white-space: normal;
-  text-align: center;
-}
+  .btn {
+    @apply inline-flex items-center justify-center rounded-full bg-brand text-white px-4 sm:px-5 min-h-[44px] font-semibold hover:bg-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand disabled:opacity-50 transition-colors;
+    white-space: normal;
+    text-align: center;
+  }
 
-.btn2 {
-  @apply btn bg-white !text-brand border border-brand hover:!bg-lav;
-}
+  .btn2 {
+    @apply btn bg-white !text-brand border border-brand hover:!bg-lav;
+  }
 
-.inp {
-  @apply w-full min-h-[44px] rounded-xl border border-gray-300 px-3 bg-white text-ink;
+  .inp {
+    @apply w-full min-h-[44px] rounded-xl border border-gray-300 px-3 bg-white text-ink;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

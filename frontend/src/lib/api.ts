@@ -25,6 +25,21 @@ export function setApiBase(url: string) {
   }
 }
 
+export async function checkBackendHealth(baseUrl?: string): Promise<boolean> {
+  const base = (baseUrl || getApiBase()).trim().replace(/\/+$/, "");
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    const res = await fetch(`${base}/health`, { signal: controller.signal });
+    clearTimeout(timer);
+    if (!res.ok) return false;
+    const data = await res.json().catch(() => null);
+    return Boolean(data && data.status === "ok");
+  } catch {
+    return false;
+  }
+}
+
 export async function api<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = typeof window !== "undefined" ? sessionStorage.getItem("token") : "";
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
@@ -45,13 +60,21 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
       window.location.href = "/login";
     }
     if (!res.ok) {
-      const e = await res.json().catch(() => ({}));
+      const rawText = await res.text().catch(() => "");
+      let e: any = {};
+      try {
+        e = rawText ? JSON.parse(rawText) : {};
+      } catch {
+        e = {};
+      }
       const message =
         typeof e.detail === "string"
           ? e.detail
           : Array.isArray(e.detail)
-          ? e.detail.map((d: any) => d.msg).join(", ")
-          : "Request failed";
+          ? e.detail
+              .map((d: any) => (d.loc ? `${d.loc[d.loc.length - 1]}: ${d.msg}` : d.msg))
+              .join(", ")
+          : `Backend at ${base} returned HTTP ${res.status}. Verify the FastAPI backend URL via "Connect Cloud Backend".`;
       throw new Error(message);
     }
     return res.status === 204 ? (null as T) : res.json();
@@ -62,7 +85,12 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
       base.startsWith("http://localhost")
     ) {
       throw new Error(
-        `Backend unreachable at ${base}. To connect your Render backend, set your API endpoint below or pass ?api=https://your-backend.onrender.com in the URL.`
+        `Backend unreachable at ${base}. Click "Connect Cloud Backend" or pass ?api=https://your-backend.onrender.com in the URL.`
+      );
+    }
+    if (err instanceof TypeError) {
+      throw new Error(
+        `Cannot reach Parchi backend at ${base}. Ensure the FastAPI server is running or update the API URL via "Connect Cloud Backend".`
       );
     }
     throw err;

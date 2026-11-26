@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { api, getApiBase, setApiBase } from "@/lib/api";
+import { useState, useEffect, useCallback } from "react";
+import { api, getApiBase, setApiBase, checkBackendHealth } from "@/lib/api";
 import {
   IconCross,
   IconPhone,
@@ -48,15 +48,40 @@ export default function AuthForm({
   const [consentAcknowledged, setConsentAcknowledged] = useState(true);
   const [backendUrl, setBackendUrl] = useState("");
   const [showEndpointConfig, setShowEndpointConfig] = useState(false);
+  const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "down">("checking");
 
-  useEffect(() => {
-    setBackendUrl(getApiBase());
+  const verifyHealth = useCallback(async (target?: string) => {
+    setApiStatus("checking");
+    const ok = await checkBackendHealth(target);
+    setApiStatus(ok ? "ok" : "down");
   }, []);
 
-  function saveEndpoint(e: React.FormEvent) {
+  useEffect(() => {
+    const base = getApiBase();
+    setBackendUrl(base);
+    verifyHealth(base);
+  }, [verifyHealth]);
+
+  function switchMode(nextMode: "login" | "signup") {
+    setMode(nextMode);
+    setErr("");
+    setSuccessMsg("");
+    if (typeof window !== "undefined") {
+      const targetPath = nextMode === "signup" ? "/signup" : "/login";
+      if (window.location.pathname !== targetPath) {
+        window.history.replaceState(null, "", targetPath + window.location.search);
+      }
+    }
+  }
+
+  async function saveEndpoint(e: React.FormEvent) {
     e.preventDefault();
-    setApiBase(backendUrl.trim());
-    setSuccessMsg(`Backend API connected: ${backendUrl.trim()}`);
+    const cleaned = backendUrl.trim().replace(/\/+$/, "");
+    setApiBase(cleaned);
+    setBackendUrl(cleaned);
+    setErr("");
+    await verifyHealth(cleaned);
+    setSuccessMsg(`Backend API saved: ${cleaned || "http://localhost:8000"}`);
   }
 
   // Check query param (?mode=signup or ?mode=login)
@@ -70,28 +95,14 @@ export default function AuthForm({
     }
   }, []);
 
-  function fillDemo(type: "owner" | "receptionist") {
-    setMode("login");
-    setErr("");
-    setSuccessMsg("");
-    if (type === "owner") {
-      setEmail("owner@clinic.com");
-      setPassword("clinic1234");
-    } else {
-      setEmail("desk@clinic.com");
-      setPassword("clinic1234");
-    }
-  }
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
+  async function performLogin(loginEmail: string, loginPassword: string) {
     setBusy(true);
     setErr("");
     setSuccessMsg("");
     try {
       const res = await api("/auth/login", {
         method: "POST",
-        body: JSON.stringify({ email: email.trim(), password }),
+        body: JSON.stringify({ email: loginEmail.trim(), password: loginPassword }),
       });
       sessionStorage.setItem("token", res.token);
       sessionStorage.setItem("role", res.role);
@@ -101,7 +112,7 @@ export default function AuthForm({
       setSuccessMsg("Signed in successfully! Loading dashboard…");
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 400);
+      }, 350);
     } catch (x: any) {
       setErr(x.message || "Invalid email or password. Please try again.");
     } finally {
@@ -109,8 +120,42 @@ export default function AuthForm({
     }
   }
 
+  async function fillDemo(type: "owner" | "receptionist") {
+    switchMode("login");
+    const demoEmail = type === "owner" ? "owner@clinic.com" : "desk@clinic.com";
+    const demoPass = "clinic1234";
+    setEmail(demoEmail);
+    setPassword(demoPass);
+    await performLogin(demoEmail, demoPass);
+  }
+
+  async function handleLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!email.trim() || !password) {
+      setErr("Please enter both email address and password.");
+      return;
+    }
+    await performLogin(email, password);
+  }
+
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
+    if (clinicName.trim().length < 2) {
+      setErr("Clinic name must be at least 2 characters.");
+      return;
+    }
+    if (doctorName.trim().length < 2) {
+      setErr("Primary doctor name must be at least 2 characters.");
+      return;
+    }
+    if (!/^\d{10,13}$/.test(staffPhone.trim())) {
+      setErr("Staff / WhatsApp phone must be 10 to 13 digits.");
+      return;
+    }
+    if (signupPassword.length < 6) {
+      setErr("Password must be at least 6 characters.");
+      return;
+    }
     if (!consentAcknowledged) {
       setErr("Please acknowledge the administrative scope confirmation below.");
       return;
@@ -141,7 +186,7 @@ export default function AuthForm({
       setSuccessMsg("Clinic registered successfully! Welcome to Parchi. Redirecting…");
       setTimeout(() => {
         window.location.href = "/dashboard";
-      }, 500);
+      }, 400);
     } catch (x: any) {
       setErr(x.message || "Failed to register clinic. Please check all fields.");
     } finally {
@@ -172,11 +217,8 @@ export default function AuthForm({
             <span className="text-gray-300">|</span>
             {mode === "login" ? (
               <button
-                onClick={() => {
-                  setMode("signup");
-                  setErr("");
-                  setSuccessMsg("");
-                }}
+                type="button"
+                onClick={() => switchMode("signup")}
                 className="text-brand font-semibold hover:underline flex items-center gap-1.5"
               >
                 <IconBuilding className="w-4 h-4" />
@@ -184,11 +226,8 @@ export default function AuthForm({
               </button>
             ) : (
               <button
-                onClick={() => {
-                  setMode("login");
-                  setErr("");
-                  setSuccessMsg("");
-                }}
+                type="button"
+                onClick={() => switchMode("login")}
                 className="text-brand font-semibold hover:underline flex items-center gap-1.5"
               >
                 <IconLock className="w-4 h-4" />
@@ -212,7 +251,7 @@ export default function AuthForm({
               Your clinic&apos;s 24/7 AI Receptionist.
             </h1>
             <p className="mt-4 text-base sm:text-lg text-gray-700 leading-relaxed break-words">
-              Parchi handles routine patient phone calls, WhatsApp inquiries, appointment bookings, and doctor wait-time updates in Hindi, Hinglish, and English—freeing your staff to focus on in-clinic care.
+              Parchi handles routine patient phone calls, WhatsApp inquiries, appointment bookings, and doctor wait-time updates in Hindi, Hinglish, Marathi, and English—freeing your staff to focus on in-clinic care.
             </p>
           </div>
 
@@ -314,9 +353,27 @@ export default function AuthForm({
           <div className="bg-white/90 border border-lav rounded-2xl p-3 text-xs shadow-sm">
             <div className="flex items-center justify-between gap-2 flex-wrap">
               <span className="font-semibold text-gray-700 flex items-center gap-1.5 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+                <span
+                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
+                    apiStatus === "ok"
+                      ? "bg-emerald-500"
+                      : apiStatus === "checking"
+                      ? "bg-amber-400 animate-pulse"
+                      : "bg-red-500"
+                  }`}
+                  title={
+                    apiStatus === "ok"
+                      ? "Backend connected"
+                      : apiStatus === "checking"
+                      ? "Checking backend health"
+                      : "Backend unreachable or wrong service URL"
+                  }
+                ></span>
                 <span className="truncate">
                   API: <code className="font-mono text-brand text-[11px] font-bold">{backendUrl || "http://localhost:8000"}</code>
+                  {apiStatus === "down" && (
+                    <span className="ml-1.5 text-red-600 font-semibold">(Unreachable)</span>
+                  )}
                 </span>
               </span>
               <button
@@ -327,12 +384,12 @@ export default function AuthForm({
                 {showEndpointConfig ? "Close" : "Connect Cloud Backend"}
               </button>
             </div>
-            {showEndpointConfig && (
+            {(showEndpointConfig || apiStatus === "down") && (
               <form onSubmit={saveEndpoint} className="mt-2.5 pt-2 border-t border-lav/60 flex gap-2">
                 <input
                   type="url"
                   className="inp text-xs py-1.5 flex-1"
-                  placeholder="https://your-backend.onrender.com"
+                  placeholder="https://your-fastapi-backend.onrender.com"
                   value={backendUrl}
                   onChange={(e) => setBackendUrl(e.target.value)}
                   required
@@ -361,13 +418,10 @@ export default function AuthForm({
             {/* Mode Selector Tabs */}
             <div className="flex rounded-2xl bg-lav/60 p-1 mb-6 border border-lav" role="tablist">
               <button
+                type="button"
                 role="tab"
                 aria-selected={mode === "login"}
-                onClick={() => {
-                  setMode("login");
-                  setErr("");
-                  setSuccessMsg("");
-                }}
+                onClick={() => switchMode("login")}
                 className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                   mode === "login"
                     ? "bg-white text-brand shadow-sm"
@@ -378,13 +432,10 @@ export default function AuthForm({
                 <span>Sign In</span>
               </button>
               <button
+                type="button"
                 role="tab"
                 aria-selected={mode === "signup"}
-                onClick={() => {
-                  setMode("signup");
-                  setErr("");
-                  setSuccessMsg("");
-                }}
+                onClick={() => switchMode("signup")}
                 className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
                   mode === "signup"
                     ? "bg-white text-brand shadow-sm"
@@ -509,13 +560,10 @@ export default function AuthForm({
                     Need a new clinic setup?{" "}
                     <button
                       type="button"
-                      onClick={() => {
-                        setMode("signup");
-                        setErr("");
-                      }}
+                      onClick={() => switchMode("signup")}
                       className="text-brand font-bold hover:underline"
                     >
-                      Register your clinic free
+                      Start 14-day pilot
                     </button>
                   </p>
                 </div>
@@ -761,10 +809,7 @@ export default function AuthForm({
                     Already have a clinic account?{" "}
                     <button
                       type="button"
-                      onClick={() => {
-                        setMode("login");
-                        setErr("");
-                      }}
+                      onClick={() => switchMode("login")}
                       className="text-brand font-bold hover:underline"
                     >
                       Sign in here
