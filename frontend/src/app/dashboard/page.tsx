@@ -36,9 +36,14 @@ type TabId = (typeof TABS)[number]["id"];
 function useLoad<T>(path: string, deps: any[] = []) {
   const [data, setData] = useState<T | null>(null);
   const [err, setErr] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(Boolean(path));
   const reload = useCallback(() => {
+    if (!path) {
+      setLoading(false);
+      return;
+    }
     setLoading(true);
+    setErr("");
     api<T>(path)
       .then(setData)
       .catch((e) => setErr(e.message))

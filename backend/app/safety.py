@@ -78,7 +78,7 @@ EMERGENCY_PATTERNS: list[tuple[str, re.Pattern]] = [
 
 MEDICAL_QUESTION_RE = re.compile(
     r"\b(medicine|medicines|dawai|dawaiyan|dawa|tablet|tablets|pill|pills|syrup|capsule|ointment|"
-    r"dose|dosage|diagnos\w*|prescri\w*|symptom\w*|fever|bukhar|bukhaar|taap|bimari|treatment|"
+    r"dose|dosage|diagnos\w*|prescrib\w*|symptom\w*|fever|bukhar|bukhaar|taap|bimari|treatment|"
     r"102|103|104|infection\w*|ulti|vomit\w*|headache|migraine|cough|cold|khansi|zukam|jukam|"
     r"rash|itching|antibiotic\w*|paracetamol|crocin|ibuprofen|diarrhea|dast|loose motion|nausea|"
     r"diabetes|blood pressure|side effect\w*|stomach ache|stomach pain|back pain|ear pain|throat pain|"

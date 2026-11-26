@@ -1,6 +1,7 @@
 import httpx
 import uuid
 import sys
+from datetime import datetime, timedelta
 
 BASE = 'http://localhost:8000'
 
@@ -55,16 +56,27 @@ try:
         check('Patients: Register new patient', r.status_code == 201, f'id={pat_id}')
 
     # 7. Appointment Booking & Server-side Confirmation Enforced
+    target_dt = (datetime.now() + timedelta(days=2)).replace(hour=10, minute=0, second=0, microsecond=0)
+    if target_dt.weekday() == 6:  # skip Sunday if clinic closed
+        target_dt += timedelta(days=1)
+    slot_iso = target_dt.isoformat()
+
     r = client.post(f'{BASE}/appointments', headers=headers, json={
-        'doctor_id': doc_id, 'patient_id': pat_id, 'start': '2026-11-26T10:00:00', 'confirmed': False
+        'doctor_id': doc_id, 'patient_id': pat_id, 'start': slot_iso, 'confirmed': False
     })
     check('Booking: Reject unconfirmed appointment', r.status_code == 422, f'code={r.status_code}')
 
-    # 7b. Double booking prevention
-    r = client.post(f'{BASE}/appointments', headers=headers, json={
-        'doctor_id': doc_id, 'patient_id': pat_id, 'start': '2026-11-26T10:00:00', 'confirmed': True
+    # 7b. Confirm booking & verify double-booking blocked (409 Conflict)
+    r_ok = client.post(f'{BASE}/appointments', headers=headers, json={
+        'doctor_id': doc_id, 'patient_id': pat_id, 'start': slot_iso, 'confirmed': True
     })
-    check('Booking: Double-booking blocked (409 Conflict)', r.status_code == 409, f"code={r.status_code}, error={r.json().get('detail')}")
+    if r_ok.status_code == 201:
+        r_dup = client.post(f'{BASE}/appointments', headers=headers, json={
+            'doctor_id': doc_id, 'patient_id': pat_id, 'start': slot_iso, 'confirmed': True
+        })
+        check('Booking: Double-booking blocked (409 Conflict)', r_dup.status_code == 409, f"code={r_dup.status_code}, error={r_dup.json().get('detail')}")
+    else:
+        check('Booking: Double-booking blocked (409 Conflict)', r_ok.status_code == 409, f"code={r_ok.status_code}, error={r_ok.json().get('detail')}")
 
     # 8. AI Receptionist - Routine inquiry
     r = client.post(f'{BASE}/chat', headers=headers, json={'session_id': f'sess-{uuid.uuid4().hex[:6]}', 'message': 'Clinic kab khulti hai?'})
