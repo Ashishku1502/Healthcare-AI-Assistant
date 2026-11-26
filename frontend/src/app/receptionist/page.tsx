@@ -7,11 +7,11 @@ import { api } from "@/lib/api";
 import {
   IconCross,
   IconRefreshCw,
-  IconArrowRight,
   IconCheckCircle,
   IconAlertTriangle,
   IconClock,
   IconXCircle,
+  IconPhone,
   IconZap,
 } from "@/components/icons";
 
@@ -26,6 +26,15 @@ interface Doctor {
   active: boolean;
 }
 
+interface AttentionItem {
+  id: number;
+  outcome: string;
+  intent: string;
+  channel: string;
+  note: string;
+  at: string;
+}
+
 function parseUtcTimestamp(ts: string): Date {
   const hasTz = ts.endsWith("Z") || /[+-]\d{2}:?\d{2}$/.test(ts);
   return new Date(hasTz ? ts : `${ts}Z`);
@@ -34,8 +43,8 @@ function parseUtcTimestamp(ts: string): Date {
 export default function ReceptionistPage() {
   const router = useRouter();
   const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [selectedDocId, setSelectedDocId] = useState<number | null>(null);
-  const [clinicName, setClinicName] = useState<string>("Clinic Front Desk");
+  const [missedCalls, setMissedCalls] = useState<AttentionItem[]>([]);
+  const [clinicName, setClinicName] = useState<string>("Clinic Desk");
   const [loading, setLoading] = useState<boolean>(true);
   const [loadErr, setLoadErr] = useState<string>("");
   const [updating, setUpdating] = useState<boolean>(false);
@@ -43,7 +52,7 @@ export default function ReceptionistPage() {
   const [nowTime, setNowTime] = useState<Date>(new Date());
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const showTimedMsg = useCallback((text: string, type: "success" | "error", ms = 4000) => {
+  const showTimedMsg = useCallback((text: string, type: "success" | "error", ms = 3500) => {
     if (msgTimerRef.current) clearTimeout(msgTimerRef.current);
     setMsg({ text, type });
     msgTimerRef.current = setTimeout(() => setMsg(null), ms);
@@ -55,7 +64,6 @@ export default function ReceptionistPage() {
     };
   }, []);
 
-  // Keep live elapsed time updated every 15 seconds
   useEffect(() => {
     const timer = setInterval(() => setNowTime(new Date()), 15000);
     return () => clearInterval(timer);
@@ -69,13 +77,14 @@ export default function ReceptionistPage() {
     try {
       setLoading(true);
       setLoadErr("");
-      const me = await api("/auth/me");
+      const [me, docs, att] = await Promise.all([
+        api("/auth/me"),
+        api<Doctor[]>("/doctors"),
+        api<AttentionItem[]>("/attention").catch(() => [] as AttentionItem[]),
+      ]);
       if (me && me.clinic_name) setClinicName(me.clinic_name);
-
-      const docs: Doctor[] = await api("/doctors");
-      const activeDocs = docs.filter((d) => d.active);
-      setDoctors(activeDocs);
-      setSelectedDocId((prev) => (prev && activeDocs.some((d) => d.id === prev) ? prev : activeDocs[0]?.id ?? null));
+      setDoctors(docs.filter((d) => d.active));
+      setMissedCalls(Array.isArray(att) ? att : []);
     } catch (err: any) {
       const m = err?.message || "Failed to load clinic status.";
       if (/auth|401|token|unknown user/i.test(m)) {
@@ -93,11 +102,10 @@ export default function ReceptionistPage() {
     loadData();
   }, [loadData]);
 
-  const activeDoc = doctors.find((d) => d.id === selectedDocId) || doctors[0] || null;
+  const activeDoc = doctors[0] || null;
 
-  // Calculate staleness (30 min threshold) using UTC-normalized timestamp
   let isFresh = false;
-  let timeAgoText = "Never updated";
+  let timeAgoText = "Not updated yet";
   if (activeDoc && activeDoc.status_at) {
     const updatedAt = parseUtcTimestamp(activeDoc.status_at);
     const diffMins = Math.max(0, Math.floor((nowTime.getTime() - updatedAt.getTime()) / (1000 * 60)));
@@ -105,20 +113,38 @@ export default function ReceptionistPage() {
     if (Number.isNaN(diffMins)) {
       timeAgoText = "Unknown";
     } else if (diffMins < 1) {
-      timeAgoText = "Just now (<1 min ago)";
+      timeAgoText = "Just now";
     } else if (diffMins === 1) {
       timeAgoText = "1 min ago";
     } else if (diffMins < 60) {
-      timeAgoText = `${diffMins} mins ago`;
+      timeAgoText = `${diffMins} min ago`;
     } else {
       timeAgoText = `${Math.floor(diffMins / 60)}h ${diffMins % 60}m ago`;
     }
   }
 
-  const setStatus = async (state: "in" | "late" | "out", lateMinutes: number = 0) => {
+  let statusLabel = "Unconfirmed";
+  let estWaitLabel = "Unconfirmed";
+  let statusBadgeClass = "bg-[#F4B73F] text-[#1F2D2C]";
+  if (activeDoc && isFresh) {
+    if (activeDoc.status_state === "in") {
+      statusLabel = "Doctor aa gaye";
+      estWaitLabel = "0 min";
+      statusBadgeClass = "bg-[#0F6B66] text-white";
+    } else if (activeDoc.status_state === "late") {
+      statusLabel = `${activeDoc.late_minutes || 15} min late`;
+      estWaitLabel = `~${activeDoc.late_minutes || 15} min`;
+      statusBadgeClass = "bg-[#F4B73F] text-[#1F2D2C]";
+    } else if (activeDoc.status_state === "out") {
+      statusLabel = "Aaj nahi hain";
+      estWaitLabel = "Not today";
+      statusBadgeClass = "bg-[#C23B2E] text-white";
+    }
+  }
+
+  const setStatus = async (state: "in" | "late" | "out", lateMinutes = 0) => {
     if (!activeDoc || updating) return;
     setUpdating(true);
-    setMsg(null);
     try {
       const res = await api(`/doctors/${activeDoc.id}/status`, {
         method: "PUT",
@@ -128,22 +154,25 @@ export default function ReceptionistPage() {
         prev.map((d) =>
           d.id === activeDoc.id
             ? {
-              ...d,
-              status_state: state,
-              late_minutes: lateMinutes,
-              status_at: res?.status_at || new Date().toISOString(),
-            }
+                ...d,
+                status_state: state,
+                late_minutes: lateMinutes,
+                status_at: res?.status_at || new Date().toISOString(),
+              }
             : d
         )
       );
       setNowTime(new Date());
       showTimedMsg(
-        `Live state updated: ${state === "in" ? "Doctor In" : state === "late" ? `Running Late +${lateMinutes}m` : "Not In Today"}`,
-        "success",
-        4000
+        state === "in"
+          ? "Updated: Doctor aa gaye"
+          : state === "late"
+          ? "Updated: 15 min late"
+          : "Updated: Aaj nahi hain",
+        "success"
       );
     } catch (err: any) {
-      showTimedMsg(err.message || "Failed to update status", "error", 4000);
+      showTimedMsg(err.message || "Update failed", "error");
     } finally {
       setUpdating(false);
     }
@@ -159,304 +188,242 @@ export default function ReceptionistPage() {
       setDoctors((prev) =>
         prev.map((d) => (d.id === activeDoc.id ? { ...d, current_token: updated.current_token } : d))
       );
-      showTimedMsg(`Advanced to Token #${updated.current_token}`, "success", 3000);
+      showTimedMsg(`Token #${updated.current_token}`, "success");
     } catch (err: any) {
-      showTimedMsg(err.message || "Failed to advance token", "error", 3000);
+      showTimedMsg(err.message || "Token update failed", "error");
     } finally {
       setUpdating(false);
     }
   };
 
+  const resolveMissedCall = async (id: number) => {
+    try {
+      await api(`/attention/${id}/resolve`, { method: "POST" });
+      setMissedCalls((prev) => prev.filter((item) => item.id !== id));
+      showTimedMsg("Marked called back", "success");
+    } catch (err: any) {
+      showTimedMsg(err.message || "Could not update item", "error");
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-bg flex flex-col justify-between max-w-md mx-auto shadow-2xl border-x border-lav">
-      {/* Top Header */}
-      <header className="bg-white/90 backdrop-blur-md border-b border-lav px-4 py-3.5 sticky top-0 z-10 flex items-center justify-between gap-2">
+    <main className="min-h-screen bg-[var(--paper)] text-[var(--ink)] w-full max-w-[360px] mx-auto px-3 py-4 flex flex-col gap-4">
+      {/* Compact Header (No Sidebar) */}
+      <header className="flex items-center justify-between gap-2 bg-white border border-[#C8DAD7] rounded-2xl px-3.5 py-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-8 h-8 rounded-xl bg-brand text-white flex items-center justify-center shadow-xs shrink-0">
-            <IconCross className="w-4 h-4 text-white" />
+          <span className="w-9 h-9 rounded-xl bg-[var(--teal)] text-white flex items-center justify-center shrink-0">
+            <IconCross className="w-5 h-5 text-white" />
           </span>
-          <div className="min-w-0">
-            <span className="text-[10px] uppercase font-bold tracking-wider text-brand bg-lav px-2 py-0.5 rounded-full">
-              Mobile Desk
-            </span>
-            <h1 className="text-sm font-extrabold text-deep truncate mt-0.5">
-              {clinicName}
-            </h1>
-          </div>
+          <h1 className="font-heading text-[18px] font-bold text-[var(--ink)] truncate">
+            {clinicName}
+          </h1>
         </div>
-        <div className="flex items-center gap-1.5 shrink-0">
-          <button
-            type="button"
-            onClick={loadData}
-            title="Refresh"
-            aria-label="Refresh doctor status"
-            className="p-2 text-gray-500 hover:text-brand rounded-xl hover:bg-lav/60 transition-colors"
-          >
-            <IconRefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-brand" : ""}`} />
-          </button>
-          <Link
-            href="/dashboard"
-            className="text-xs font-bold text-deep hover:text-brand bg-lav/70 hover:bg-lav px-3 py-1.5 rounded-full whitespace-nowrap transition-colors inline-flex items-center gap-1"
-          >
-            <span>Dashboard</span>
-            <IconArrowRight className="w-3.5 h-3.5 shrink-0" />
-          </Link>
-        </div>
+        <button
+          type="button"
+          onClick={loadData}
+          aria-label="Refresh status"
+          className="min-w-[48px] min-h-[48px] inline-flex items-center justify-center rounded-xl border-2 border-[#C8DAD7] bg-white text-[var(--teal)] hover:bg-[#E4EFED]"
+        >
+          <IconRefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
+        </button>
       </header>
 
-      {/* Main Body */}
-      <div className="p-4 flex-1 flex flex-col gap-4">
-        {/* Loading / Error / Empty states */}
-        {loading && doctors.length === 0 && (
-          <div className="bg-white rounded-3xl p-6 border border-lav text-center text-sm text-gray-600 flex items-center justify-center gap-2 shadow-xs">
-            <span className="w-4 h-4 border-2 border-brand border-t-transparent rounded-full animate-spin"></span>
-            Loading clinic schedule…
-          </div>
-        )}
+      {/* Error / Loading states */}
+      {loading && !activeDoc && (
+        <div className="ticket-card p-5 text-[17px] font-semibold text-center">
+          Loading clinic status…
+        </div>
+      )}
 
-        {loadErr && (
-          <div role="alert" className="bg-rose-50 border border-rose-200 text-rose-800 rounded-2xl p-4 text-xs space-y-2">
-            <p className="font-bold">Could not load doctors</p>
-            <p>{loadErr}</p>
-            <div className="flex gap-2 pt-1">
-              <button type="button" onClick={loadData} className="px-3 py-1.5 rounded-full bg-rose-600 text-white font-semibold">
-                Retry
-              </button>
-              <Link href="/login" className="px-3 py-1.5 rounded-full bg-white border border-rose-300 text-rose-800 font-semibold">
-                Sign In
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {!loading && !loadErr && doctors.length === 0 && (
-          <div className="bg-white rounded-3xl p-5 border border-lav text-center text-sm text-gray-600 space-y-2">
-            <p className="font-semibold text-deep">No active doctors found.</p>
-            <Link href="/dashboard" className="inline-block text-xs font-bold text-brand hover:underline">
-              Add a doctor in Dashboard →
+      {loadErr && (
+        <div role="alert" className="rounded-2xl bg-[var(--red)] text-white p-4 space-y-3">
+          <p className="text-[17px] font-bold">{loadErr}</p>
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={loadData}
+              className="flex-1 min-h-[56px] rounded-xl bg-white text-[var(--ink)] font-bold text-[16px]"
+            >
+              Retry
+            </button>
+            <Link
+              href="/login"
+              className="flex-1 min-h-[56px] inline-flex items-center justify-center rounded-xl border-2 border-white text-white font-bold text-[16px]"
+            >
+              Sign In
             </Link>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* Doctor Switcher if multiple */}
-        {doctors.length > 1 && (
-          <div className="flex gap-2 overflow-x-auto pb-1">
-            {doctors.map((d) => (
-              <button
-                type="button"
-                key={d.id}
-                onClick={() => setSelectedDocId(d.id)}
-                className={`text-xs px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all ${activeDoc?.id === d.id
-                  ? "bg-brand text-white shadow-sm"
-                  : "bg-white text-gray-700 border border-lav hover:bg-lav/50"
-                  }`}
-              >
-                Dr. {d.name}
-              </button>
-            ))}
-          </div>
-        )}
-
-        {/* Doctor Identity & Live Status Card */}
-        {activeDoc && (
-          <div className="bg-white rounded-3xl p-4 shadow-sm border border-lav">
+      {/* TOP: Ticket-Shaped Status Card (Notched Edges) */}
+      {activeDoc && (
+        <section aria-label="Doctor live ticket status" className="ticket-card">
+          <div className="p-4 space-y-3">
             <div className="flex items-start justify-between gap-2">
               <div className="min-w-0">
-                <p className="text-[11px] text-gray-500 font-semibold uppercase tracking-wider">Consulting Doctor</p>
-                <h2 className="text-xl font-extrabold text-deep tracking-tight truncate mt-0.5">
+                <p className="text-[16px] font-semibold text-[#3C5250]">Consulting Doctor</p>
+                <h2 className="font-heading text-[22px] font-extrabold text-[var(--ink)] leading-tight break-words">
                   Dr. {activeDoc.name}
                 </h2>
-                <p className="text-xs text-gray-500">{activeDoc.speciality}</p>
               </div>
-
-              {/* Status Badge */}
-              <div className="text-right shrink-0">
-                <span
-                  className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide ${activeDoc.status_state === "in"
-                    ? "bg-emerald-100 text-emerald-800"
-                    : activeDoc.status_state === "late"
-                      ? "bg-amber-100 text-amber-800"
-                      : activeDoc.status_state === "out"
-                        ? "bg-rose-100 text-rose-800"
-                        : "bg-gray-100 text-gray-700"
-                    }`}
-                >
-                  <span
-                    className={`w-2 h-2 rounded-full ${activeDoc.status_state === "in"
-                      ? "bg-emerald-500 animate-pulse"
-                      : activeDoc.status_state === "late"
-                        ? "bg-amber-500"
-                        : activeDoc.status_state === "out"
-                          ? "bg-rose-500"
-                          : "bg-gray-400"
-                      }`}
-                  />
-                  {activeDoc.status_state === "in"
-                    ? "Doctor In"
-                    : activeDoc.status_state === "late"
-                      ? `Late (+${activeDoc.late_minutes}m)`
-                      : activeDoc.status_state === "out"
-                        ? "Not In Today"
-                        : "Not Set"}
-                </span>
-              </div>
+              <span className={`px-3 py-1 rounded-full text-[16px] font-bold shrink-0 ${statusBadgeClass}`}>
+                {statusLabel}
+              </span>
             </div>
 
-            {/* Freshness / Staleness Alert */}
-            <div className="mt-3 pt-3 border-t border-lav flex items-center justify-between text-xs">
-              <span className="text-gray-500">Live Timestamp:</span>
-              <span className="font-semibold text-deep font-mono">{timeAgoText}</span>
+            <div className="flex items-center justify-between text-[16px] text-[#3C5250]">
+              <span>Estimated wait</span>
+              <span className="font-bold text-[var(--ink)]">{estWaitLabel}</span>
             </div>
-
-            <div className="mt-2.5">
-              {isFresh ? (
-                <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">
-                  <IconCheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
-                  <span>Fresh (&le;30 min): Parchi is answering callers from this live state.</span>
-                </div>
-              ) : (
-                <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
-                  <IconAlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-                  <span>Unconfirmed (&gt;30 mins): Tap a button below to confirm live timing.</span>
-                </div>
-              )}
+            <div className="flex items-center justify-between text-[16px] text-[#3C5250]">
+              <span>Last confirmed</span>
+              <span className="font-semibold text-[var(--ink)]">{timeAgoText}</span>
             </div>
           </div>
-        )}
 
-        {/* Feedback message banner */}
-        {msg && (
-          <div
-            role="status"
-            className={`py-2.5 px-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${msg.type === "success"
-              ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
-              : "bg-rose-600 text-white shadow-md shadow-rose-200"
-              }`}
-          >
-            {msg.type === "success" ? (
-              <IconCheckCircle className="w-4 h-4 shrink-0" />
-            ) : (
-              <IconAlertTriangle className="w-4 h-4 shrink-0" />
-            )}
-            <span>{msg.text}</span>
+          {/* Perforated Notched Tear Section with Token Number */}
+          <div className="ticket-notch-row px-4 py-4 bg-[#F9FBFA] flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[16px] font-semibold text-[#3C5250]">Current token</p>
+              <p className="font-heading text-[34px] font-extrabold leading-none text-[var(--ink)] mt-1">
+                #<span key={activeDoc.current_token} className="animate-token">{activeDoc.current_token || 0}</span>
+              </p>
+            </div>
+            <button
+              type="button"
+              disabled={updating}
+              onClick={nextToken}
+              className="btn min-h-[56px] px-4 text-[17px] gap-2 shrink-0"
+            >
+              <IconZap className="w-5 h-5 shrink-0" />
+              <span>Next Token</span>
+            </button>
           </div>
-        )}
+        </section>
+      )}
 
-        {/* THE 3 ONE-TAP BUTTONS (Mobile Phone First) */}
-        <div className="flex flex-col gap-3">
-          <p className="text-xs font-bold uppercase tracking-wider text-gray-500 px-1">
-            Doctor Status · One-Tap Live Update
-          </p>
+      {/* Live Feedback Toast */}
+      {msg && (
+        <div
+          role="status"
+          className={`rounded-2xl px-4 py-3 text-[17px] font-bold flex items-center gap-2 ${
+            msg.type === "success" ? "bg-[var(--teal)] text-white" : "bg-[var(--red)] text-white"
+          }`}
+        >
+          {msg.type === "success" ? (
+            <IconCheckCircle className="w-5 h-5 shrink-0" />
+          ) : (
+            <IconAlertTriangle className="w-5 h-5 shrink-0" />
+          )}
+          <span>{msg.text}</span>
+        </div>
+      )}
 
-          {/* Button 1: Doctor in */}
-          <button
-            type="button"
-            disabled={updating || !activeDoc}
-            onClick={() => setStatus("in", 0)}
-            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${activeDoc?.status_state === "in" && isFresh
-              ? "bg-emerald-600 text-white ring-4 ring-emerald-200"
-              : "bg-white text-emerald-800 border-2 border-emerald-500 hover:bg-emerald-50"
-              }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
-                <IconCheckCircle className="w-5 h-5" />
-              </span>
-              <div>
-                <div className="text-base font-extrabold">Doctor in</div>
-                <div className="text-xs font-normal opacity-85">Doctor arrived, sessions running</div>
-              </div>
-            </div>
-            <span className="text-[11px] uppercase font-bold bg-black/10 px-2.5 py-1 rounded-full shrink-0">
-              Tap 1
-            </span>
-          </button>
+      {/* MIDDLE: Three Full-Width One-Tap Buttons */}
+      <section aria-label="One-tap doctor status controls" className="flex flex-col gap-3">
+        <button
+          type="button"
+          disabled={updating || !activeDoc}
+          onClick={() => setStatus("in", 0)}
+          className={`w-full min-h-[56px] px-4 rounded-2xl border-2 text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
+            activeDoc?.status_state === "in" && isFresh
+              ? "bg-[var(--teal)] text-white border-[var(--teal)]"
+              : "bg-white text-[var(--ink)] border-[var(--teal)] hover:bg-[#E4EFED]"
+          }`}
+        >
+          <span className="flex items-center gap-3">
+            <IconCheckCircle className="w-6 h-6 shrink-0" />
+            <span>Doctor aa gaye</span>
+          </span>
+          <span className="text-[16px] font-semibold">Tap</span>
+        </button>
 
-          {/* Button 2: Running late +15 min */}
-          <button
-            type="button"
-            disabled={updating || !activeDoc}
-            onClick={() => setStatus("late", 15)}
-            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${activeDoc?.status_state === "late" && activeDoc.late_minutes === 15 && isFresh
-              ? "bg-amber-500 text-white ring-4 ring-amber-200"
-              : "bg-white text-amber-900 border-2 border-amber-400 hover:bg-amber-50"
-              }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
-                <IconClock className="w-5 h-5" />
-              </span>
-              <div>
-                <div className="text-base font-extrabold">Running late +15 min</div>
-                <div className="text-xs font-normal opacity-85">Delayed ~15m, answers wait callers</div>
-              </div>
-            </div>
-            <span className="text-[11px] uppercase font-bold bg-black/10 px-2.5 py-1 rounded-full shrink-0">
-              Tap 2
-            </span>
-          </button>
+        <button
+          type="button"
+          disabled={updating || !activeDoc}
+          onClick={() => setStatus("late", 15)}
+          className={`w-full min-h-[56px] px-4 rounded-2xl border-2 text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
+            activeDoc?.status_state === "late" && isFresh
+              ? "bg-[var(--yellow)] text-[var(--ink)] border-[#B88316]"
+              : "bg-white text-[var(--ink)] border-[#B88316] hover:bg-[#FEF9EC]"
+          }`}
+        >
+          <span className="flex items-center gap-3">
+            <IconClock className="w-6 h-6 shrink-0" />
+            <span>15 min late</span>
+          </span>
+          <span className="text-[16px] font-semibold">Tap</span>
+        </button>
 
-          {/* Button 3: Not in today */}
-          <button
-            type="button"
-            disabled={updating || !activeDoc}
-            onClick={() => setStatus("out", 0)}
-            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${activeDoc?.status_state === "out" && isFresh
-              ? "bg-rose-600 text-white ring-4 ring-rose-200"
-              : "bg-white text-rose-800 border-2 border-rose-400 hover:bg-rose-50"
-              }`}
-          >
-            <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
-                <IconXCircle className="w-5 h-5" />
-              </span>
-              <div>
-                <div className="text-base font-extrabold">Not in today</div>
-                <div className="text-xs font-normal opacity-85">Doctor absent, offers reschedule</div>
-              </div>
-            </div>
-            <span className="text-[11px] uppercase font-bold bg-black/10 px-2.5 py-1 rounded-full shrink-0">
-              Tap 3
-            </span>
-          </button>
+        <button
+          type="button"
+          disabled={updating || !activeDoc}
+          onClick={() => setStatus("out", 0)}
+          className={`w-full min-h-[56px] px-4 rounded-2xl border-2 text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
+            activeDoc?.status_state === "out" && isFresh
+              ? "bg-[var(--red)] text-white border-[var(--red)]"
+              : "bg-white text-[var(--ink)] border-[var(--red)] hover:bg-[#FDF2F1]"
+          }`}
+        >
+          <span className="flex items-center gap-3">
+            <IconXCircle className="w-6 h-6 shrink-0" />
+            <span>Aaj nahi hain</span>
+          </span>
+          <span className="text-[16px] font-semibold">Tap</span>
+        </button>
+      </section>
+
+      {/* BOTTOM: Missed Calls List (No forms, no sidebar) */}
+      <section aria-label="Missed calls" className="bg-white border-2 border-[#C8DAD7] rounded-3xl p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="font-heading text-[20px] font-bold text-[var(--ink)] flex items-center gap-2">
+            <IconPhone className="w-5 h-5 text-[var(--teal)] shrink-0" />
+            <span>Missed calls</span>
+          </h2>
+          <span className="px-3 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-bold">
+            {missedCalls.length}
+          </span>
         </div>
 
-        {/* Current Token Counter & Next Token (+1) */}
-        {activeDoc && (
-          <div className="bg-deep text-white rounded-3xl p-4 shadow-md mt-1">
-            <div className="flex items-center justify-between gap-3 mb-3">
-              <div>
-                <p className="text-[11px] text-purple-200 font-semibold uppercase tracking-wider">
-                  Live Queue Token
-                </p>
-                <div className="text-3xl font-black font-mono mt-0.5">
-                  #{activeDoc.current_token || 0}
-                </div>
-              </div>
-              <button
-                type="button"
-                disabled={updating}
-                onClick={nextToken}
-                className="bg-brand hover:bg-purple-600 active:scale-95 disabled:opacity-50 text-white font-bold px-4 py-3 rounded-2xl text-sm flex items-center gap-2 shadow-lg transition-all"
+        {missedCalls.length === 0 ? (
+          <p className="text-[17px] text-[#3C5250] py-2">No missed calls right now.</p>
+        ) : (
+          <ul className="space-y-3">
+            {missedCalls.map((item) => (
+              <li
+                key={item.id}
+                className={`rounded-2xl p-3.5 border-2 space-y-2.5 ${
+                  item.outcome === "urgent"
+                    ? "bg-[#FDF2F1] border-[var(--red)]"
+                    : "bg-[#F5F8F7] border-[#C8DAD7]"
+                }`}
               >
-                <IconZap className="w-4 h-4 shrink-0" />
-                <span>Next Token</span>
-                <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
-                  #{(activeDoc.current_token || 0) + 1}
-                </span>
-              </button>
-            </div>
-            <p className="text-[11px] text-purple-200/90 leading-relaxed">
-              When callers ask &quot;kitna wait hai&quot; or share their token, Parchi calculates wait time from this live counter.
-            </p>
-          </div>
+                <div className="flex items-center justify-between gap-2">
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[16px] font-bold uppercase ${
+                      item.outcome === "urgent"
+                        ? "bg-[var(--red)] text-white"
+                        : "bg-[var(--yellow)] text-[var(--ink)]"
+                    }`}
+                  >
+                    {item.outcome === "urgent" ? "Urgent" : "Callback"}
+                  </span>
+                  <span className="text-[16px] font-semibold text-[#3C5250]">{item.channel}</span>
+                </div>
+                <p className="text-[17px] text-[var(--ink)]">{item.note || "Patient requested callback"}</p>
+                <button
+                  type="button"
+                  onClick={() => resolveMissedCall(item.id)}
+                  className="btn2 w-full min-h-[56px] text-[17px]"
+                >
+                  Mark called back
+                </button>
+              </li>
+            ))}
+          </ul>
         )}
-      </div>
-
-      {/* Footer navigation */}
-      <footer className="bg-white border-t border-lav p-3 text-center text-xs text-gray-500">
-        <p>Parchi AI Receptionist · Built for 1 Android Phone</p>
-      </footer>
+      </section>
     </main>
   );
 }

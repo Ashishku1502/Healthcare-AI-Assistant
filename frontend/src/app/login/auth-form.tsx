@@ -177,43 +177,43 @@ export default function AuthForm({
   }
 
   return (
-    <div className="min-h-screen bg-bg text-ink flex flex-col justify-between">
+    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col justify-between">
       {/* Top Bar Navigation */}
-      <header className="w-full border-b border-lav bg-white/80 backdrop-blur-md sticky top-0 z-20">
-        <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
-          <a href="/" className="flex items-center gap-2.5 group">
-            <span className="w-9 h-9 rounded-xl bg-brand text-white flex items-center justify-center font-black shadow-sm group-hover:scale-105 transition-transform">
+      <header className="w-full border-b border-[#D4E2DF] bg-white/95 backdrop-blur-md sticky top-0 z-20">
+        <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
+          <a href="/" className="min-h-[48px] flex items-center gap-2 group shrink-0">
+            <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--teal)] text-white flex items-center justify-center font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
               <IconCross className="w-5 h-5 text-white" />
             </span>
-            <div>
-              <span className="text-xl font-bold text-deep tracking-tight">Parchi AI</span>
-              <span className="hidden sm:inline-block ml-2 text-xs font-semibold uppercase tracking-wider bg-lav text-brand px-2 py-0.5 rounded-full">
+            <div className="flex items-center gap-2">
+              <span className="text-[18px] sm:text-xl font-bold text-[var(--ink)] tracking-tight font-heading whitespace-nowrap">Parchi AI</span>
+              <span className="hidden sm:inline-block text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-3 py-1 rounded-full whitespace-nowrap">
                 Front Desk
               </span>
             </div>
           </a>
-          <nav className="flex items-center gap-3 text-sm">
-            <a href="/" className="text-gray-600 hover:text-brand transition-colors">
+          <nav className="flex items-center gap-1.5 sm:gap-2 text-[16px] shrink-0">
+            <a href="/" className="min-h-[48px] px-2 inline-flex items-center text-[#3C5250] font-semibold hover:text-[var(--teal)] transition-colors whitespace-nowrap">
               Home
             </a>
-            <span className="text-gray-300">|</span>
+            <span className="w-px h-5 bg-[#B8CCC9] shrink-0" aria-hidden="true" />
             {mode === "login" ? (
               <button
                 type="button"
                 onClick={() => switchMode("signup")}
-                className="text-brand font-semibold hover:underline flex items-center gap-1.5"
+                className="min-h-[48px] px-2 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
               >
-                <IconBuilding className="w-4 h-4" />
-                Register Clinic
+                <IconBuilding className="w-4 h-4 shrink-0" />
+                <span>Register Clinic</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => switchMode("login")}
-                className="text-brand font-semibold hover:underline flex items-center gap-1.5"
+                className="min-h-[48px] px-2 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
               >
-                <IconLock className="w-4 h-4" />
-                Sign In
+                <IconLock className="w-4 h-4 shrink-0" />
+                <span>Sign In</span>
               </button>
             )}
           </nav>
@@ -225,120 +225,120 @@ export default function AuthForm({
         {/* Left Column: Full Product Information, Trust & Benefits */}
         <section className="lg:col-span-6 space-y-6 min-w-0 w-full">
           <div>
-            <span className="inline-flex items-center gap-1.5 bg-lav text-brand px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider">
-              <IconSparkles className="w-3.5 h-3.5 text-brand shrink-0" />
+            <span className="inline-flex items-center gap-2 bg-[#E4EFED] text-[var(--ink)] px-3.5 py-1.5 rounded-full text-[16px] font-bold">
+              <IconSparkles className="w-4 h-4 text-[var(--teal)] shrink-0" />
               Healthcare AI Assistant
             </span>
-            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-deep mt-3 leading-tight sm:leading-snug break-words">
+            <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[var(--ink)] mt-3 leading-tight break-words font-heading">
               Your clinic&apos;s 24/7 AI Receptionist.
             </h1>
-            <p className="mt-4 text-base sm:text-lg text-gray-700 leading-relaxed break-words">
+            <p className="mt-4 text-[17px] text-[#3C5250] leading-relaxed break-words">
               Parchi handles routine patient phone calls, WhatsApp inquiries, appointment bookings, and doctor wait-time updates in Hindi, Hinglish, Marathi, and English—freeing your staff to focus on in-clinic care.
             </p>
           </div>
 
           {/* Key Pillars & Capabilities */}
           <div className="grid sm:grid-cols-2 gap-4 pt-2">
-            <div className="bg-white border border-lav rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-9 h-9 rounded-xl bg-purple-100 text-brand flex items-center justify-center mb-2.5 shrink-0">
-                <IconPhone className="w-5 h-5 text-brand" />
+            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#E4EFED] text-[var(--teal)] flex items-center justify-center mb-2.5 shrink-0">
+                <IconPhone className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-deep text-sm break-words">Calls & WhatsApp</h3>
-              <p className="text-xs text-gray-600 mt-1 leading-normal break-words">
+              <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">Calls & WhatsApp</h3>
+              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
                 Answers clinic hours, address, fee structure, and doctor availability in the language patients speak.
               </p>
             </div>
 
-            <div className="bg-white border border-lav rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-9 h-9 rounded-xl bg-green-100 text-ok flex items-center justify-center mb-2.5 shrink-0">
-                <IconLock className="w-5 h-5 text-ok" />
+            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#DCFCE7] text-[#14532D] flex items-center justify-center mb-2.5 shrink-0">
+                <IconLock className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-deep text-sm break-words">Zero Double-Booking</h3>
-              <p className="text-xs text-gray-600 mt-1 leading-normal break-words">
+              <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">Zero Double-Booking</h3>
+              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
                 Strict database unique-slot verification. Appointments book only after explicit patient confirmation.
               </p>
             </div>
 
-            <div className="bg-white border border-lav rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center mb-2.5 shrink-0">
-                <IconClock className="w-5 h-5 text-amber-700" />
+            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[var(--yellow)] text-[var(--ink)] flex items-center justify-center mb-2.5 shrink-0">
+                <IconClock className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-deep text-sm break-words">1-Tap Doctor Status</h3>
-              <p className="text-xs text-gray-600 mt-1 leading-normal break-words">
+              <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">1-Tap Doctor Status</h3>
+              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
                 Front desk marks doctor delays in 5 seconds. Patients asking &quot;doctor aaye kya?&quot; get accurate live updates.
               </p>
             </div>
 
-            <div className="bg-white border border-lav rounded-2xl p-4 shadow-sm hover:shadow-md transition-shadow">
-              <div className="w-9 h-9 rounded-xl bg-red-100 text-red-600 flex items-center justify-center mb-2.5 shrink-0">
-                <IconAlertTriangle className="w-5 h-5 text-red-600" />
+            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
+              <div className="w-10 h-10 rounded-xl bg-[#FDECEA] text-[var(--red)] flex items-center justify-center mb-2.5 shrink-0">
+                <IconAlertTriangle className="w-5 h-5" />
               </div>
-              <h3 className="font-bold text-deep text-sm break-words">Safety & Triage Escalation</h3>
-              <p className="text-xs text-gray-600 mt-1 leading-normal break-words">
+              <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">Safety & Triage Escalation</h3>
+              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
                 Immediate 112 emergency routing for chest pain or trauma. Medical questions escalate safely to clinic staff.
               </p>
             </div>
           </div>
 
           {/* Quick Demo Credentials Card */}
-          <div className="bg-gradient-to-br from-lav to-purple-50 border-2 border-brand/20 rounded-3xl p-4 sm:p-5 shadow-sm">
+          <div className="bg-[#E4EFED]/60 border-2 border-[#B8CCC9] rounded-3xl p-4 sm:p-5 shadow-sm">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-              <span className="text-xs font-bold uppercase tracking-wider text-brand flex items-center gap-1.5 shrink-0">
-                <IconZap className="w-4 h-4 text-brand shrink-0" />
+              <span className="text-[16px] font-bold text-[var(--teal)] flex items-center gap-1.5 shrink-0">
+                <IconZap className="w-4 h-4 text-[var(--teal)] shrink-0" />
                 Pre-configured Demo Sandbox
               </span>
-              <span className="text-xs text-gray-500 font-medium">Click to test instant login</span>
+              <span className="text-[16px] text-[#3C5250] font-medium">Tap to test instant login</span>
             </div>
-            <p className="text-sm font-semibold text-deep mt-2 break-words">
+            <p className="text-[17px] font-semibold text-[var(--ink)] mt-2 break-words">
               Want to test the full system right now without registering?
             </p>
             <div className="grid sm:grid-cols-2 gap-3 mt-3">
               <button
                 type="button"
                 onClick={() => fillDemo("owner")}
-                className="text-left bg-white hover:border-brand border border-lav p-3 rounded-xl transition-all shadow-sm hover:scale-[1.02] group"
+                className="min-h-[56px] text-left bg-white hover:border-[var(--teal)] border-2 border-[#C8DAD7] p-3.5 rounded-2xl transition-all shadow-sm group"
               >
-                <div className="flex justify-between items-center gap-1">
-                  <span className="font-bold text-xs text-deep flex items-center gap-1.5 shrink-0">
-                    <IconStethoscope className="w-3.5 h-3.5 text-brand shrink-0" />
+                <div className="flex justify-between items-center gap-2 flex-wrap">
+                  <span className="font-bold text-[16px] text-[var(--ink)] flex items-center gap-1.5 shrink-0">
+                    <IconStethoscope className="w-4 h-4 text-[var(--teal)] shrink-0" />
                     Clinic Owner
                   </span>
-                  <span className="text-[10px] bg-purple-100 text-brand px-1.5 py-0.5 rounded font-mono group-hover:bg-brand group-hover:text-white transition-colors shrink-0 whitespace-nowrap">
+                  <span className="text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-2.5 py-1 rounded-lg group-hover:bg-[var(--teal)] group-hover:text-white transition-colors shrink-0 whitespace-nowrap">
                     Fill & Login
                   </span>
                 </div>
-                <p className="text-xs font-mono text-gray-700 mt-1 break-all">owner@clinic.com</p>
-                <p className="text-[11px] text-gray-500 break-words">Full dashboard & settings access</p>
+                <p className="text-[16px] font-mono text-[var(--ink)] mt-1.5 break-all">owner@clinic.com</p>
+                <p className="text-[16px] text-[#3C5250] break-words">Full dashboard & settings access</p>
               </button>
 
               <button
                 type="button"
                 onClick={() => fillDemo("receptionist")}
-                className="text-left bg-white hover:border-brand border border-lav p-3 rounded-xl transition-all shadow-sm hover:scale-[1.02] group"
+                className="min-h-[56px] text-left bg-white hover:border-[var(--teal)] border-2 border-[#C8DAD7] p-3.5 rounded-2xl transition-all shadow-sm group"
               >
-                <div className="flex justify-between items-center gap-1">
-                  <span className="font-bold text-xs text-deep flex items-center gap-1.5 shrink-0">
-                    <IconPhone className="w-3.5 h-3.5 text-brand shrink-0" />
+                <div className="flex justify-between items-center gap-2 flex-wrap">
+                  <span className="font-bold text-[16px] text-[var(--ink)] flex items-center gap-1.5 shrink-0">
+                    <IconPhone className="w-4 h-4 text-[var(--teal)] shrink-0" />
                     Reception Desk
                   </span>
-                  <span className="text-[10px] bg-purple-100 text-brand px-1.5 py-0.5 rounded font-mono group-hover:bg-brand group-hover:text-white transition-colors shrink-0 whitespace-nowrap">
+                  <span className="text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-2.5 py-1 rounded-lg group-hover:bg-[var(--teal)] group-hover:text-white transition-colors shrink-0 whitespace-nowrap">
                     Fill & Login
                   </span>
                 </div>
-                <p className="text-xs font-mono text-gray-700 mt-1 break-all">desk@clinic.com</p>
-                <p className="text-[11px] text-gray-500 break-words">Live doctor status & appointments</p>
+                <p className="text-[16px] font-mono text-[var(--ink)] mt-1.5 break-all">desk@clinic.com</p>
+                <p className="text-[16px] text-[#3C5250] break-words">Live doctor status & appointments</p>
               </button>
             </div>
           </div>
 
           {/* Small Backend Status Badge */}
-          <div className="inline-flex items-center gap-2 bg-white/90 border border-lav rounded-full px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs w-fit">
+          <div className="inline-flex items-center gap-2.5 bg-white border border-[#D4E2DF] rounded-full px-4 py-2 text-[16px] font-semibold text-[var(--ink)] shadow-xs w-fit">
             <span
-              className={`w-2 h-2 rounded-full shrink-0 ${apiStatus === "ready"
-                  ? "bg-emerald-500"
+              className={`w-2.5 h-2.5 rounded-full shrink-0 ${apiStatus === "ready"
+                  ? "bg-[#0F6B66]"
                   : apiStatus === "waking"
-                    ? "bg-amber-400 animate-pulse"
-                    : "bg-red-500"
+                    ? "bg-[var(--yellow)] animate-pulse"
+                    : "bg-[var(--red)]"
                 }`}
             ></span>
             <span>
@@ -351,9 +351,9 @@ export default function AuthForm({
           </div>
 
           {/* Safety & Compliance Badge */}
-          <div className="flex items-center gap-3 text-xs text-gray-600 bg-white/70 border border-lav rounded-2xl p-3">
-            <div className="w-8 h-8 rounded-lg bg-lav flex items-center justify-center shrink-0">
-              <IconShieldCheck className="w-5 h-5 text-brand" />
+          <div className="flex items-center gap-3 text-[16px] text-[var(--ink)] bg-white border border-[#D4E2DF] rounded-2xl p-4">
+            <div className="w-10 h-10 rounded-xl bg-[#E4EFED] flex items-center justify-center shrink-0">
+              <IconShieldCheck className="w-5 h-5 text-[var(--teal)]" />
             </div>
             <span className="break-words">
               <strong>HIPAA & Indian Digital Health Guidelines:</strong> Patient telephone numbers and records are tenant-isolated. Strict opt-out compliance enforced.
@@ -363,17 +363,17 @@ export default function AuthForm({
 
         {/* Right Column: Interactive Login & Signup Form */}
         <section className="lg:col-span-6 w-full max-w-xl mx-auto min-w-0">
-          <div className="card shadow-lg border border-lav p-5 sm:p-8">
+          <div className="card shadow-lg border border-[#D4E2DF] p-5 sm:p-8">
             {/* Mode Selector Tabs */}
-            <div className="flex rounded-2xl bg-lav/60 p-1 mb-6 border border-lav" role="tablist">
+            <div className="flex rounded-2xl bg-[#E4EFED] p-1.5 mb-6 border border-[#C8DAD7]" role="tablist">
               <button
                 type="button"
                 role="tab"
                 aria-selected={mode === "login"}
                 onClick={() => switchMode("login")}
-                className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${mode === "login"
-                    ? "bg-white text-brand shadow-sm"
-                    : "text-gray-600 hover:text-deep"
+                className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mode === "login"
+                    ? "bg-white text-[var(--teal)] shadow-sm"
+                    : "text-[#3C5250] hover:text-[var(--ink)]"
                   }`}
               >
                 <IconLock className="w-4 h-4 shrink-0" />
@@ -384,9 +384,9 @@ export default function AuthForm({
                 role="tab"
                 aria-selected={mode === "signup"}
                 onClick={() => switchMode("signup")}
-                className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${mode === "signup"
-                    ? "bg-white text-brand shadow-sm"
-                    : "text-gray-600 hover:text-deep"
+                className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mode === "signup"
+                    ? "bg-white text-[var(--teal)] shadow-sm"
+                    : "text-[#3C5250] hover:text-[var(--ink)]"
                   }`}
               >
                 <IconBuilding className="w-4 h-4 shrink-0" />
@@ -398,9 +398,9 @@ export default function AuthForm({
             {err && (
               <div
                 role="alert"
-                className="mb-5 bg-red-50 border border-red-200 text-red-800 rounded-2xl p-3.5 text-sm flex items-start gap-2.5 animate-fadeIn"
+                className="mb-5 bg-[#FDECEA] border-2 border-[var(--red)] text-[#7A1E15] rounded-2xl p-4 text-[16px] flex items-start gap-2.5"
               >
-                <IconAlertTriangle className="w-5 h-5 text-red-600 shrink-0 mt-0.5" />
+                <IconAlertTriangle className="w-5 h-5 text-[var(--red)] shrink-0 mt-0.5" />
                 <div className="flex-1 font-medium">{err}</div>
               </div>
             )}
@@ -408,9 +408,9 @@ export default function AuthForm({
             {successMsg && (
               <div
                 role="status"
-                className="mb-5 bg-green-50 border border-green-200 text-green-800 rounded-2xl p-3.5 text-sm flex items-start gap-2.5 animate-fadeIn"
+                className="mb-5 bg-[#DCFCE7] border-2 border-[#166534] text-[#14532D] rounded-2xl p-4 text-[16px] flex items-start gap-2.5"
               >
-                <IconCheckCircle className="w-5 h-5 text-ok shrink-0 mt-0.5" />
+                <IconCheckCircle className="w-5 h-5 text-[#14532D] shrink-0 mt-0.5" />
                 <div className="flex-1 font-medium">{successMsg}</div>
               </div>
             )}
@@ -419,22 +419,22 @@ export default function AuthForm({
             {mode === "login" && (
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-deep">Welcome Back</h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <h2 className="text-2xl font-bold text-[var(--ink)] font-heading">Welcome Back</h2>
+                  <p className="text-[16px] text-[#3C5250] mt-1">
                     Sign in to manage appointments, doctor status, and AI triage.
                   </p>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-800 mb-1">
+                  <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                     Email Address
                   </label>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                      <IconMail className="w-4 h-4" />
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                      <IconMail className="w-5 h-5" />
                     </span>
                     <input
-                      className="inp pl-9 focus:ring-2 focus:ring-brand focus:border-brand"
+                      className="inp pl-11"
                       type="email"
                       required
                       autoComplete="email"
@@ -447,31 +447,31 @@ export default function AuthForm({
 
                 <div>
                   <div className="flex justify-between items-center mb-1">
-                    <label className="block text-sm font-medium text-gray-800">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)]">
                       Password
                     </label>
                     <button
                       type="button"
                       onClick={() => setShowPassword(!showPassword)}
-                      className="text-xs text-brand font-medium hover:underline flex items-center gap-1"
+                      className="min-h-[48px] px-3 text-[16px] text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5"
                     >
                       {showPassword ? (
                         <>
-                          <IconEyeOff className="w-3.5 h-3.5" /> Hide
+                          <IconEyeOff className="w-4 h-4" /> Hide
                         </>
                       ) : (
                         <>
-                          <IconEye className="w-3.5 h-3.5" /> Show
+                          <IconEye className="w-4 h-4" /> Show
                         </>
                       )}
                     </button>
                   </div>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                      <IconLock className="w-4 h-4" />
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                      <IconLock className="w-5 h-5" />
                     </span>
                     <input
-                      className="inp pl-9 focus:ring-2 focus:ring-brand focus:border-brand"
+                      className="inp pl-11"
                       type={showPassword ? "text" : "password"}
                       required
                       autoComplete="current-password"
@@ -485,7 +485,7 @@ export default function AuthForm({
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="btn w-full text-base py-3 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="btn w-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                     disabled={busy}
                   >
                     {busy ? (
@@ -502,13 +502,13 @@ export default function AuthForm({
                   </button>
                 </div>
 
-                <div className="pt-4 border-t border-lav text-center">
-                  <p className="text-sm text-gray-600">
+                <div className="pt-4 border-t border-[#D4E2DF] text-center">
+                  <p className="text-[16px] text-[#3C5250]">
                     Need a new clinic setup?{" "}
                     <button
                       type="button"
                       onClick={() => switchMode("signup")}
-                      className="text-brand font-bold hover:underline"
+                      className="min-h-[48px] px-2 text-[var(--teal)] font-bold hover:underline inline-flex items-center"
                     >
                       Start 14-day pilot
                     </button>
@@ -521,8 +521,8 @@ export default function AuthForm({
             {mode === "signup" && (
               <form onSubmit={handleSignup} className="space-y-4">
                 <div>
-                  <h2 className="text-2xl font-bold text-deep">Register Your Clinic</h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <h2 className="text-2xl font-bold text-[var(--ink)] font-heading">Register Your Clinic</h2>
+                  <p className="text-[16px] text-[#3C5250] mt-1">
                     Set up your AI front desk in minutes. No credit card required.
                   </p>
                 </div>
@@ -530,15 +530,15 @@ export default function AuthForm({
                 {/* Clinic & Doctor Details */}
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                       Clinic / Hospital Name *
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <IconBuilding className="w-4 h-4" />
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                        <IconBuilding className="w-5 h-5" />
                       </span>
                       <input
-                        className="inp pl-9 text-sm"
+                        className="inp pl-11"
                         required
                         minLength={2}
                         placeholder="e.g. Apollo Care Clinic"
@@ -549,15 +549,15 @@ export default function AuthForm({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                       Primary Doctor Name *
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <IconStethoscope className="w-4 h-4" />
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                        <IconStethoscope className="w-5 h-5" />
                       </span>
                       <input
-                        className="inp pl-9 text-sm"
+                        className="inp pl-11"
                         required
                         minLength={2}
                         placeholder="e.g. Dr. Rajesh Sharma"
@@ -570,11 +570,11 @@ export default function AuthForm({
 
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                       Medical Speciality
                     </label>
                     <select
-                      className="inp text-sm"
+                      className="inp"
                       value={speciality}
                       onChange={(e) => setSpeciality(e.target.value)}
                     >
@@ -592,15 +592,15 @@ export default function AuthForm({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                       Staff / WhatsApp Phone *
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <IconPhone className="w-4 h-4" />
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                        <IconPhone className="w-5 h-5" />
                       </span>
                       <input
-                        className="inp pl-9 text-sm"
+                        className="inp pl-11"
                         required
                         type="tel"
                         pattern="[0-9]{10,13}"
@@ -615,15 +615,15 @@ export default function AuthForm({
                 {/* Account Credentials */}
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                       Owner Email *
                     </label>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <IconMail className="w-4 h-4" />
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                        <IconMail className="w-5 h-5" />
                       </span>
                       <input
-                        className="inp pl-9 text-sm"
+                        className="inp pl-11"
                         type="email"
                         required
                         autoComplete="email"
@@ -636,31 +636,31 @@ export default function AuthForm({
 
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                      <label className="block text-[16px] font-semibold text-[var(--ink)]">
                         Password *
                       </label>
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
-                        className="text-[11px] text-brand hover:underline flex items-center gap-1"
+                        className="min-h-[48px] px-3 text-[16px] text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5"
                       >
                         {showPassword ? (
                           <>
-                            <IconEyeOff className="w-3 h-3" /> Hide
+                            <IconEyeOff className="w-4 h-4" /> Hide
                           </>
                         ) : (
                           <>
-                            <IconEye className="w-3 h-3" /> Show
+                            <IconEye className="w-4 h-4" /> Show
                           </>
                         )}
                       </button>
                     </div>
                     <div className="relative">
-                      <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                        <IconLock className="w-4 h-4" />
+                      <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                        <IconLock className="w-5 h-5" />
                       </span>
                       <input
-                        className="inp pl-9 text-sm"
+                        className="inp pl-11"
                         type={showPassword ? "text" : "password"}
                         required
                         minLength={6}
@@ -675,11 +675,11 @@ export default function AuthForm({
                 {/* Practice Information */}
                 <div className="grid sm:grid-cols-2 gap-3">
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                       Clinic Address & City
                     </label>
                     <input
-                      className="inp text-sm"
+                      className="inp"
                       placeholder="e.g. MG Road, Nagpur"
                       value={address}
                       onChange={(e) => setAddress(e.target.value)}
@@ -687,11 +687,11 @@ export default function AuthForm({
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                    <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                       Consultation Fees
                     </label>
                     <input
-                      className="inp text-sm"
+                      className="inp"
                       placeholder="e.g. Rs 300 (Followup Rs 200)"
                       value={fees}
                       onChange={(e) => setFees(e.target.value)}
@@ -700,15 +700,15 @@ export default function AuthForm({
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 uppercase tracking-wider mb-1">
+                  <label className="block text-[16px] font-semibold text-[var(--ink)] mb-1.5">
                     Operating Hours
                   </label>
                   <div className="relative">
-                    <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none text-gray-400">
-                      <IconCalendar className="w-4 h-4" />
+                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
+                      <IconCalendar className="w-5 h-5" />
                     </span>
                     <input
-                      className="inp pl-9 text-sm"
+                      className="inp pl-11"
                       placeholder="e.g. Mon-Sat 9:00 AM - 7:00 PM"
                       value={hours}
                       onChange={(e) => setHours(e.target.value)}
@@ -718,10 +718,10 @@ export default function AuthForm({
 
                 {/* Non-medical advice & terms acknowledgement */}
                 <div className="pt-1">
-                  <label className="flex items-start gap-2.5 text-xs text-gray-700 cursor-pointer">
+                  <label className="flex items-start gap-3 text-[16px] text-[var(--ink)] cursor-pointer">
                     <input
                       type="checkbox"
-                      className="mt-0.5 rounded text-brand focus:ring-brand"
+                      className="mt-1 w-5 h-5 rounded text-[var(--teal)] focus:ring-[var(--teal)] shrink-0"
                       checked={consentAcknowledged}
                       onChange={(e) => setConsentAcknowledged(e.target.checked)}
                     />
@@ -734,7 +734,7 @@ export default function AuthForm({
                 <div className="pt-2">
                   <button
                     type="submit"
-                    className="btn w-full text-base py-3 shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
+                    className="btn w-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
                     disabled={busy || !consentAcknowledged}
                   >
                     {busy ? (
@@ -751,13 +751,13 @@ export default function AuthForm({
                   </button>
                 </div>
 
-                <div className="pt-4 border-t border-lav text-center">
-                  <p className="text-sm text-gray-600">
+                <div className="pt-4 border-t border-[#D4E2DF] text-center">
+                  <p className="text-[16px] text-[#3C5250]">
                     Already have a clinic account?{" "}
                     <button
                       type="button"
                       onClick={() => switchMode("login")}
-                      className="text-brand font-bold hover:underline"
+                      className="min-h-[48px] px-2 text-[var(--teal)] font-bold hover:underline inline-flex items-center"
                     >
                       Sign in here
                     </button>
@@ -770,15 +770,15 @@ export default function AuthForm({
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-deep text-white text-xs py-5 px-4 text-center sm:text-left border-t border-white/10 mt-8">
+      <footer className="w-full bg-[var(--ink)] text-white text-[16px] py-6 px-4 text-center sm:text-left border-t border-white/10 mt-8">
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
           <span className="flex items-center gap-2 justify-center sm:justify-start break-words">
-            <span className="w-5 h-5 rounded-md bg-brand text-white flex items-center justify-center shrink-0">
-              <IconCross className="w-3.5 h-3.5 text-white" />
+            <span className="w-7 h-7 rounded-md bg-[var(--teal)] text-white flex items-center justify-center shrink-0">
+              <IconCross className="w-4 h-4 text-white" />
             </span>
             <span>© {new Date().getFullYear()} Parchi AI · Automated Front Desk for Medical Practices</span>
           </span>
-          <span className="text-purple-200/80 break-words text-center sm:text-right">
+          <span className="text-[#E4EFED] break-words text-center sm:text-right">
             For clinic administration & scheduling only · Compliant with telemedicine guidelines
           </span>
         </div>
