@@ -17,7 +17,7 @@ class DoctorIn(BaseModel):
     slot_minutes: int = Field(15, ge=5, le=120); status_note: str = ""; active: bool = True
     current_token: int = Field(0, ge=0)
 class DoctorOut(DoctorIn):
-    model_config = ConfigDict(from_attributes=True); id: int; current_token: int = 0; status_state: str = "unknown"; late_minutes: int = 0
+    model_config = ConfigDict(from_attributes=True); id: int; current_token: int = 0; status_state: str = "unknown"; late_minutes: int = 0; status_at: datetime | None = None
 class PatientIn(BaseModel):
     name: str = Field(min_length=2); phone: str = Field(pattern=r"^\+?\d{10,13}$"); consent: bool = False
 class PatientOut(PatientIn):

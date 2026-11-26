@@ -45,3 +45,24 @@ This document provides the exact phrases, failing outputs, root causes, and scri
 - **Urgent Recall After Patch**: **100.0%** (22/22 detected) -> Gate Passed (exit code 0)
 - **Medical Advice Leakage Count**: **0** (Zero clinical advice given)
 - **Correct or Safe Handoff Rate**: **100.0%**
+
+---
+
+## Live State "It Failing" Demonstration (Minute 3:00 - 3:40)
+
+### What to Show on Screen:
+1. Open the mobile receptionist page at `/receptionist` (or mobile device emulator).
+2. Show the 3 one-tap buttons: **Doctor in**, **Running late +15 min**, **Not in today**.
+3. **The Stale State Failure**: If the state has not been updated within 30 minutes, or status is unknown:
+   - Call/Text: *"Doctor aa gaye kya? Kitna wait hai?"*
+   - Parchi responds: *"Dr. Neha: the clinic has not confirmed the timing yet (status is unconfirmed). I can issue you a token or arrange a callback from staff."*
+4. **Why this failure mode is essential**:
+   - Parchi **never** fabricates a wait time (e.g., "around 15 minutes") when the doctor is running behind schedule.
+   - If the receptionist hasn't confirmed attendance within 30 minutes, Parchi truthfully admits it is unconfirmed and offers a token or callback.
+
+### Exact Script to Speak in the Recording:
+> *"Here on the receptionist phone screen at `/receptionist`, Sunita has three one-tap buttons: 'Doctor in', 'Running late +15 min', and 'Not in today'.*
+>
+> *Now watch what happens when the live state fails—when the doctor hasn't arrived or the last update was more than 30 minutes ago. A caller asks: 'Doctor aa gaye kya? Kitna wait hai?'.*
+>
+> *Instead of hallucinating a friendly guess like 'The doctor should be here in 10 minutes', Parchi strictly refuses to invent a wait time. It states that the timing is unconfirmed, logs a handoff event for clinic staff, and offers the patient a queue token or a staff callback. In clinic operations, an honest 'unconfirmed' is safe; an invented wait time creates an angry waiting room."*

@@ -164,8 +164,35 @@ def analytics(days: int = 30, u: User = Depends(current_user), db: Session = Dep
 @r.put("/doctors/{id}/status")
 def doctor_status(id: int, b: StatusIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
     """One-tap live state from the receptionist (the source of truth for wait answers)."""
-    d = own(db, Doctor, id, u); d.status_state, d.late_minutes, d.status_at = b.state, b.late_minutes, now()
-    db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"doctor {id} status {b.state} {b.late_minutes}")); db.commit(); return {"ok": True}
+    d = own(db, Doctor, id, u)
+    d.status_state, d.late_minutes, d.status_at = b.state, b.late_minutes, now()
+    db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"doctor {id} status {b.state} {b.late_minutes}"))
+    db.commit()
+    return {
+        "ok": True,
+        "id": d.id,
+        "name": d.name,
+        "status_state": d.status_state,
+        "late_minutes": d.late_minutes,
+        "status_at": d.status_at.isoformat() if d.status_at else None,
+        "is_fresh": True,
+        "current_token": d.current_token or 0
+    }
+
+@r.get("/doctors/{id}/status")
+def get_doctor_status(id: int, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Fetch doctor live state, timestamp, and freshness status."""
+    d = own(db, Doctor, id, u)
+    is_fresh = bool(d.status_at and (now() - d.status_at <= timedelta(minutes=30)))
+    return {
+        "id": d.id,
+        "name": d.name,
+        "status_state": d.status_state,
+        "late_minutes": d.late_minutes,
+        "status_at": d.status_at.isoformat() if d.status_at else None,
+        "is_fresh": is_fresh,
+        "current_token": d.current_token or 0
+    }
 
 @r.post("/doctors/{id}/next-token", response_model=DoctorOut)
 def next_token(id: int, u: User = Depends(current_user), db: Session = Depends(get_db)):

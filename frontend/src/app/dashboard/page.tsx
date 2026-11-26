@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { api } from "@/lib/api";
 import {
   IconCross,
@@ -96,9 +97,18 @@ function Now() {
   return (
     <div className="space-y-4">
       <div className="card">
-        <div className="flex items-center gap-2 mb-3">
-          <IconClock className="w-5 h-5 text-brand" />
-          <h2 className="font-bold text-deep text-lg">Doctor status (tap once, ~5 seconds)</h2>
+        <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
+          <div className="flex items-center gap-2">
+            <IconClock className="w-5 h-5 text-brand" />
+            <h2 className="font-bold text-deep text-lg">Doctor status (tap once, ~5 seconds)</h2>
+          </div>
+          <Link
+            href="/receptionist"
+            className="text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
+          >
+            <span>📱 Mobile Receptionist View (1 Phone)</span>
+            <span>→</span>
+          </Link>
         </div>
         <State loading={doc.loading} err={doc.err} empty={doc.data?.length === 0} />
         {doc.data
@@ -112,8 +122,7 @@ function Now() {
                   <span className="text-sm font-normal text-gray-600">
                     · Live:{" "}
                     <b className="capitalize text-brand">
-                      {d.status_state}
-                      {d.status_state === "late" ? ` (${d.late_minutes} min)` : ""}
+                      {d.status_state === "in" ? "Doctor In" : d.status_state === "late" ? `Running Late (+${d.late_minutes} min)` : d.status_state === "out" ? "Not In Today" : "Not Set"}
                     </b>
                     · Current Token:{" "}
                     <b className="text-brand font-mono font-bold">#{d.current_token || 0}</b>
@@ -129,32 +138,32 @@ function Now() {
                   Next Token #{(d.current_token || 0) + 1}
                 </button>
                 <button
-                  className="btn text-xs py-1.5 px-3.5 flex items-center gap-1.5"
+                  className="btn text-xs py-1.5 px-3.5 flex items-center gap-1.5 !bg-emerald-600 hover:!bg-emerald-700"
                   onClick={() => set(d.id, "in")}
                 >
                   <IconCheckCircle className="w-3.5 h-3.5" />
-                  Aaye / Arrived
+                  Doctor in
                 </button>
                 <button
-                  className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5"
+                  className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5 !text-amber-800 !border-amber-300 hover:!bg-amber-50"
+                  onClick={() => set(d.id, "late", 15)}
+                >
+                  <IconClock className="w-3.5 h-3.5 text-amber-600" />
+                  Running late +15 min
+                </button>
+                <button
+                  className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5 !text-amber-800 !border-amber-300 hover:!bg-amber-50"
                   onClick={() => set(d.id, "late", 30)}
                 >
                   <IconClock className="w-3.5 h-3.5 text-amber-600" />
                   Late 30 min
                 </button>
                 <button
-                  className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5"
-                  onClick={() => set(d.id, "late", 60)}
-                >
-                  <IconClock className="w-3.5 h-3.5 text-amber-600" />
-                  Late 60 min
-                </button>
-                <button
                   className="btn2 text-xs py-1.5 px-3 flex items-center gap-1.5 !text-red-700 !border-red-300 hover:!bg-red-50"
                   onClick={() => set(d.id, "out")}
                 >
                   <IconAlertTriangle className="w-3.5 h-3.5 text-red-600" />
-                  Nahi aaye / Out
+                  Not in today
                 </button>
               </div>
             </div>

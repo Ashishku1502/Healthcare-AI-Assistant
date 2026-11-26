@@ -83,8 +83,8 @@ M = {
     "mr": "डॉ. {name} अजून आलेले नाहीत."
  },
  "wait_unsure": {
-    "en": "Dr {name}: the clinic has not confirmed the timing yet. I've asked the staff to update you.",
-    "mr": "डॉ. {name}: क्लिनिकने अद्याप वेळेची पुष्टी केलेली नाही. मी कर्मचाऱ्यांना तुम्हाला अपडेट करण्यास सांगितले आहे."
+    "en": "Dr {name}: the clinic has not confirmed the timing yet (status is unconfirmed). I can issue you a token or arrange a callback from staff.",
+    "mr": "डॉ. {name}: क्लिनिकने अद्याप वेळेची पुष्टी केलेली नाही (स्थिती अनिश्चित आहे). मी तुम्हाला टोकन देऊ शकते किंवा स्टाफकडून कॉलबॅकची व्यवस्था करू शकते."
  },
  "wait_none": {
     "en": "No doctors are listed.",
@@ -138,7 +138,7 @@ def wait_reply(db, s, docs, lang="en", user_token: int | None = None):
     out, unsure = [], False
     is_mr = (lang == "mr")
     for d in docs:
-        fresh = d.status_at and (now() - d.status_at < timedelta(minutes=90))
+        fresh = d.status_at and (now() - d.status_at <= timedelta(minutes=30))
         if fresh and d.status_state == "in":
             out.append(M["wait_arrived"]["mr" if is_mr else "en"].format(name=d.name))
         elif fresh and d.status_state == "late":
@@ -381,7 +381,7 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
     m_tok = re.search(r"(?:token|tok|टोकन)(?:\s*(?:no|number|num|\#))?\s*(\d{1,4})", low)
     user_token = int(m_tok.group(1)) if m_tok else None
 
-    if re.search(r"late|wait|delay|intezaar|aa gaye|aaye|arrived|aale|देर|आ गए|ushir|उशीर|आले|kitna wait|kitni der|token", low):
+    if re.search(r"late|wait|delay|intezaar|aa gaye|aaye|arrived|aale|देर|आ गए|ushir|उशीर|आले|kitna wait|kitni der|token|doctor (?:in|out|hai|aaye|aale)|is (?:the )?doctor in|how long.*wait", low):
         return done(wait_reply(db, s, docs, lang=L, user_token=user_token))
 
     if re.search(r"fee|fees|charge|kitna|price|शुल्क|kiti|दर|फी", low):
