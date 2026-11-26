@@ -1270,18 +1270,18 @@ export default function Dashboard() {
   return (
     <div className="max-w-5xl mx-auto p-3 sm:p-6 space-y-4 overflow-x-hidden min-w-0">
       {/* Header */}
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white border border-lav rounded-2xl p-4 shadow-sm min-w-0">
+      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-white/95 backdrop-blur-md border border-lav rounded-3xl p-4 sm:p-5 shadow-sm min-w-0">
         <div className="flex items-center gap-3 min-w-0">
-          <span className="w-10 h-10 rounded-xl bg-brand text-white flex items-center justify-center font-bold text-xl shadow-sm shrink-0">
+          <span className="w-11 h-11 rounded-2xl bg-brand text-white flex items-center justify-center font-bold text-xl shadow-sm shrink-0">
             <IconCross className="w-6 h-6 text-white" />
           </span>
           <div className="min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <h1 className="text-lg sm:text-xl font-bold text-deep leading-tight break-words">
+              <h1 className="text-lg sm:text-xl font-extrabold text-deep leading-tight break-words">
                 {clinicName || "Parchi AI Clinic"}
               </h1>
               {userRole && (
-                <span className="text-[11px] font-bold uppercase tracking-wider bg-lav text-brand px-2 py-0.5 rounded-full shrink-0">
+                <span className="text-[11px] font-bold uppercase tracking-wider bg-lav text-brand px-2.5 py-0.5 rounded-full shrink-0">
                   {userRole}
                 </span>
               )}
@@ -1290,7 +1290,13 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0">
+        <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
+          <Link
+            href="/receptionist"
+            className="text-xs font-semibold text-brand bg-lav/70 hover:bg-lav px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
+          >
+            📱 Mobile Desk
+          </Link>
           <a
             href="/"
             className="text-xs text-gray-500 hover:text-brand font-medium px-2 py-1 transition-colors"
@@ -1311,7 +1317,10 @@ export default function Dashboard() {
       </header>
 
       {/* Tabs Navigation with SVG Icons */}
-      <nav className="flex gap-2 overflow-x-auto pb-2 scrollbar-none" aria-label="Dashboard">
+      <nav
+        className="flex gap-1.5 overflow-x-auto p-1.5 bg-white/90 border border-lav rounded-2xl shadow-xs"
+        aria-label="Dashboard"
+      >
         {TABS.map((t) => {
           const Icon = t.icon;
           const isActive = tab === t.id;
@@ -1322,7 +1331,7 @@ export default function Dashboard() {
               onClick={() => setTab(t.id)}
               className={`whitespace-nowrap px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 ${isActive
                 ? "bg-brand text-white shadow-sm"
-                : "bg-white text-gray-700 border border-lav hover:bg-lav"
+                : "text-gray-700 hover:bg-lav/60 hover:text-deep"
                 }`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-gray-500"}`} />
