@@ -66,3 +66,46 @@ This document provides the exact phrases, failing outputs, root causes, and scri
 > *Now watch what happens when the live state fails—when the doctor hasn't arrived or the last update was more than 30 minutes ago. A caller asks: 'Doctor aa gaye kya? Kitna wait hai?'.*
 >
 > *Instead of hallucinating a friendly guess like 'The doctor should be here in 10 minutes', Parchi strictly refuses to invent a wait time. It states that the timing is unconfirmed, logs a handoff event for clinic staff, and offers the patient a queue token or a staff callback. In clinic operations, an honest 'unconfirmed' is safe; an invented wait time creates an angry waiting room."*
+
+
+---
+
+## Landing Page Wait-Time Demo — "It Failing" Addendum (Minute 2:30 - 3:00)
+
+> **Added**: feat: landing page - remove unlimited, Start 14-day pilot CTA, wait-time demo chat
+
+### What Changed on the Landing Page
+
+| Element | Before | After |
+|---|---|---|
+| Pricing description | "Unlimited automated responses for routine…" | "Covers routine hours, fees, address…" |
+| Pricing CTA button | "Register Clinic Free" | "Start 14-day pilot" |
+| Hero chat card | Generic booking demo | Live wait-time conversation with freshness badge |
+
+### What to Show in Recording (Minute 2:30 – 3:00)
+
+1. Open `https://frontend-bice-eight-7xnlf654ep.vercel.app` (the live production site).
+2. Point to the **hero chat card** — it now shows a 3-message wait-time conversation:
+   - **Patient**: *"Doctor aa gaye kya? Kitna wait hai?"*
+   - **AI (fresh state)**: *"Dr. Neha Sharma is running 15 minutes late (confirmed by clinic 8 mins ago). Current token: #12."*
+   - **Amber badge (stale fallback)**: *"Unconfirmed fallback — if receptionist hasn't tapped in 30+ min: 'Status unconfirmed — I can issue a token or arrange a callback.'"*
+
+### Exact Script to Speak in Recording:
+
+> *"On the landing page you can now see exactly what a patient experiences when they message the clinic. The chat shows a real wait-time conversation — the AI says the doctor is 15 minutes late, confirmed by the receptionist 8 minutes ago, current token is #12.*
+>
+> *And below that, in amber, is what happens when it fails — when the receptionist hasn't tapped a status update in over 30 minutes. Parchi does not guess. It says: 'Status unconfirmed — I can issue a token or arrange a callback.' That is the safety gate that makes this production-ready."*
+
+### 5 New Test Cases (all pass) — `backend/tests/test_landing_waittime.py`
+
+| # | Scenario | Expected Result | Type |
+|---|---|---|---|
+| 1 | Doctor `in`, fresh (<30 min) | Reply confirms presence; no "unconfirmed" | PASS |
+| 2 | Doctor `late +15`, fresh | Reply mentions running late; no "unconfirmed" | PASS |
+| 3 | Status stale (35 min old) | Reply: "unconfirmed" + "token"/"callback"; does NOT quote stale 15 min | FAIL handled safely |
+| 4 | Status `unknown`, no timestamp | Reply: "unconfirmed" + no invented numeric wait | FAIL handled safely |
+| 5 | Doctor `out`, fresh | Reply confirms not in; no "unconfirmed" | PASS |
+
+```
+65 passed, 1 warning in 28.57s
+```
