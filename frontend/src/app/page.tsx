@@ -114,18 +114,24 @@ export default function Home() {
             <span className="text-[11px] text-gray-500 whitespace-nowrap">WhatsApp & Call Preview</span>
           </div>
           <div className="space-y-2.5">
+            {/* Patient question */}
             <div className="bg-white rounded-2xl p-3.5 w-fit max-w-[88%] shadow-xs text-sm break-words">
-              <p className="font-medium text-gray-800">Doctor kab available hai?</p>
-              <span className="text-[10px] text-gray-400 block mt-1">10:14 AM · Patient</span>
+              <p className="font-medium text-gray-800">Doctor aa gaye kya? Kitna wait hai?</p>
+              <span className="text-[10px] text-gray-400 block mt-1">10:22 AM · Patient</span>
             </div>
+            {/* AI — fresh state response */}
             <div className="bg-brand text-white rounded-2xl p-3.5 w-fit max-w-[88%] ml-auto shadow-xs text-sm break-words">
-              <p>Dr. Sharma kal 10:00 AM se available hain. Book karein?</p>
-              <span className="text-[10px] text-purple-200 block text-right mt-1">10:14 AM · Parchi AI</span>
+              <p>Dr. Neha Sharma is running 15 minutes late (confirmed by clinic 8 mins ago). Current token: #12.</p>
+              <span className="text-[10px] text-purple-200 block text-right mt-1">10:22 AM · Parchi AI</span>
+            </div>
+            {/* AI — stale / unconfirmed fallback badge */}
+            <div className="bg-amber-50 border border-amber-300 rounded-2xl p-3 w-fit max-w-[88%] ml-auto text-xs text-amber-800 break-words">
+              <span className="font-semibold">Unconfirmed fallback</span> — if receptionist hasn't tapped in 30+ min: &ldquo;Status unconfirmed — I can issue a token or arrange a callback.&rdquo;
             </div>
           </div>
           <div className="flex items-center gap-1.5 text-xs text-gray-600 mt-4 pt-2 border-t border-purple-200/60 break-words">
             <IconShieldCheck className="w-4 h-4 text-brand shrink-0" />
-            <span>Server-enforced booking confirmation protocol</span>
+            <span>Server-enforced: wait time only from receptionist live state</span>
           </div>
         </div>
       </section>
@@ -155,10 +161,10 @@ export default function Home() {
           <h2 className="text-3xl font-extrabold text-deep break-words">₹2,500 / month</h2>
           <p className="text-sm font-medium text-gray-600 mt-1">per clinic location</p>
           <p className="mt-3 text-sm text-gray-600 break-words leading-relaxed">
-            Unlimited automated responses for routine hours, fees, address, and live doctor wait-time announcements.
+            Covers routine hours, fees, address, and live doctor wait-time announcements.
           </p>
           <a className="btn mt-5 px-8 shadow-md inline-flex items-center gap-2" href="/signup">
-            <span>Register Clinic Free</span>
+            <span>Start 14-day pilot</span>
             <IconArrowRight className="w-4 h-4 shrink-0" />
           </a>
         </div>

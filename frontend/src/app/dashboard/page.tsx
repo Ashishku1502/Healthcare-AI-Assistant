@@ -185,11 +185,10 @@ function Now() {
         {att.data?.map((e) => (
           <div
             key={e.id}
-            className={`rounded-2xl p-4 mb-2.5 border ${
-              e.outcome === "urgent"
+            className={`rounded-2xl p-4 mb-2.5 border ${e.outcome === "urgent"
                 ? "bg-red-50 border-red-300 text-red-950"
                 : "bg-lav border-lav/80"
-            }`}
+              }`}
           >
             <div className="flex items-center justify-between">
               <p className="font-semibold flex items-center gap-1.5">
@@ -583,9 +582,8 @@ function Chat() {
               </span>
             )}
             <p
-              className={`rounded-2xl p-3 max-w-[85%] whitespace-pre-line text-sm ${
-                m.who === "me" ? "bg-brand text-white" : "bg-white border border-lav text-gray-800 shadow-xs"
-              }`}
+              className={`rounded-2xl p-3 max-w-[85%] whitespace-pre-line text-sm ${m.who === "me" ? "bg-brand text-white" : "bg-white border border-lav text-gray-800 shadow-xs"
+                }`}
             >
               {m.t}
             </p>
@@ -740,9 +738,8 @@ function Sim() {
         {log.map((m, i) => (
           <p
             key={i}
-            className={`rounded-2xl p-3 w-fit max-w-[90%] whitespace-pre-line text-sm ${
-              m.who === "caller" ? "bg-brand text-white ml-auto" : "bg-lav"
-            }`}
+            className={`rounded-2xl p-3 w-fit max-w-[90%] whitespace-pre-line text-sm ${m.who === "caller" ? "bg-brand text-white ml-auto" : "bg-lav"
+              }`}
           >
             {m.t}
             {m.ms !== undefined && <span className="block text-xs opacity-70 mt-1">reply in {m.ms} ms</span>}
@@ -951,7 +948,7 @@ export default function Dashboard() {
             sessionStorage.setItem("clinic_name", c.name);
           }
         })
-        .catch(() => {});
+        .catch(() => { });
     }
   }, []);
 
@@ -1010,11 +1007,10 @@ export default function Dashboard() {
               key={t.id}
               aria-current={isActive}
               onClick={() => setTab(t.id)}
-              className={`whitespace-nowrap px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 ${
-                isActive
+              className={`whitespace-nowrap px-3.5 sm:px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all flex items-center gap-1.5 sm:gap-2 shrink-0 ${isActive
                   ? "bg-brand text-white shadow-sm"
                   : "bg-white text-gray-700 border border-lav hover:bg-lav"
-              }`}
+                }`}
             >
               <Icon className={`w-4 h-4 shrink-0 ${isActive ? "text-white" : "text-gray-500"}`} />
               <span>{t.label}</span>
