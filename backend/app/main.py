@@ -66,3 +66,5 @@ async def rate_limit(req: Request, nxt):  # per-IP, in-memory (single process). 
     return await nxt(req)
 @app.get("/health")
 def health(): return {"status": "ok"}
+@app.get("/")
+def root(): return {"service": "Parchi AI Backend", "status": "healthy", "docs": "/docs", "health": "/health"}
