@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { api, getApiBase, setApiBase, checkBackendHealth } from "@/lib/api";
+import { useState, useEffect } from "react";
+import { api, pollBackendHealth, type BackendHealthStatus } from "@/lib/api";
 import {
   IconCross,
   IconPhone,
@@ -46,21 +46,13 @@ export default function AuthForm({
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [consentAcknowledged, setConsentAcknowledged] = useState(true);
-  const [backendUrl, setBackendUrl] = useState("");
-  const [showEndpointConfig, setShowEndpointConfig] = useState(false);
-  const [apiStatus, setApiStatus] = useState<"checking" | "ok" | "down">("checking");
-
-  const verifyHealth = useCallback(async (target?: string) => {
-    setApiStatus("checking");
-    const ok = await checkBackendHealth(target);
-    setApiStatus(ok ? "ok" : "down");
-  }, []);
+  const [apiStatus, setApiStatus] = useState<BackendHealthStatus>("waking");
 
   useEffect(() => {
-    const base = getApiBase();
-    setBackendUrl(base);
-    verifyHealth(base);
-  }, [verifyHealth]);
+    const controller = new AbortController();
+    pollBackendHealth(setApiStatus, controller.signal);
+    return () => controller.abort();
+  }, []);
 
   function switchMode(nextMode: "login" | "signup") {
     setMode(nextMode);
@@ -72,16 +64,6 @@ export default function AuthForm({
         window.history.replaceState(null, "", targetPath + window.location.search);
       }
     }
-  }
-
-  async function saveEndpoint(e: React.FormEvent) {
-    e.preventDefault();
-    const cleaned = backendUrl.trim().replace(/\/+$/, "");
-    setApiBase(cleaned);
-    setBackendUrl(cleaned);
-    setErr("");
-    await verifyHealth(cleaned);
-    setSuccessMsg(`Backend API saved: ${cleaned || "http://localhost:8000"}`);
   }
 
   // Check query param (?mode=signup or ?mode=login)
@@ -349,56 +331,23 @@ export default function AuthForm({
             </div>
           </div>
 
-          {/* Backend API Connection Switcher */}
-          <div className="bg-white/90 border border-lav rounded-2xl p-3 text-xs shadow-sm">
-            <div className="flex items-center justify-between gap-2 flex-wrap">
-              <span className="font-semibold text-gray-700 flex items-center gap-1.5 min-w-0">
-                <span
-                  className={`w-2.5 h-2.5 rounded-full shrink-0 ${
-                    apiStatus === "ok"
-                      ? "bg-emerald-500"
-                      : apiStatus === "checking"
-                      ? "bg-amber-400 animate-pulse"
-                      : "bg-red-500"
-                  }`}
-                  title={
-                    apiStatus === "ok"
-                      ? "Backend connected"
-                      : apiStatus === "checking"
-                      ? "Checking backend health"
-                      : "Backend unreachable or wrong service URL"
-                  }
-                ></span>
-                <span className="truncate">
-                  API: <code className="font-mono text-brand text-[11px] font-bold">{backendUrl || "http://localhost:8000"}</code>
-                  {apiStatus === "down" && (
-                    <span className="ml-1.5 text-red-600 font-semibold">(Unreachable)</span>
-                  )}
-                </span>
-              </span>
-              <button
-                type="button"
-                onClick={() => setShowEndpointConfig(!showEndpointConfig)}
-                className="text-brand hover:underline text-[11px] font-bold shrink-0 ml-auto"
-              >
-                {showEndpointConfig ? "Close" : "Connect Cloud Backend"}
-              </button>
-            </div>
-            {(showEndpointConfig || apiStatus === "down") && (
-              <form onSubmit={saveEndpoint} className="mt-2.5 pt-2 border-t border-lav/60 flex gap-2">
-                <input
-                  type="url"
-                  className="inp text-xs py-1.5 flex-1"
-                  placeholder="https://your-fastapi-backend.onrender.com"
-                  value={backendUrl}
-                  onChange={(e) => setBackendUrl(e.target.value)}
-                  required
-                />
-                <button type="submit" className="btn text-xs py-1.5 px-3 whitespace-nowrap">
-                  Save
-                </button>
-              </form>
-            )}
+          {/* Small Backend Status Badge */}
+          <div className="inline-flex items-center gap-2 bg-white/90 border border-lav rounded-full px-3 py-1.5 text-xs font-medium text-gray-700 shadow-xs w-fit">
+            <span
+              className={`w-2 h-2 rounded-full shrink-0 ${apiStatus === "ready"
+                  ? "bg-emerald-500"
+                  : apiStatus === "waking"
+                    ? "bg-amber-400 animate-pulse"
+                    : "bg-red-500"
+                }`}
+            ></span>
+            <span>
+              {apiStatus === "ready"
+                ? "Server online"
+                : apiStatus === "waking"
+                  ? "Server is waking up…"
+                  : "Server unavailable"}
+            </span>
           </div>
 
           {/* Safety & Compliance Badge */}
@@ -422,11 +371,10 @@ export default function AuthForm({
                 role="tab"
                 aria-selected={mode === "login"}
                 onClick={() => switchMode("login")}
-                className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                  mode === "login"
+                className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${mode === "login"
                     ? "bg-white text-brand shadow-sm"
                     : "text-gray-600 hover:text-deep"
-                }`}
+                  }`}
               >
                 <IconLock className="w-4 h-4 shrink-0" />
                 <span>Sign In</span>
@@ -436,11 +384,10 @@ export default function AuthForm({
                 role="tab"
                 aria-selected={mode === "signup"}
                 onClick={() => switchMode("signup")}
-                className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${
-                  mode === "signup"
+                className={`flex-1 py-2.5 px-2 text-xs sm:text-sm font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 sm:gap-2 ${mode === "signup"
                     ? "bg-white text-brand shadow-sm"
                     : "text-gray-600 hover:text-deep"
-                }`}
+                  }`}
               >
                 <IconBuilding className="w-4 h-4 shrink-0" />
                 <span>Register Clinic</span>

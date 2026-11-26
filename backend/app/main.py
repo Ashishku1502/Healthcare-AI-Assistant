@@ -65,7 +65,9 @@ static_path.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"] if ORIGIN == "*" else list({ORIGIN, "http://localhost:3000", "http://127.0.0.1:3000"}),
+    allow_origins=["*"]
+    if ORIGIN == "*"
+    else list({ORIGIN, "https://frontend-bice-eight-7xnlf654ep.vercel.app", "http://localhost:3000", "http://127.0.0.1:3000"}),
     allow_origin_regex=r"^https:\/\/.*\.vercel\.app$",
     allow_credentials=True,
     allow_methods=["*"],

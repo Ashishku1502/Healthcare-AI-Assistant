@@ -4,6 +4,9 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
+  env: {
+    VITE_API_URL: process.env.VITE_API_URL || "",
+  },
   ...(process.env.BUILD_STANDALONE ? { output: "standalone" } : {}),
 };
 

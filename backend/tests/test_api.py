@@ -470,6 +470,21 @@ def test_clinic_rule_applies_for_normal_queries():
     assert "10 AM - 6 PM weekdays" in r_hours
 
 
+def test_health_and_vercel_cors():
+    origin = "https://frontend-bice-eight-7xnlf654ep.vercel.app"
+    r = cl.get("/health", headers={"Origin": origin})
+    assert r.status_code == 200
+    assert r.json() == {"status": "ok"}
+    assert r.headers.get("access-control-allow-origin") == origin
+
+    pre = cl.options(
+        "/auth/login",
+        headers={"Origin": origin, "Access-Control-Request-Method": "POST"},
+    )
+    assert pre.status_code == 200
+    assert pre.headers.get("access-control-allow-origin") == origin
+
+
 
 
 
