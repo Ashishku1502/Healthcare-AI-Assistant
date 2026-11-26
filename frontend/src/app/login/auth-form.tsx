@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { api } from "@/lib/api";
+import { api, getApiBase, setApiBase } from "@/lib/api";
 import {
   IconCross,
   IconPhone,
@@ -46,6 +46,18 @@ export default function AuthForm({
   const [signupEmail, setSignupEmail] = useState("");
   const [signupPassword, setSignupPassword] = useState("");
   const [consentAcknowledged, setConsentAcknowledged] = useState(true);
+  const [backendUrl, setBackendUrl] = useState("");
+  const [showEndpointConfig, setShowEndpointConfig] = useState(false);
+
+  useEffect(() => {
+    setBackendUrl(getApiBase());
+  }, []);
+
+  function saveEndpoint(e: React.FormEvent) {
+    e.preventDefault();
+    setApiBase(backendUrl.trim());
+    setSuccessMsg(`Backend API connected: ${backendUrl.trim()}`);
+  }
 
   // Check query param (?mode=signup or ?mode=login)
   useEffect(() => {
@@ -296,6 +308,40 @@ export default function AuthForm({
                 <p className="text-[11px] text-gray-500 break-words">Live doctor status & appointments</p>
               </button>
             </div>
+          </div>
+
+          {/* Backend API Connection Switcher */}
+          <div className="bg-white/90 border border-lav rounded-2xl p-3 text-xs shadow-sm">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <span className="font-semibold text-gray-700 flex items-center gap-1.5 min-w-0">
+                <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0 animate-pulse"></span>
+                <span className="truncate">
+                  API: <code className="font-mono text-brand text-[11px] font-bold">{backendUrl || "http://localhost:8000"}</code>
+                </span>
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowEndpointConfig(!showEndpointConfig)}
+                className="text-brand hover:underline text-[11px] font-bold shrink-0 ml-auto"
+              >
+                {showEndpointConfig ? "Close" : "Connect Cloud Backend"}
+              </button>
+            </div>
+            {showEndpointConfig && (
+              <form onSubmit={saveEndpoint} className="mt-2.5 pt-2 border-t border-lav/60 flex gap-2">
+                <input
+                  type="url"
+                  className="inp text-xs py-1.5 flex-1"
+                  placeholder="https://your-backend.onrender.com"
+                  value={backendUrl}
+                  onChange={(e) => setBackendUrl(e.target.value)}
+                  required
+                />
+                <button type="submit" className="btn text-xs py-1.5 px-3 whitespace-nowrap">
+                  Save
+                </button>
+              </form>
+            )}
           </div>
 
           {/* Safety & Compliance Badge */}
