@@ -65,7 +65,13 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
         ...(opts.headers || {}),
       },
     });
-    if (res.status === 401 && typeof window !== "undefined" && !cleanPath.startsWith("/auth/")) {
+    if (
+      res.status === 401 &&
+      typeof window !== "undefined" &&
+      cleanPath !== "/auth/login" &&
+      cleanPath !== "/auth/signup" &&
+      cleanPath !== "/auth/register"
+    ) {
       sessionStorage.clear();
       window.location.href = "/login";
     }
@@ -84,7 +90,7 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
             ? e.detail
               .map((d: any) => (d.loc ? `${d.loc[d.loc.length - 1]}: ${d.msg}` : d.msg))
               .join(", ")
-          : `Request failed (HTTP ${res.status}).`;
+            : `Request failed (HTTP ${res.status}).`;
       throw new Error(message);
     }
     return res.status === 204 ? (null as T) : res.json();

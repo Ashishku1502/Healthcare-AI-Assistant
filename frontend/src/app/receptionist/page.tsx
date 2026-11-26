@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
@@ -32,6 +32,19 @@ export default function ReceptionistPage() {
   const [updating, setUpdating] = useState<boolean>(false);
   const [msg, setMsg] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [nowTime, setNowTime] = useState<Date>(new Date());
+  const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const showTimedMsg = useCallback((text: string, type: "success" | "error", ms = 4000) => {
+    if (msgTimerRef.current) clearTimeout(msgTimerRef.current);
+    setMsg({ text, type });
+    msgTimerRef.current = setTimeout(() => setMsg(null), ms);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (msgTimerRef.current) clearTimeout(msgTimerRef.current);
+    };
+  }, []);
 
   // Keep live elapsed time updated every 15 seconds
   useEffect(() => {
@@ -56,7 +69,8 @@ export default function ReceptionistPage() {
       setSelectedDocId((prev) => (prev && activeDocs.some((d) => d.id === prev) ? prev : activeDocs[0]?.id ?? null));
     } catch (err: any) {
       const m = err?.message || "Failed to load clinic status.";
-      if (m.toLowerCase().includes("auth") || m.toLowerCase().includes("401")) {
+      if (/auth|401|token|unknown user/i.test(m)) {
+        sessionStorage.clear();
         router.replace("/login");
         return;
       }
@@ -114,15 +128,15 @@ export default function ReceptionistPage() {
         )
       );
       setNowTime(new Date());
-      setMsg({
-        text: `✓ Live state updated: ${state === "in" ? "Doctor In" : state === "late" ? `Running Late +${lateMinutes}m` : "Not In Today"}`,
-        type: "success",
-      });
+      showTimedMsg(
+        `✓ Live state updated: ${state === "in" ? "Doctor In" : state === "late" ? `Running Late +${lateMinutes}m` : "Not In Today"}`,
+        "success",
+        4000
+      );
     } catch (err: any) {
-      setMsg({ text: err.message || "Failed to update status", type: "error" });
+      showTimedMsg(err.message || "Failed to update status", "error", 4000);
     } finally {
       setUpdating(false);
-      setTimeout(() => setMsg(null), 4000);
     }
   };
 
@@ -136,12 +150,11 @@ export default function ReceptionistPage() {
       setDoctors((prev) =>
         prev.map((d) => (d.id === activeDoc.id ? { ...d, current_token: updated.current_token } : d))
       );
-      setMsg({ text: `✓ Advanced to Token #${updated.current_token}`, type: "success" });
+      showTimedMsg(`✓ Advanced to Token #${updated.current_token}`, "success", 3000);
     } catch (err: any) {
-      setMsg({ text: err.message || "Failed to advance token", type: "error" });
+      showTimedMsg(err.message || "Failed to advance token", "error", 3000);
     } finally {
       setUpdating(false);
-      setTimeout(() => setMsg(null), 3000);
     }
   };
 
@@ -225,11 +238,10 @@ export default function ReceptionistPage() {
                 type="button"
                 key={d.id}
                 onClick={() => setSelectedDocId(d.id)}
-                className={`text-xs px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all ${
-                  activeDoc?.id === d.id
-                    ? "bg-brand text-white shadow-sm"
-                    : "bg-white text-gray-700 border border-lav hover:bg-lav/50"
-                }`}
+                className={`text-xs px-3.5 py-1.5 rounded-full font-bold whitespace-nowrap transition-all ${activeDoc?.id === d.id
+                  ? "bg-brand text-white shadow-sm"
+                  : "bg-white text-gray-700 border border-lav hover:bg-lav/50"
+                  }`}
               >
                 Dr. {d.name}
               </button>
@@ -257,9 +269,9 @@ export default function ReceptionistPage() {
                     : activeDoc.status_state === "late"
                       ? "bg-amber-100 text-amber-800"
                       : activeDoc.status_state === "out"
-                      ? "bg-rose-100 text-rose-800"
-                      : "bg-gray-100 text-gray-700"
-                  }`}
+                        ? "bg-rose-100 text-rose-800"
+                        : "bg-gray-100 text-gray-700"
+                    }`}
                 >
                   <span
                     className={`w-2 h-2 rounded-full ${activeDoc.status_state === "in"
@@ -267,9 +279,9 @@ export default function ReceptionistPage() {
                       : activeDoc.status_state === "late"
                         ? "bg-amber-500"
                         : activeDoc.status_state === "out"
-                        ? "bg-rose-500"
-                        : "bg-gray-400"
-                    }`}
+                          ? "bg-rose-500"
+                          : "bg-gray-400"
+                      }`}
                   />
                   {activeDoc.status_state === "in"
                     ? "Doctor In"
@@ -312,11 +324,10 @@ export default function ReceptionistPage() {
         {msg && (
           <div
             role="status"
-            className={`text-center py-2.5 px-3 rounded-2xl text-xs font-bold transition-all ${
-              msg.type === "success"
-                ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
-                : "bg-rose-600 text-white shadow-md shadow-rose-200"
-            }`}
+            className={`text-center py-2.5 px-3 rounded-2xl text-xs font-bold transition-all ${msg.type === "success"
+              ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
+              : "bg-rose-600 text-white shadow-md shadow-rose-200"
+              }`}
           >
             {msg.text}
           </div>
@@ -333,11 +344,10 @@ export default function ReceptionistPage() {
             type="button"
             disabled={updating || !activeDoc}
             onClick={() => setStatus("in", 0)}
-            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${
-              activeDoc?.status_state === "in" && isFresh
-                ? "bg-emerald-600 text-white ring-4 ring-emerald-200"
-                : "bg-white text-emerald-800 border-2 border-emerald-500 hover:bg-emerald-50"
-            }`}
+            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${activeDoc?.status_state === "in" && isFresh
+              ? "bg-emerald-600 text-white ring-4 ring-emerald-200"
+              : "bg-white text-emerald-800 border-2 border-emerald-500 hover:bg-emerald-50"
+              }`}
           >
             <div className="flex items-center gap-3">
               <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg shrink-0">
@@ -358,11 +368,10 @@ export default function ReceptionistPage() {
             type="button"
             disabled={updating || !activeDoc}
             onClick={() => setStatus("late", 15)}
-            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${
-              activeDoc?.status_state === "late" && activeDoc.late_minutes === 15 && isFresh
-                ? "bg-amber-500 text-white ring-4 ring-amber-200"
-                : "bg-white text-amber-900 border-2 border-amber-400 hover:bg-amber-50"
-            }`}
+            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${activeDoc?.status_state === "late" && activeDoc.late_minutes === 15 && isFresh
+              ? "bg-amber-500 text-white ring-4 ring-amber-200"
+              : "bg-white text-amber-900 border-2 border-amber-400 hover:bg-amber-50"
+              }`}
           >
             <div className="flex items-center gap-3">
               <span className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm shrink-0">
@@ -383,11 +392,10 @@ export default function ReceptionistPage() {
             type="button"
             disabled={updating || !activeDoc}
             onClick={() => setStatus("out", 0)}
-            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${
-              activeDoc?.status_state === "out" && isFresh
-                ? "bg-rose-600 text-white ring-4 ring-rose-200"
-                : "bg-white text-rose-800 border-2 border-rose-400 hover:bg-rose-50"
-            }`}
+            className={`w-full py-4 px-4 rounded-2xl font-bold text-base flex items-center justify-between text-left transition-all active:scale-[0.98] shadow-sm disabled:opacity-50 ${activeDoc?.status_state === "out" && isFresh
+              ? "bg-rose-600 text-white ring-4 ring-rose-200"
+              : "bg-white text-rose-800 border-2 border-rose-400 hover:bg-rose-50"
+              }`}
           >
             <div className="flex items-center gap-3">
               <span className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-lg shrink-0">
