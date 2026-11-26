@@ -83,6 +83,16 @@ function Now() {
     }
   }
 
+  async function nextToken(id: number) {
+    try {
+      const res = await api(`/doctors/${id}/next-token`, { method: "POST" });
+      setMsg(`Token advanced to #${res.current_token || 1}. Patients will be told this.`);
+      doc.reload();
+    } catch (x: any) {
+      setMsg(x.message);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <div className="card">
@@ -105,10 +115,19 @@ function Now() {
                       {d.status_state}
                       {d.status_state === "late" ? ` (${d.late_minutes} min)` : ""}
                     </b>
+                    · Current Token:{" "}
+                    <b className="text-brand font-mono font-bold">#{d.current_token || 0}</b>
                   </span>
                 </p>
               </div>
               <div className="flex gap-2 flex-wrap mt-2.5">
+                <button
+                  className="btn text-xs py-1.5 px-3.5 flex items-center gap-1.5 font-bold !bg-indigo-600 hover:!bg-indigo-700"
+                  onClick={() => nextToken(d.id)}
+                >
+                  <IconCheckCircle className="w-3.5 h-3.5" />
+                  Next Token #{(d.current_token || 0) + 1}
+                </button>
                 <button
                   className="btn text-xs py-1.5 px-3.5 flex items-center gap-1.5"
                   onClick={() => set(d.id, "in")}
@@ -725,10 +744,17 @@ function Sim() {
   );
 }
 
-function Settings() {
+function Settings({ userRole }: { userRole?: string }) {
   const { data, err, loading, reload } = useLoad<any>("/clinic");
   const [f, setF] = useState<any>(null);
   const [msg, setMsg] = useState("");
+
+  // Owner-only rules state
+  const isOwner = userRole === "owner";
+  const rulesData = useLoad<any>(isOwner ? "/rules/history" : "");
+  const [ruleKey, setRuleKey] = useState("queue_priority");
+  const [ruleVal, setRuleVal] = useState("elderly first");
+  const [ruleMsg, setRuleMsg] = useState("");
 
   useEffect(() => {
     if (data) setF(data);
@@ -745,29 +771,152 @@ function Settings() {
     }
   }
 
+  async function saveRule(e: React.FormEvent) {
+    e.preventDefault();
+    try {
+      await api("/rules", {
+        method: "POST",
+        body: JSON.stringify({ rule_key: ruleKey, rule_value: ruleVal }),
+      });
+      setRuleMsg(`Rule '${ruleKey}' saved and audited successfully.`);
+      rulesData.reload();
+    } catch (x: any) {
+      setRuleMsg(x.message);
+    }
+  }
+
   if (!f) return <State loading={loading} err={err} />;
   return (
-    <form onSubmit={save} className="card space-y-3">
-      <div className="flex items-center gap-2 border-b border-lav pb-2 mb-1">
-        <IconSettings className="w-5 h-5 text-brand" />
-        <h2 className="font-bold text-deep text-lg">Clinic Information & Triage Facts</h2>
+    <div className="space-y-6">
+      <form onSubmit={save} className="card space-y-3">
+        <div className="flex items-center gap-2 border-b border-lav pb-2 mb-1">
+          <IconSettings className="w-5 h-5 text-brand" />
+          <h2 className="font-bold text-deep text-lg">Clinic Information & Triage Facts</h2>
+        </div>
+        {["name", "address", "hours", "fees", "staff_phone"].map((k) => (
+          <label key={k} className="block text-sm font-medium capitalize">
+            {k.replace("_", " ")}
+            <input
+              className="inp mt-1 text-sm"
+              value={f[k] || ""}
+              onChange={(e) => setF({ ...f, [k]: e.target.value })}
+            />
+          </label>
+        ))}
+        <button className="btn text-sm py-2.5 px-5 flex items-center gap-1.5">
+          <IconCheckCircle className="w-4 h-4" />
+          Save Information
+        </button>
+        {msg && <p role="status" className="text-sm text-ok">{msg}</p>}
+      </form>
+
+      {/* Owner-Only Clinic Rules (Tension 8) */}
+      <div className="card space-y-4">
+        <div className="flex items-center justify-between border-b border-lav pb-2.5">
+          <div className="flex items-center gap-2">
+            <IconShieldCheck className="w-5 h-5 text-brand" />
+            <div>
+              <h2 className="font-bold text-deep text-lg">Local Clinic Rules (Owner Only)</h2>
+              <p className="text-xs text-gray-500">Versioned, audited policies customized for this clinic</p>
+            </div>
+          </div>
+          <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-brand/10 text-brand">
+            {isOwner ? "Owner Access" : "Read-Only"}
+          </span>
+        </div>
+
+        {/* Safety Boundary Notice */}
+        <div className="bg-amber-50 border border-amber-200 rounded-xl p-3.5 text-xs text-amber-900 flex items-start gap-2.5">
+          <IconAlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+          <div>
+            <b>Hard Safety Boundary:</b> Local clinic rules can <i>never</i> override 112 emergency escalation, medical advice refusal, report identity disclosure checks, or safe-contact / opt-out preferences. Safety checks are server-enforced prior to all local rules.
+          </div>
+        </div>
+
+        {isOwner ? (
+          <>
+            <form onSubmit={saveRule} className="bg-lav/30 p-4 rounded-2xl border border-lav space-y-3">
+              <h3 className="text-sm font-bold text-deep">Add or Update Clinic Rule</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <label className="text-xs font-semibold text-gray-700">
+                  Rule Type
+                  <select
+                    className="inp mt-1 text-sm"
+                    value={ruleKey}
+                    onChange={(e) => setRuleKey(e.target.value)}
+                  >
+                    <option value="queue_priority">Queue Priority (e.g., elderly first)</option>
+                    <option value="hours">Custom Hours (e.g., Mon-Sat 8:00 AM - 8:00 PM)</option>
+                    <option value="walkin_policy">Walk-in Policy</option>
+                    <option value="custom_policy">Custom Policy</option>
+                  </select>
+                </label>
+                <label className="text-xs font-semibold text-gray-700">
+                  Rule Policy Text
+                  <input
+                    className="inp mt-1 text-sm"
+                    placeholder="e.g. elderly first"
+                    value={ruleVal}
+                    onChange={(e) => setRuleVal(e.target.value)}
+                    required
+                  />
+                </label>
+              </div>
+              <button className="btn text-xs py-2 px-4 flex items-center gap-1.5">
+                <IconCheckCircle className="w-3.5 h-3.5" />
+                Save Versioned Rule
+              </button>
+              {ruleMsg && <p className="text-xs text-ok">{ruleMsg}</p>}
+            </form>
+
+            {/* Active Rules List */}
+            <div className="space-y-2">
+              <h3 className="text-sm font-bold text-deep">Active Rules</h3>
+              {rulesData.data?.rules?.filter((r: any) => r.active).length === 0 ? (
+                <p className="text-xs text-gray-500 italic">No custom rules active. Default clinic facts apply.</p>
+              ) : (
+                <div className="space-y-2">
+                  {rulesData.data?.rules
+                    ?.filter((r: any) => r.active)
+                    .map((r: any) => (
+                      <div key={r.id} className="p-3 bg-white border border-lav rounded-xl flex items-center justify-between">
+                        <div>
+                          <span className="text-xs font-bold font-mono uppercase bg-gray-100 px-2 py-0.5 rounded text-gray-700 mr-2">
+                            {r.rule_key}
+                          </span>
+                          <span className="text-sm text-deep font-medium">{r.rule_value}</span>
+                        </div>
+                        <span className="text-xs text-brand font-semibold px-2 py-0.5 rounded bg-brand/10">
+                          v{r.version}
+                        </span>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+
+            {/* Audit Trail */}
+            {rulesData.data?.audits?.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-lav">
+                <h3 className="text-xs font-bold text-gray-600 uppercase tracking-wider">Audit Log & Version History</h3>
+                <div className="max-h-40 overflow-y-auto space-y-1 text-xs text-gray-600 font-mono">
+                  {rulesData.data.audits.map((a: any) => (
+                    <div key={a.id} className="p-1.5 bg-lav/40 rounded flex justify-between">
+                      <span>{a.action}</span>
+                      <span className="text-gray-400">{a.actor}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </>
+        ) : (
+          <p className="text-sm text-gray-600 italic">
+            You are logged in as receptionist. Managing and versioning clinic rules requires owner role credentials.
+          </p>
+        )}
       </div>
-      {["name", "address", "hours", "fees", "staff_phone"].map((k) => (
-        <label key={k} className="block text-sm font-medium capitalize">
-          {k.replace("_", " ")}
-          <input
-            className="inp mt-1 text-sm"
-            value={f[k] || ""}
-            onChange={(e) => setF({ ...f, [k]: e.target.value })}
-          />
-        </label>
-      ))}
-      <button className="btn text-sm py-2.5 px-5 flex items-center gap-1.5">
-        <IconCheckCircle className="w-4 h-4" />
-        Save Information
-      </button>
-      {msg && <p role="status" className="text-sm text-ok">{msg}</p>}
-    </form>
+    </div>
   );
 }
 
@@ -873,7 +1022,7 @@ export default function Dashboard() {
         {tab === "Appointments" && <Appointments />}
         {tab === "AI Receptionist" && <Chat />}
         {tab === "Call Simulator" && <Sim />}
-        {tab === "Settings" && <Settings />}
+        {tab === "Settings" && <Settings userRole={userRole} />}
       </main>
     </div>
   );

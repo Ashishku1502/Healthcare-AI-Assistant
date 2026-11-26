@@ -36,7 +36,13 @@ def init_db():
         db.close()
 
 init_db()
+from fastapi.staticfiles import StaticFiles
+from pathlib import Path
+
 app = FastAPI(title="Parchi AI API")
+static_path = Path(__file__).resolve().parent / "static"
+static_path.mkdir(parents=True, exist_ok=True)
+app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"] if ORIGIN == "*" else list({ORIGIN, "http://localhost:3000", "http://127.0.0.1:3000"}),

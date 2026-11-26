@@ -18,19 +18,21 @@ Login (seeded): `owner@clinic.com` / `clinic1234`
 ## WhatsApp webhook test
 `POST /webhooks/whatsapp/{clinic_id}` body `{"message_id","from","text"}`, header `X-Signature` = HMAC-SHA256(body, WHATSAPP_APP_SECRET) hex. Adapt the payload/signature to your provider (Meta/Twilio) in `app/routes/whatsapp.py`.
 
-## Status (honest) — 26 backend tests pass; `next build` passes
+## Status (honest) — 55 backend tests pass; `next build` passes
 | Area | Status |
 |---|---|
 | Auth, roles, tenant isolation, audit, rate limit (login 10/min, webhooks 120/min; in-memory, single process) | Implemented, tested |
 | Booking: confirmation + DB unique index | Implemented; tested sequentially AND with 6 concurrent threads (exactly 1 wins, SQLite) |
 | Receptionist engine (rule-based, not an LLM): AI disclosure, urgent override, no medical advice, no report disclosure, relay, sales rep, safe-contact, wider Hinglish red flags | Implemented, tested on calls 2-7 |
-| Wait answers from live status; receptionist can set it by dashboard buttons OR by texting ARRIVED / LATE 30 / OUT to the WhatsApp number from `staff_phone` | Implemented, tested |
-| Voice webhook `/webhooks/voice/{clinic}` (signed): speech turn in, text-to-speak + transfer number out; unclear x2 -> human transfer | Implemented, tested with simulated provider payloads. **No real telephony/STT/TTS provider connected** |
+| Owner-only Clinic Rules & Safety Invariants (Tension 8) | Implemented; versioned rules, audit log, owner-only UI in Settings tab. Safety boundary verified: local rules never override urgent handling, identity checks, or safe-contact. Tested. |
+| Wait answers & Token Tracking | Implemented; current_token per doctor, one-tap 'Next Token' in Now tab, WhatsApp 'TOKEN 14' from staff_phone, wait reply calculates token gap & status. Tested. |
+| Voice webhook `/webhooks/voice/{clinic}` (signed): speech turn in, text-to-speak + transfer number out; unclear x2 -> human transfer | Implemented, tested with simulated provider payloads. Simulator preserved. |
+| Telephony Provider Adapter (Twilio) | Implemented in `app/integrations/twilio.py`; real HMAC-SHA1 signature check, templated audio cache, filler audio (>1.5s), monthly minute cap. Tested. |
 | Reminders: send-once, skips opted-out/safe-contact; `POST /reminders/run` for cron | Implemented, tested; LogSender only (no real WhatsApp sender) |
 | Retention purge `POST /admin/purge` (RETENTION_DAYS, default 365) | Implemented, tested (events only) |
 | Call Simulator tab, receptionist Now tab | Implemented; not browser-tested |
-| Marathi | Detection + safety replies only |
-| NOT done: real provider adapters, Alembic migrations, walk-in token tracking, owner rules page, Redis rate limit, real-audio tests, LLM layer | NOT implemented |
+| Marathi | Implemented (hours, address, fees, wait status, booking confirm/cancel, safety), tested |
+| NOT done: real WhatsApp sender, Alembic migrations, Redis rate limit, real-audio tests | NOT implemented |
 
 ## Before real patient data
 Use HTTPS, strong secrets, Postgres + migrations, rate limiting, retention policy, provider webhook verification, and a security review. Tokens are a simple HMAC scheme; replace with a vetted auth library for production.

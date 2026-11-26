@@ -4,5 +4,6 @@
 **Two places the tool was wrong or generic (true in this build):**
 1. Urgent-symptom rule missed "seene mein thoda dard" (call 5) in the first version, because the pattern only matched "seene mein dard". I found it by writing a test from the brief's call 5 and widened the pattern; it now overrides booking.
 2. The first cost sheet pointed formulas at the wrong input rows (ceiling showed Rs 2,500 and the hybrid cost was negative). Recalculation exposed it; I corrected the references and re-checked every total by hand: telephony 1,335 min x 0.60 = Rs 801.
+3. During Week-2 safety evaluation harness testing across 71 labelled cases, initial rules missed "cannot breathe", pure Devanagari emergency terms ("धड़कन|घबराहट"), and Marathi terms ("बेशुद्ध|रक्तस्त्राव"), yielding 86.4% recall (3 misses) before the gate caught them and prompted deterministic fixes to reach 100.0%.
 ## What I skimped on
 Real telephony and voice pipeline (simulated only), reminder sender, hand-polished diagrams, Marathi beyond safety lines, concurrent booking load test. Time went to the safety slice and the economics because they decide whether v1 is safe and viable.

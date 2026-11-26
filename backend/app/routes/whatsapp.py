@@ -23,6 +23,23 @@ async def wa(clinic_id: int, req: Request, x_signature: str = Header(default="")
             d.status_state, d.late_minutes, d.status_at = st, int(cmd.group(2) or 30) if st == "late" else 0, now()
         db.add(Audit(clinic_id=c.id, actor="staff-whatsapp", action=f"status {st}")); db.commit()
         return {"reply": f"Status set: {st}. Patients will be told this."}
+
+    tok_cmd = re.fullmatch(r"\s*(?:next\s+token|token\s*(\d{1,4})?)\s*", text, re.I)
+    if tok_cmd and c.staff_phone and frm == c.staff_phone:
+        val = tok_cmd.group(1)
+        docs = db.query(Doctor).filter_by(clinic_id=c.id, active=True).all()
+        if val is not None:
+            tok_num = int(val)
+            for d in docs:
+                d.current_token = tok_num
+            msg = f"Current token set to {tok_num}."
+        else:
+            for d in docs:
+                d.current_token = (d.current_token or 0) + 1
+            tok_num = docs[0].current_token if docs else 1
+            msg = f"Token advanced to {tok_num}."
+        db.add(Audit(clinic_id=c.id, actor="staff-whatsapp", action=f"token {tok_num}")); db.commit()
+        return {"reply": msg}
     p = db.query(Patient).filter_by(clinic_id=c.id, phone=frm).first()
     if re.fullmatch(r"\s*(stop|unsubscribe|रोकें)\s*", text, re.I):
         if not p: p = Patient(clinic_id=c.id, name="WhatsApp user", phone=frm); db.add(p)

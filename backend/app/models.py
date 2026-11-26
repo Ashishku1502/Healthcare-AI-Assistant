@@ -33,6 +33,7 @@ class Doctor(Base):
     active: Mapped[bool] = mapped_column(Boolean, default=True)
     status_state: Mapped[str] = mapped_column(String(10), default="unknown")  # unknown|in|late|out (set by receptionist)
     late_minutes: Mapped[int] = mapped_column(Integer, default=0)
+    current_token: Mapped[int] = mapped_column(Integer, default=0)
     status_at: Mapped[datetime | None] = mapped_column(DateTime, nullable=True)
 class Patient(Base):
     __tablename__ = "patients"
@@ -84,4 +85,15 @@ class Audit(Base):
     clinic_id: Mapped[int] = mapped_column(Integer)
     actor: Mapped[str] = mapped_column(String(60))
     action: Mapped[str] = mapped_column(String(200))
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=now)
+
+class ClinicRule(Base):
+    __tablename__ = "clinic_rules"
+    id: Mapped[int] = mapped_column(primary_key=True)
+    clinic_id: Mapped[int] = mapped_column(ForeignKey("clinics.id"), index=True)
+    rule_key: Mapped[str] = mapped_column(String(50))
+    rule_value: Mapped[str] = mapped_column(String(500))
+    version: Mapped[int] = mapped_column(Integer, default=1)
+    active: Mapped[bool] = mapped_column(Boolean, default=True)
+    created_by: Mapped[str] = mapped_column(String(120))
     created_at: Mapped[datetime] = mapped_column(DateTime, default=now)

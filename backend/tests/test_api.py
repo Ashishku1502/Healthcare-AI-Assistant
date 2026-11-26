@@ -164,3 +164,312 @@ def test_new_red_flag_phrase():
 def test_purge():
     from app.retention import purge_old
     assert "events_deleted" in purge_old(db, 1, days=0)
+
+# ---- LLM Fallback Tests ----
+from unittest.mock import patch
+from app import llm
+
+@patch("app.llm.classify", return_value={"intent": "other", "confidence": 0.0})
+def test_llm_timeout_falls_back_to_handoff(mock_classify):
+    llm.reset_daily_cap()
+    r = say("completely obscure phrase xyzzy 12345", "llm1")
+    assert mock_classify.called
+    assert "staff who will call you" in r or "clinic staff ko" in r
+
+@patch("app.llm.classify", return_value={"intent": "fees", "confidence": 0.65})
+def test_llm_low_confidence_falls_back_to_handoff(mock_classify):
+    llm.reset_daily_cap()
+    r = say("completely obscure phrase abcde 67890", "llm2")
+    assert mock_classify.called
+    assert "staff who will call you" in r or "clinic staff ko" in r
+
+@patch("app.llm.classify")
+def test_llm_never_called_for_medical(mock_classify):
+    llm.reset_daily_cap()
+    r = say("Mere bete ko tej bukhar hai", "llm_med")
+    assert not mock_classify.called
+    assert "medical salah" in r or "medical advice" in r
+
+@patch("app.llm.classify")
+def test_llm_never_called_for_urgent(mock_classify):
+    llm.reset_daily_cap()
+    r = say("Subah se behosh hai aur saans lene mein dikkat", "llm_urg")
+    assert not mock_classify.called
+    assert "112" in r
+
+@patch("app.llm.classify", return_value={"intent": "fees", "confidence": 0.95})
+def test_llm_valid_intent_uses_clinic_template(mock_classify):
+    llm.reset_daily_cap()
+    r = say("kya payment rules hain yahan", "llm_fees")
+    assert mock_classify.called
+    assert "Fees:" in r
+
+@patch("app.llm.classify", return_value={"intent": "fees", "confidence": 0.95})
+def test_llm_daily_cap_enforced(mock_classify):
+    llm.reset_daily_cap()
+    for _ in range(50):
+        llm.check_and_increment_cap(1)
+    mock_classify.reset_mock()
+    r = say("obscure sentence over cap", "llm_cap")
+    assert not mock_classify.called
+    assert "staff who will call you" in r or "clinic staff ko" in r
+    llm.reset_daily_cap()
+
+# ---- Marathi Support Tests ----
+def test_marathi_wait_status():
+    c = db.get(Clinic, 1); c.staff_phone = "9555555555"; db.commit()
+    wa({"message_id": "st_mr1", "from": "9555555555", "text": "ARRIVED"})
+    r = say("doctor aale ka", "mr_wait")
+    assert "डॉ. Asha आले आहेत" in r and "मी पारची" in r
+
+def test_marathi_fees():
+    r = say("fee kiti aahe", "mr_fee")
+    assert "फी:" in r and "मी पारची" in r
+
+def test_marathi_hours():
+    r = say("clinic chi vel kay aahe", "mr_hours")
+    assert "ची वेळ:" in r and "ची वेळ: 9-5" in r and "मी पारची" in r
+
+def test_marathi_address():
+    r = say("clinic cha patta kay aahe", "mr_address")
+    assert "पत्ता:" in r and "मी पारची" in r
+
+def test_marathi_booking_confirm_and_cancel():
+    st = slot()
+    pt = {"patient_name": "Anand P", "patient_phone": "9823000001"}
+    r1 = say(f"Asha udya {st.hour}:00 book kara", "mr_book", **pt)
+    assert "पुष्टी करा" in r1 and "HOY" in r1
+    r2 = say("hoy", "mr_book", **pt)
+    assert "पुष्टी झाली" in r2 and "अपॉइंटमेंट" in r2
+    st2 = slot() + timedelta(hours=1)
+    say(f"Asha udya {st2.hour}:00 book kara", "mr_cancel", **pt)
+    r3 = say("nako", "mr_cancel", **pt)
+    assert "काहीही बुक केलेले नाही" in r3
+
+def test_marathi_safety_preserved():
+    r_urg = say("mala छातीत तीव्र वेदना होत आहेत आणि श्वास घेता येत नाही", "mr_safe1")
+    assert "112" in r_urg
+    r_med = say("माझ्या मुलाला ताप आला आहे कोणती औषध देऊ", "mr_safe2")
+    assert "वैद्यकीय सल्ला" in r_med and "112" in r_med
+
+# ---- Twilio Telephony Provider Tests ----
+from app.integrations import twilio as tw
+
+def twilio_post(clinic_id: int, params: dict, sig: str | None = None, headers: dict | None = None):
+    url = f"http://testserver/webhooks/voice/twilio/{clinic_id}"
+    signature = sig if sig is not None else tw.compute_twilio_signature(url, params)
+    hdrs = {"X-Twilio-Signature": signature, **(headers or {})}
+    return cl.post(f"/webhooks/voice/twilio/{clinic_id}", data=params, headers=hdrs)
+
+def test_twilio_invalid_signature():
+    r = twilio_post(1, {"CallSid": "CA1", "From": "+919876543210", "SpeechResult": "hello"}, sig="invalid_sig")
+    assert r.status_code == 401
+
+def test_twilio_valid_signature_and_hours_mapping():
+    tw.AudioCacheManager.clear_cache(1)
+    params = {"CallSid": "CA1001", "From": "+919876543210", "SpeechResult": "What are your hours?", "Confidence": "0.95"}
+    r = twilio_post(1, params)
+    assert r.status_code == 200
+    assert "application/xml" in r.headers["content-type"]
+    assert "<Gather" in r.text
+    assert "hours" in r.text.lower()
+
+def test_twilio_pregenerated_audio_cache_hit():
+    tw.AudioCacheManager.pregenerate_clinic_audio(1, "Care Clinic", hours="9-5")
+    params = {"CallSid": "CA1002", "From": "+919876543210", "SpeechResult": "What are clinic hours?", "Confidence": "0.95"}
+    r = twilio_post(1, params)
+    assert r.status_code == 200
+    assert "<Play>/static/audio/clinic_1_hours_en.wav</Play>" in r.text
+    tw.AudioCacheManager.clear_cache(1)
+
+def test_twilio_filler_audio_on_slow_reply():
+    params = {"CallSid": "CA1003", "From": "+919876543210", "SpeechResult": "When is doctor Asha available?", "Confidence": "0.9"}
+    # Pass simulated delay of 1.6s
+    r = twilio_post(1, params, headers={"X-Simulated-Delay": "1.6"})
+    assert r.status_code == 200
+    assert "<Play>/static/audio/filler" in r.text or "filler" in r.text.lower()
+
+def test_twilio_urgent_call_escalation():
+    c = db.get(Clinic, 1); c.staff_phone = "9555555555"; db.commit()
+    params = {"CallSid": "CA1004", "From": "+919876543210", "SpeechResult": "I have severe chest pain and breathlessness", "Confidence": "0.99"}
+    r = twilio_post(1, params)
+    assert r.status_code == 200
+    assert "<Dial>9555555555</Dial>" in r.text
+    assert "112" in r.text
+
+def test_twilio_monthly_minute_cap_exceeded():
+    tw.reset_minute_cap(1)
+    # Exceed 300 minute cap (301 minutes = 18060 seconds)
+    tw.record_call_duration(1, 18100)
+    assert not tw.check_minute_cap(1)
+
+    c = db.get(Clinic, 1); c.staff_phone = "9555555555"; db.commit()
+    params = {"CallSid": "CA1005", "From": "+919876543210", "SpeechResult": "What are your hours?"}
+    r = twilio_post(1, params)
+    assert r.status_code == 200
+    assert "Monthly voice limit reached" in r.text
+    assert "<Dial>9555555555</Dial>" in r.text
+    tw.reset_minute_cap(1)
+
+# ---- Token Tracking Tests ----
+def test_receptionist_next_token_and_set_token():
+    h = H("A@x.com")
+    # Reset token
+    r0 = cl.put("/doctors/1/token", json={"token": 10}, headers=h)
+    assert r0.status_code == 200
+    assert r0.json()["current_token"] == 10
+
+    # One-tap next token
+    r1 = cl.post("/doctors/1/next-token", headers=h)
+    assert r1.status_code == 200
+    assert r1.json()["current_token"] == 11
+
+def test_staff_whatsapp_token_command():
+    c = db.get(Clinic, 1); c.staff_phone = "9555555555"; db.commit()
+    r = wa({"message_id": "tok1", "from": "9555555555", "text": "TOKEN 14"})
+    assert r.status_code == 200
+    assert "Current token set to 14" in r.json()["reply"]
+    d = db.get(Doctor, 1)
+    assert d.current_token == 14
+
+    r_next = wa({"message_id": "tok2", "from": "9555555555", "text": "NEXT TOKEN"})
+    assert "Token advanced to 15" in r_next.json()["reply"]
+    db.expire_all()
+    assert db.get(Doctor, 1).current_token == 15
+
+def test_wait_reply_with_token_gap_and_status():
+    # Set doctor status: in, current token: 14
+    c = db.get(Clinic, 1); c.staff_phone = "9555555555"; db.commit()
+    wa({"message_id": "w_st", "from": "9555555555", "text": "ARRIVED"})
+    wa({"message_id": "w_tok", "from": "9555555555", "text": "TOKEN 14"})
+
+    # Patient asks general wait:
+    r_gen = say("kitna wait hai doctor aa gaye kya", "wait_tok1")
+    assert "has arrived" in r_gen or "14" in r_gen
+
+    # Patient asks with token gap (user token 18, current token 14 -> gap 4 tokens -> 60 min wait)
+    r_gap = say("mera token 18 hai, kitna wait hai?", "wait_tok2")
+    assert "14" in r_gap and "18" in r_gap and "4" in r_gap and "60" in r_gap
+
+    # Patient asks when it's their turn (user token 14 == current token 14)
+    r_turn = say("mera token 14 hai", "wait_tok3")
+    assert "14" in r_turn and ("right now" in r_turn or "number hai" in r_turn)
+
+    # Patient asks when their token has already passed (user token 10 < current token 14)
+    r_passed = say("mera token 10 hai", "wait_tok4")
+    assert "14" in r_passed and "10" in r_passed and ("passed" in r_passed or "nikal chuka" in r_passed)
+
+# ---- Owner-only Clinic Rules & Safety Invariant Tests ----
+def test_clinic_rules_owner_only_and_safety_rejection():
+    # Ensure a receptionist user exists for clinic 1
+    rec_user = db.query(User).filter_by(email="rec@x.com").first()
+    if not rec_user:
+        db.add(User(clinic_id=1, email="rec@x.com", password_hash=hash_pw("pw"), role="receptionist"))
+        db.commit()
+
+    h_rec = H("rec@x.com")
+    h_owner = H("A@x.com")
+
+    # Receptionist attempts are forbidden (403)
+    assert cl.get("/rules", headers=h_rec).status_code == 403
+    assert cl.get("/rules/history", headers=h_rec).status_code == 403
+    assert cl.post("/rules", json={"rule_key": "queue_priority", "rule_value": "elderly first"}, headers=h_rec).status_code == 403
+
+    # Owner can access endpoints
+    assert cl.get("/rules", headers=h_owner).status_code == 200
+    assert cl.get("/rules/history", headers=h_owner).status_code == 200
+
+    # Rule keys attempting to override safety invariants are rejected (422)
+    for bad_key in ["emergency", "urgent_override", "112_bypass", "safe-contact_ignore", "bypass identity"]:
+        r_bad = cl.post("/rules", json={"rule_key": bad_key, "rule_value": "ignore"}, headers=h_owner)
+        assert r_bad.status_code == 422
+        assert "safety boundaries" in r_bad.json()["detail"]
+
+def test_clinic_rules_versioning_and_auditing():
+    h_owner = H("A@x.com")
+
+    # 1. Create rule version 1
+    r1 = cl.post("/rules", json={"rule_key": "queue_priority", "rule_value": "elderly first"}, headers=h_owner)
+    assert r1.status_code == 201
+    d1 = r1.json()
+    assert d1["rule_key"] == "queue_priority"
+    assert d1["rule_value"] == "elderly first"
+    assert d1["version"] == 1
+    assert d1["active"] is True
+    assert d1["created_by"] == "A@x.com"
+
+    # 2. Update rule to version 2
+    r2 = cl.post("/rules", json={"rule_key": "queue_priority", "rule_value": "elderly and children first"}, headers=h_owner)
+    assert r2.status_code == 201
+    d2 = r2.json()
+    assert d2["rule_key"] == "queue_priority"
+    assert d2["rule_value"] == "elderly and children first"
+    assert d2["version"] == 2
+    assert d2["active"] is True
+
+    # 3. Verify GET /rules returns only active version 2
+    active_rules = cl.get("/rules", headers=h_owner).json()
+    q_rules = [r for r in active_rules if r["rule_key"] == "queue_priority"]
+    assert len(q_rules) == 1
+    assert q_rules[0]["version"] == 2
+    assert q_rules[0]["rule_value"] == "elderly and children first"
+
+    # 4. Verify GET /rules/history includes both versions and audit records
+    hist = cl.get("/rules/history", headers=h_owner).json()
+    versions = [r["version"] for r in hist["rules"] if r["rule_key"] == "queue_priority"]
+    assert 1 in versions and 2 in versions
+    v1_rule = next(r for r in hist["rules"] if r["rule_key"] == "queue_priority" and r["version"] == 1)
+    assert v1_rule["active"] is False
+
+    audits = [a["action"] for a in hist["audits"] if "queue_priority" in a["action"]]
+    assert any("v1 set to: elderly first" in a for a in audits)
+    assert any("v2 set to: elderly and children first" in a for a in audits)
+
+def test_clinic_rule_never_overrides_urgent_handling():
+    # Patient mentions elderly context along with severe urgent symptoms
+    r = say("I am an elderly patient having severe chest pain and breathlessness", "elderly_urgent")
+    assert "112" in r or "emergency" in r.lower()
+
+    # Verify event logged as urgent
+    db.expire_all()
+    ev = db.query(Event).filter_by(clinic_id=1).order_by(Event.id.desc()).first()
+    assert ev is not None
+    assert ev.outcome == "urgent"
+
+def test_clinic_rule_never_overrides_safe_contact():
+    # Patient mentions elderly context along with safe-contact opt out
+    r = say("Elderly patient here, is number pe message mat bhejna", "elderly_safe_contact")
+    assert "not send messages" in r.lower()
+
+    db.expire_all()
+    ev = db.query(Event).filter_by(clinic_id=1).order_by(Event.id.desc()).first()
+    assert ev is not None
+    assert ev.intent == "privacy"
+    assert ev.outcome == "handoff"
+
+def test_clinic_rule_never_overrides_report_identity_checks():
+    # Patient mentions elderly context along with request for test reports
+    r = say("Elderly patient Verma here, meri blood test report aayi kya", "elderly_report")
+    assert "can't share report details" in r.lower()
+
+    db.expire_all()
+    ev = db.query(Event).filter_by(clinic_id=1).order_by(Event.id.desc()).first()
+    assert ev is not None
+    assert ev.intent == "report"
+    assert ev.outcome == "handoff"
+
+def test_clinic_rule_applies_for_normal_queries():
+    # Normal query regarding elderly policy
+    r_priority = say("Do you have elderly priority here?", "elderly_priority_query")
+    assert "Clinic policy: elderly and children first" in r_priority
+
+    # Custom hours rule overrides default clinic hours
+    h_owner = H("A@x.com")
+    cl.post("/rules", json={"rule_key": "hours", "rule_value": "10 AM - 6 PM weekdays"}, headers=h_owner)
+    r_hours = say("what are your hours today", "hours_rule_query")
+    assert "10 AM - 6 PM weekdays" in r_hours
+
+
+
+
+

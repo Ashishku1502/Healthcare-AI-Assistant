@@ -166,6 +166,25 @@ def doctor_status(id: int, b: StatusIn, u: User = Depends(current_user), db: Ses
     """One-tap live state from the receptionist (the source of truth for wait answers)."""
     d = own(db, Doctor, id, u); d.status_state, d.late_minutes, d.status_at = b.state, b.late_minutes, now()
     db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"doctor {id} status {b.state} {b.late_minutes}")); db.commit(); return {"ok": True}
+
+@r.post("/doctors/{id}/next-token", response_model=DoctorOut)
+def next_token(id: int, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """One-tap 'next token' by receptionist."""
+    d = own(db, Doctor, id, u)
+    d.current_token = (d.current_token or 0) + 1
+    db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"doctor {id} next token {d.current_token}"))
+    db.commit()
+    return d
+
+@r.put("/doctors/{id}/token", response_model=DoctorOut)
+def set_token(id: int, b: dict, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    """Set doctor's current token directly."""
+    d = own(db, Doctor, id, u)
+    token_val = int(b.get("token", (d.current_token or 0) + 1))
+    d.current_token = max(0, token_val)
+    db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"doctor {id} set token {d.current_token}"))
+    db.commit()
+    return d
 @r.get("/attention")
 def attention(u: User = Depends(current_user), db: Session = Depends(get_db)):
     rows = db.query(Event).filter(Event.clinic_id == u.clinic_id, Event.outcome.in_(["handoff", "urgent"]), Event.resolved == False).order_by(Event.id.desc()).limit(30).all()
@@ -188,3 +207,54 @@ def run_reminders(u: User = Depends(owner_only), db: Session = Depends(get_db)):
 def purge(u: User = Depends(owner_only), db: Session = Depends(get_db)):
     from ..retention import purge_old
     return purge_old(db, u.clinic_id)
+
+# ---- Owner-only Clinic Rules Settings ----
+@r.get("/rules", response_model=list[RuleOut])
+def get_rules(u: User = Depends(owner_only), db: Session = Depends(get_db)):
+    """Owner-only: list all active rules for the clinic."""
+    return db.query(ClinicRule).filter_by(clinic_id=u.clinic_id, active=True).order_by(ClinicRule.rule_key).all()
+
+@r.get("/rules/history")
+def get_rules_history(u: User = Depends(owner_only), db: Session = Depends(get_db)):
+    """Owner-only: view audited history and version log of clinic rules."""
+    rules = db.query(ClinicRule).filter_by(clinic_id=u.clinic_id).order_by(ClinicRule.id.desc()).all()
+    audits = db.query(Audit).filter(Audit.clinic_id == u.clinic_id, Audit.action.startswith("rule ")).order_by(Audit.id.desc()).all()
+    return {
+        "rules": [RuleOut.model_validate(r) for r in rules],
+        "audits": [{"id": a.id, "actor": a.actor, "action": a.action, "created_at": a.created_at} for a in audits]
+    }
+
+@r.post("/rules", response_model=RuleOut, status_code=201)
+def set_rule(b: RuleIn, u: User = Depends(owner_only), db: Session = Depends(get_db)):
+    """Owner-only: create or update a versioned, audited clinic rule."""
+    key = b.rule_key.strip().lower()
+    val = b.rule_value.strip()
+
+    # Safety invariant: local rules can never override urgent/safety/identity/safe-contact
+    forbidden = ["emergency", "urgent", "112", "override safety", "safe-contact", "bypass identity"]
+    if any(f in key for f in forbidden):
+        raise HTTPException(422, "Rule key cannot attempt to override safety boundaries")
+
+    existing = db.query(ClinicRule).filter_by(clinic_id=u.clinic_id, rule_key=key, active=True).first()
+    new_version = (existing.version + 1) if existing else 1
+    if existing:
+        existing.active = False
+
+    rule = ClinicRule(
+        clinic_id=u.clinic_id,
+        rule_key=key,
+        rule_value=val,
+        version=new_version,
+        active=True,
+        created_by=u.email
+    )
+    db.add(rule)
+    db.add(Audit(
+        clinic_id=u.clinic_id,
+        actor=u.email,
+        action=f"rule {key} v{new_version} set to: {val[:100]}"
+    ))
+    db.commit()
+    db.refresh(rule)
+    return rule
+
