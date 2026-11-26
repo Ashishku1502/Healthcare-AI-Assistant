@@ -19,6 +19,8 @@ import {
   IconUser,
   IconPhone,
   IconShieldCheck,
+  IconSmartphone,
+  IconArrowRight,
 } from "@/components/icons";
 
 const TABS = [
@@ -142,8 +144,9 @@ function Now() {
             href="/receptionist"
             className="text-xs font-bold bg-indigo-50 text-indigo-700 hover:bg-indigo-100 border border-indigo-200 px-3 py-1.5 rounded-lg flex items-center gap-1.5 transition-all shadow-sm"
           >
-            <span>📱 Mobile Receptionist View (1 Phone)</span>
-            <span>→</span>
+            <IconSmartphone className="w-3.5 h-3.5 shrink-0" />
+            <span>Mobile Receptionist View (1 Phone)</span>
+            <IconArrowRight className="w-3.5 h-3.5 shrink-0" />
           </Link>
         </div>
         <State loading={doc.loading} err={doc.err} empty={doc.data?.length === 0} />
@@ -1298,9 +1301,10 @@ export default function Dashboard() {
         <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
           <Link
             href="/receptionist"
-            className="text-xs font-semibold text-brand bg-lav/70 hover:bg-lav px-3 py-1.5 rounded-full transition-colors whitespace-nowrap"
+            className="text-xs font-semibold text-brand bg-lav/70 hover:bg-lav px-3 py-1.5 rounded-full transition-colors whitespace-nowrap inline-flex items-center gap-1.5"
           >
-            📱 Mobile Desk
+            <IconSmartphone className="w-3.5 h-3.5 shrink-0" />
+            <span>Mobile Desk</span>
           </Link>
           <a
             href="/"

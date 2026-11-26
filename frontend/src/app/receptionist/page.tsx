@@ -4,7 +4,16 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
-import { IconCross } from "@/components/icons";
+import {
+  IconCross,
+  IconRefreshCw,
+  IconArrowRight,
+  IconCheckCircle,
+  IconAlertTriangle,
+  IconClock,
+  IconXCircle,
+  IconZap,
+} from "@/components/icons";
 
 interface Doctor {
   id: number;
@@ -129,7 +138,7 @@ export default function ReceptionistPage() {
       );
       setNowTime(new Date());
       showTimedMsg(
-        `✓ Live state updated: ${state === "in" ? "Doctor In" : state === "late" ? `Running Late +${lateMinutes}m` : "Not In Today"}`,
+        `Live state updated: ${state === "in" ? "Doctor In" : state === "late" ? `Running Late +${lateMinutes}m` : "Not In Today"}`,
         "success",
         4000
       );
@@ -150,7 +159,7 @@ export default function ReceptionistPage() {
       setDoctors((prev) =>
         prev.map((d) => (d.id === activeDoc.id ? { ...d, current_token: updated.current_token } : d))
       );
-      showTimedMsg(`✓ Advanced to Token #${updated.current_token}`, "success", 3000);
+      showTimedMsg(`Advanced to Token #${updated.current_token}`, "success", 3000);
     } catch (err: any) {
       showTimedMsg(err.message || "Failed to advance token", "error", 3000);
     } finally {
@@ -183,15 +192,14 @@ export default function ReceptionistPage() {
             aria-label="Refresh doctor status"
             className="p-2 text-gray-500 hover:text-brand rounded-xl hover:bg-lav/60 transition-colors"
           >
-            <svg className={`w-5 h-5 ${loading ? "animate-spin text-brand" : ""}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-            </svg>
+            <IconRefreshCw className={`w-4 h-4 ${loading ? "animate-spin text-brand" : ""}`} />
           </button>
           <Link
             href="/dashboard"
-            className="text-xs font-bold text-deep hover:text-brand bg-lav/70 hover:bg-lav px-3 py-1.5 rounded-full whitespace-nowrap transition-colors"
+            className="text-xs font-bold text-deep hover:text-brand bg-lav/70 hover:bg-lav px-3 py-1.5 rounded-full whitespace-nowrap transition-colors inline-flex items-center gap-1"
           >
-            Dashboard →
+            <span>Dashboard</span>
+            <IconArrowRight className="w-3.5 h-3.5 shrink-0" />
           </Link>
         </div>
       </header>
@@ -302,17 +310,13 @@ export default function ReceptionistPage() {
 
             <div className="mt-2.5">
               {isFresh ? (
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">
-                  <svg className="w-4 h-4 shrink-0 text-emerald-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-                  </svg>
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl">
+                  <IconCheckCircle className="w-4 h-4 shrink-0 text-emerald-600" />
                   <span>Fresh (&le;30 min): Parchi is answering callers from this live state.</span>
                 </div>
               ) : (
-                <div className="flex items-center gap-1.5 text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
-                  <svg className="w-4 h-4 shrink-0 text-amber-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                  </svg>
+                <div className="flex items-center gap-2 text-[11px] font-semibold text-amber-900 bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-xl">
+                  <IconAlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
                   <span>Unconfirmed (&gt;30 mins): Tap a button below to confirm live timing.</span>
                 </div>
               )}
@@ -324,12 +328,17 @@ export default function ReceptionistPage() {
         {msg && (
           <div
             role="status"
-            className={`text-center py-2.5 px-3 rounded-2xl text-xs font-bold transition-all ${msg.type === "success"
+            className={`py-2.5 px-3 rounded-2xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${msg.type === "success"
               ? "bg-emerald-600 text-white shadow-md shadow-emerald-200"
               : "bg-rose-600 text-white shadow-md shadow-rose-200"
               }`}
           >
-            {msg.text}
+            {msg.type === "success" ? (
+              <IconCheckCircle className="w-4 h-4 shrink-0" />
+            ) : (
+              <IconAlertTriangle className="w-4 h-4 shrink-0" />
+            )}
+            <span>{msg.text}</span>
           </div>
         )}
 
@@ -350,8 +359,8 @@ export default function ReceptionistPage() {
               }`}
           >
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-lg shrink-0">
-                ✓
+              <span className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-700 flex items-center justify-center shrink-0">
+                <IconCheckCircle className="w-5 h-5" />
               </span>
               <div>
                 <div className="text-base font-extrabold">Doctor in</div>
@@ -374,8 +383,8 @@ export default function ReceptionistPage() {
               }`}
           >
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-bold text-sm shrink-0">
-                +15
+              <span className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center shrink-0">
+                <IconClock className="w-5 h-5" />
               </span>
               <div>
                 <div className="text-base font-extrabold">Running late +15 min</div>
@@ -398,8 +407,8 @@ export default function ReceptionistPage() {
               }`}
           >
             <div className="flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center font-bold text-lg shrink-0">
-                ✕
+              <span className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+                <IconXCircle className="w-5 h-5" />
               </span>
               <div>
                 <div className="text-base font-extrabold">Not in today</div>
@@ -430,6 +439,7 @@ export default function ReceptionistPage() {
                 onClick={nextToken}
                 className="bg-brand hover:bg-purple-600 active:scale-95 disabled:opacity-50 text-white font-bold px-4 py-3 rounded-2xl text-sm flex items-center gap-2 shadow-lg transition-all"
               >
+                <IconZap className="w-4 h-4 shrink-0" />
                 <span>Next Token</span>
                 <span className="bg-white/20 px-2 py-0.5 rounded-full text-xs">
                   #{(activeDoc.current_token || 0) + 1}
