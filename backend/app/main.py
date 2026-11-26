@@ -56,11 +56,12 @@ def init_db():
         print(f"init_db note: {e}")
 
 init_db()
+import os
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 app = FastAPI(title="Parchi AI API")
-static_path = Path(__file__).resolve().parent / "static"
+static_path = Path("/tmp/parchi_static") if os.getenv("VERCEL") else (Path(__file__).resolve().parent / "static")
 static_path.mkdir(parents=True, exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
 app.add_middleware(

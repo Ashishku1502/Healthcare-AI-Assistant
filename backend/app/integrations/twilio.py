@@ -20,8 +20,12 @@ from ..config import TWILIO_AUTH_TOKEN, VOICE_MONTHLY_MINUTE_CAP, VOICE_SECRET
 from ..models import Clinic, Event, Patient
 from .. import receptionist
 
-# Audio cache directory
-AUDIO_CACHE_DIR = Path(__file__).resolve().parent.parent / "static" / "audio"
+# Audio cache directory (use /tmp when running on Vercel read-only filesystem)
+AUDIO_CACHE_DIR = (
+    Path("/tmp/parchi_static/audio")
+    if os.getenv("VERCEL")
+    else Path(__file__).resolve().parent.parent / "static" / "audio"
+)
 AUDIO_CACHE_DIR.mkdir(parents=True, exist_ok=True)
 
 FILLER_TEXT = "Ek second, main dekh rahi hoon"

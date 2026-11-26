@@ -1,6 +1,6 @@
 import os
 SECRET = os.getenv("APP_SECRET", "dev-only-change-me")
-DB_URL = os.getenv("DATABASE_URL", "sqlite:///./parchi.db")
+DB_URL = os.getenv("DATABASE_URL") or ("sqlite:////tmp/parchi.db" if os.getenv("VERCEL") else "sqlite:///./parchi.db")
 if DB_URL.startswith("postgres://"):
     DB_URL = DB_URL.replace("postgres://", "postgresql://", 1)
 if "neon.tech" in DB_URL and "sslmode" not in DB_URL:
