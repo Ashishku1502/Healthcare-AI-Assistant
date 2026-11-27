@@ -237,7 +237,7 @@ def parse_booking_request(low: str, docs: list[Doctor]):
             matched_doc = d
             break
     if not matched_doc and docs:
-        if "dr" in low or "doctor" in low or "book" in low:
+        if "dr" in low or "doctor" in low or "book" in low or "appointment" in low or "slot" in low or "kara" in low:
             # Check if any doctor name substring is in low
             for d in docs:
                 for token in d.name.lower().split():
@@ -246,6 +246,8 @@ def parse_booking_request(low: str, docs: list[Doctor]):
                         break
                 if matched_doc:
                     break
+        if not matched_doc and len(docs) == 1:
+            matched_doc = docs[0]
 
     # 2. Date matching
     date_val = None
@@ -271,9 +273,14 @@ def parse_booking_request(low: str, docs: list[Doctor]):
 
     # 3. Time matching
     time_val = None
-    m_time = re.search(r"\b(\d{1,2}):(\d{2})\b", low)
+    m_time = re.search(r"\b(\d{1,2}):(\d{2})\s*(am|pm)?\b", low)
     if m_time:
         hh, mm = int(m_time.group(1)), int(m_time.group(2))
+        mer = (m_time.group(3) or "").lower()
+        if mer == "pm" and hh < 12:
+            hh += 12
+        elif mer == "am" and hh == 12:
+            hh = 0
         time_val = (hh, mm)
     else:
         m_ampm = re.search(r"\b(\d{1,2})\s*(?:baje|am|pm|vaajta|vajata|वाजता)\b", low)
@@ -281,6 +288,8 @@ def parse_booking_request(low: str, docs: list[Doctor]):
             hh = int(m_ampm.group(1))
             if "pm" in low and hh < 12:
                 hh += 12
+            elif "am" in low and hh == 12:
+                hh = 0
             time_val = (hh, 0)
 
     return matched_doc, date_val, time_val

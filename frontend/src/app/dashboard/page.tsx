@@ -661,26 +661,24 @@ function Appointments() {
 }
 
 function Chat() {
-  const [msgs, setMsgs] = useState<{ who: string; t: string }[]>([
-    {
-      who: "ai",
-      t: "Hello! I'm Parchi, your clinic's AI receptionist. Ask about clinic timings, fees, doctor availability, or booking a slot.",
-    },
-  ]);
+  const initialGreeting = {
+    who: "ai",
+    t: "Hello! I'm Parchi, your clinic's AI receptionist. Ask about clinic timings, fees, doctor availability, or booking a slot.",
+  };
+  const [msgs, setMsgs] = useState<{ who: string; t: string }[]>([initialGreeting]);
   const [t, setT] = useState("");
-  const [sid] = useState(() => "web" + Math.random().toString(36).slice(2, 8));
+  const [sid, setSid] = useState(() => "web" + Math.random().toString(36).slice(2, 8));
   const [busy, setBusy] = useState(false);
-  const [pn, setPn] = useState("");
-  const [pp, setPp] = useState("");
+  const [pn, setPn] = useState("Rahul Kumar");
+  const [pp, setPp] = useState("9876543210");
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
-  }, [msgs]);
+  }, [msgs, busy]);
 
-  async function send(e: React.FormEvent) {
-    e.preventDefault();
-    const m = t.trim();
+  async function sendMessage(rawMsg: string) {
+    const m = rawMsg.trim();
     if (!m || busy) return;
     setT("");
     setMsgs((x) => [...x, { who: "me", t: m }]);
@@ -691,8 +689,8 @@ function Chat() {
         body: JSON.stringify({
           session_id: sid,
           message: m,
-          patient_name: pn || undefined,
-          patient_phone: pp || undefined,
+          patient_name: pn.trim() || undefined,
+          patient_phone: pp.trim() || undefined,
         }),
       });
       setMsgs((x) => [...x, { who: "ai", t: r.reply }]);
@@ -706,18 +704,40 @@ function Chat() {
     }
   }
 
+  async function send(e: React.FormEvent) {
+    e.preventDefault();
+    await sendMessage(t);
+  }
+
   function quickTest(msg: string) {
-    setT(msg);
+    void sendMessage(msg);
+  }
+
+  function resetChat() {
+    if (busy) return;
+    setSid("web" + Math.random().toString(36).slice(2, 8));
+    setMsgs([initialGreeting]);
+    setT("");
   }
 
   return (
     <div className="card space-y-3">
-      <div className="flex items-center gap-2 border-b border-[#D4E2DF] pb-3 mb-1">
-        <IconMessageSquare className="w-5 h-5 text-[var(--teal)]" />
-        <h2 className="font-bold text-[var(--ink)] text-xl font-heading">AI Receptionist Live Testing Console</h2>
+      <div className="flex items-center justify-between gap-2 border-b border-[#D4E2DF] pb-3 mb-1 flex-wrap">
+        <div className="flex items-center gap-2">
+          <IconMessageSquare className="w-5 h-5 text-[var(--teal)]" />
+          <h2 className="font-bold text-[var(--ink)] text-xl font-heading">AI Receptionist Live Testing Console</h2>
+        </div>
+        <button
+          type="button"
+          onClick={resetChat}
+          disabled={busy}
+          className="btn2 text-[16px] px-4"
+        >
+          New Chat
+        </button>
       </div>
       <p className="text-[16px] text-[#3C5250]">
-        Test natural replies in Hindi, Hinglish, or English. To test booking, enter patient name and phone.
+        Test natural replies in Hindi, Hinglish, Marathi, or English. Edit caller name/phone or tap any prompt below to send.
       </p>
       <div className="grid sm:grid-cols-2 gap-3">
         <div className="relative">
@@ -753,15 +773,17 @@ function Chat() {
           "Fees kitni hai?",
           "क्लिनिकची वेळ काय आहे?",
           "Doctor availability?",
+          "Book tomorrow 11:00",
+          "YES",
+          "NO",
           "Bachche ko 102 bukhar hai",
           "Seene mein dard hai",
           "Do not message this number",
-          "YES",
-          "NO"
         ].map((promptText) => (
           <button
             key={promptText}
             type="button"
+            disabled={busy}
             className="btn2 text-[16px] px-3.5 bg-[#E4EFED]/40 hover:bg-[#E4EFED]"
             onClick={() => quickTest(promptText)}
           >
@@ -786,6 +808,16 @@ function Chat() {
             </p>
           </div>
         ))}
+        {busy && (
+          <div className="flex gap-2 justify-start">
+            <span className="w-8 h-8 rounded-lg bg-[var(--teal)] text-white flex items-center justify-center shrink-0 mt-1">
+              <IconCross className="w-4 h-4 text-white" />
+            </span>
+            <p className="rounded-2xl p-3.5 bg-white border border-[#D4E2DF] text-[#3C5250] text-[16px]">
+              Parchi is replying…
+            </p>
+          </div>
+        )}
       </div>
       <form onSubmit={send} className="flex flex-col sm:flex-row gap-2">
         <input
