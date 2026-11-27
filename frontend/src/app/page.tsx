@@ -55,9 +55,6 @@ export default function Home() {
       <section className="max-w-6xl mx-auto w-full px-3 sm:px-6 py-8 sm:py-10 space-y-8">
         <div className="grid lg:grid-cols-12 gap-6 lg:gap-8 items-center">
           <div className="lg:col-span-7 space-y-4">
-            <span className="badge-stamp">
-              Hindi, Hinglish, Marathi &amp; English
-            </span>
             <h1 className="font-heading text-[32px] sm:text-[46px] font-extrabold text-[var(--ink)] leading-[1.1]">
               Your clinic&rsquo;s automated front desk—honest wait times, safe triage.
             </h1>
@@ -143,7 +140,7 @@ export default function Home() {
               </li>
               <li className="flex items-start gap-2.5">
                 <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0 mt-1" />
-                <span>Answers hours, address, fees, and confirmed slots in 4 languages</span>
+                <span>Answers hours, address, fees, and confirmed appointment slots</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0 mt-1" />
