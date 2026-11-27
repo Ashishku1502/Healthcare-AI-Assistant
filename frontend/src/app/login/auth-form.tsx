@@ -14,7 +14,6 @@ import {
   IconEyeOff,
   IconBuilding,
   IconStethoscope,
-  IconZap,
   IconMail,
   IconCalendar,
   IconSparkles,
@@ -100,15 +99,6 @@ export default function AuthForm({
     } finally {
       setBusy(false);
     }
-  }
-
-  async function fillDemo(type: "owner" | "receptionist") {
-    switchMode("login");
-    const demoEmail = type === "owner" ? "owner@clinic.com" : "desk@clinic.com";
-    const demoPass = "clinic1234";
-    setEmail(demoEmail);
-    setPassword(demoPass);
-    await performLogin(demoEmail, demoPass);
   }
 
   async function handleLogin(e: React.FormEvent) {
@@ -277,57 +267,6 @@ export default function AuthForm({
               <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
                 Immediate 112 emergency routing for chest pain or trauma. Medical questions escalate safely to clinic staff.
               </p>
-            </div>
-          </div>
-
-          {/* Quick Demo Credentials Card */}
-          <div className="bg-[#E4EFED]/60 border-2 border-[#B8CCC9] rounded-3xl p-4 sm:p-5 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-1.5">
-              <span className="text-[16px] font-bold text-[var(--teal)] flex items-center gap-1.5 shrink-0">
-                <IconZap className="w-4 h-4 text-[var(--teal)] shrink-0" />
-                Pre-configured Demo Sandbox
-              </span>
-              <span className="text-[16px] text-[#3C5250] font-medium">Tap to test instant login</span>
-            </div>
-            <p className="text-[17px] font-semibold text-[var(--ink)] mt-2 break-words">
-              Want to test the full system right now without registering?
-            </p>
-            <div className="grid sm:grid-cols-2 gap-3 mt-3">
-              <button
-                type="button"
-                onClick={() => fillDemo("owner")}
-                className="min-h-[56px] text-left bg-white hover:border-[var(--teal)] border-2 border-[#C8DAD7] p-3.5 rounded-2xl transition-all shadow-sm group"
-              >
-                <div className="flex justify-between items-center gap-2 flex-wrap">
-                  <span className="font-bold text-[16px] text-[var(--ink)] flex items-center gap-1.5 shrink-0">
-                    <IconStethoscope className="w-4 h-4 text-[var(--teal)] shrink-0" />
-                    Clinic Owner
-                  </span>
-                  <span className="text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-2.5 py-1 rounded-lg group-hover:bg-[var(--teal)] group-hover:text-white transition-colors shrink-0 whitespace-nowrap">
-                    Fill & Login
-                  </span>
-                </div>
-                <p className="text-[16px] font-mono text-[var(--ink)] mt-1.5 break-all">owner@clinic.com</p>
-                <p className="text-[16px] text-[#3C5250] break-words">Full dashboard & settings access</p>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => fillDemo("receptionist")}
-                className="min-h-[56px] text-left bg-white hover:border-[var(--teal)] border-2 border-[#C8DAD7] p-3.5 rounded-2xl transition-all shadow-sm group"
-              >
-                <div className="flex justify-between items-center gap-2 flex-wrap">
-                  <span className="font-bold text-[16px] text-[var(--ink)] flex items-center gap-1.5 shrink-0">
-                    <IconPhone className="w-4 h-4 text-[var(--teal)] shrink-0" />
-                    Reception Desk
-                  </span>
-                  <span className="text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-2.5 py-1 rounded-lg group-hover:bg-[var(--teal)] group-hover:text-white transition-colors shrink-0 whitespace-nowrap">
-                    Fill & Login
-                  </span>
-                </div>
-                <p className="text-[16px] font-mono text-[var(--ink)] mt-1.5 break-all">desk@clinic.com</p>
-                <p className="text-[16px] text-[#3C5250] break-words">Live doctor status & appointments</p>
-              </button>
             </div>
           </div>
 
