@@ -275,6 +275,7 @@ def llm_config(u: User = Depends(current_user), db: Session = Depends(get_db)):
     return llm.get_clinic_llm_config(db, u.clinic_id)
 
 @r.put("/llm/config")
+@r.post("/llm/config")
 def update_llm_config(b: dict, u: User = Depends(owner_only), db: Session = Depends(get_db)):
     from .. import llm
     return llm.update_clinic_llm_config(db, u.clinic_id, b, u.email)
