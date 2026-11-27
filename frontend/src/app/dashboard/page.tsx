@@ -150,41 +150,41 @@ function Now() {
   return (
     <div className="space-y-5">
       {/* Live Clinic KPI Strip */}
-      <div className="grid sm:grid-cols-3 gap-3">
-        <div className="bg-white border-2 border-[#C8DAD7] rounded-2xl p-4 flex items-center gap-3.5 shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-[#E4EFED] text-[var(--teal)] flex items-center justify-center shrink-0">
+      <div className="grid sm:grid-cols-3 gap-3.5">
+        <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4 flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0">
             <IconStethoscope className="w-6 h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[16px] text-[#3C5250] font-semibold">Active Doctors</p>
+            <p className="text-[16px] text-[var(--ink)] font-bold">Active Doctors</p>
             <p className="text-[24px] font-extrabold text-[var(--ink)] font-heading leading-tight">
               {activeDoctors.length}
             </p>
           </div>
         </div>
 
-        <div className="bg-white border-2 border-[#C8DAD7] rounded-2xl p-4 flex items-center gap-3.5 shadow-xs">
-          <div className="w-12 h-12 rounded-2xl bg-[#FFF8EB] text-[var(--ink)] border border-[#F4B73F] flex items-center justify-center shrink-0">
-            <IconZap className="w-6 h-6 text-[var(--teal)]" />
+        <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4 flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] flex items-center justify-center shrink-0">
+            <IconZap className="w-6 h-6 text-[var(--ink)]" />
           </div>
           <div className="min-w-0">
-            <p className="text-[16px] text-[#3C5250] font-semibold">Current Token</p>
+            <p className="text-[16px] text-[var(--ink)] font-bold">Current Token</p>
             <p className="text-[24px] font-extrabold text-[var(--teal)] font-heading leading-tight">
               #{primaryDoc?.current_token || 0}
             </p>
           </div>
         </div>
 
-        <div className="bg-white border-2 border-[#C8DAD7] rounded-2xl p-4 flex items-center gap-3.5 shadow-xs">
+        <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4 flex items-center gap-3.5">
           <div
-            className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
-              openHandoffs > 0 ? "bg-[#FDECEA] text-[var(--red)]" : "bg-[#DCFCE7] text-[#14532D]"
+            className={`w-12 h-12 rounded-xl border-2 border-[var(--ink)] flex items-center justify-center shrink-0 ${
+              openHandoffs > 0 ? "bg-[var(--red)] text-white" : "bg-[#DCFCE7] text-[#14532D]"
             }`}
           >
             <IconAlertTriangle className="w-6 h-6" />
           </div>
           <div className="min-w-0">
-            <p className="text-[16px] text-[#3C5250] font-semibold">Open Handoffs</p>
+            <p className="text-[16px] text-[var(--ink)] font-bold">Open Handoffs</p>
             <p className="text-[24px] font-extrabold text-[var(--ink)] font-heading leading-tight">
               {openHandoffs}
             </p>
@@ -194,7 +194,7 @@ function Now() {
 
       {/* Doctor Status Controls (Ticket Cards) */}
       <div className="card space-y-4">
-        <div className="flex items-center justify-between flex-wrap gap-3 border-b border-[#D4E2DF] pb-3.5">
+        <div className="flex items-center justify-between flex-wrap gap-3 border-b-2 border-[var(--ink)] pb-3.5">
           <div>
             <h2 className="font-bold text-[var(--ink)] text-xl font-heading flex items-center gap-2">
               <IconClock className="w-5 h-5 text-[var(--teal)] shrink-0" />
@@ -1603,10 +1603,10 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col">
       {/* Top Clinic Command Bar */}
-      <header className="w-full bg-white border-b border-[#D4E2DF] sticky top-0 z-20">
+      <header className="w-full bg-white border-b-2 border-[var(--ink)] sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 min-w-0">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-11 h-11 rounded-2xl bg-[var(--teal)] text-white flex items-center justify-center font-bold shadow-sm shrink-0">
+            <span className="w-11 h-11 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center font-bold shrink-0">
               <IconCross className="w-6 h-6 text-white" />
             </span>
             <div className="min-w-0">
@@ -1615,12 +1615,12 @@ export default function Dashboard() {
                   {clinicName || "Parchi AI Clinic"}
                 </h1>
                 {userRole && (
-                  <span className="text-[16px] font-bold uppercase tracking-wider bg-[#E4EFED] text-[var(--ink)] px-3 py-0.5 rounded-full shrink-0">
+                  <span className="text-[16px] font-bold uppercase tracking-wider bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] px-3 py-0.5 rounded-lg shrink-0">
                     {userRole}
                   </span>
                 )}
               </div>
-              {userEmail && <p className="text-[16px] text-[#3C5250] font-mono break-all">{userEmail}</p>}
+              {userEmail && <p className="text-[16px] text-[var(--ink)] font-mono break-all">{userEmail}</p>}
             </div>
           </div>
 
@@ -1631,7 +1631,7 @@ export default function Dashboard() {
             </Link>
             <a
               href="/"
-              className="min-h-[48px] text-[16px] text-[#3C5250] hover:text-[var(--teal)] font-semibold px-3 inline-flex items-center transition-colors"
+              className="min-h-[48px] text-[16px] text-[var(--ink)] hover:text-[var(--teal)] font-bold px-3 inline-flex items-center transition-colors"
             >
               Public Site
             </a>
@@ -1653,7 +1653,7 @@ export default function Dashboard() {
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 lg:py-7 flex flex-col lg:flex-row gap-6 items-start min-w-0 flex-1">
         <aside className="w-full lg:w-64 shrink-0 space-y-4 min-w-0">
           <nav
-            className="w-full flex flex-wrap lg:flex-col gap-2 p-2.5 bg-white border border-[#D4E2DF] rounded-3xl shadow-xs min-w-0"
+            className="w-full flex flex-wrap lg:flex-col gap-2 p-2.5 bg-white border-2 border-[var(--ink)] shadow-[4px_4px_0_var(--ink)] rounded-2xl min-w-0"
             aria-label="Dashboard"
           >
             {TABS.map((t) => {
@@ -1664,10 +1664,10 @@ export default function Dashboard() {
                   key={t.id}
                   aria-current={isActive ? "page" : undefined}
                   onClick={() => setTab(t.id)}
-                  className={`min-h-[52px] px-3.5 py-2.5 rounded-2xl text-left font-bold transition-all flex items-center gap-2.5 min-w-0 lg:w-full ${
+                  className={`min-h-[52px] px-3.5 py-2.5 rounded-xl text-left font-bold transition-all flex items-center gap-2.5 min-w-0 lg:w-full ${
                     isActive
-                      ? "bg-[var(--teal)] text-white shadow-sm"
-                      : "text-[var(--ink)] hover:bg-[#E4EFED]"
+                      ? "bg-[var(--teal)] text-white border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)]"
+                      : "text-[var(--ink)] border-2 border-transparent hover:bg-[#E4EFED] hover:border-[var(--ink)]"
                   }`}
                 >
                   <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-[var(--teal)]"}`} />
@@ -1678,9 +1678,9 @@ export default function Dashboard() {
           </nav>
 
           {/* Desktop Quick Desk Card */}
-          <div className="hidden lg:block bg-white border border-[#D4E2DF] rounded-3xl p-4 space-y-3">
+          <div className="hidden lg:block card p-4 space-y-3">
             <p className="text-[16px] font-bold text-[var(--ink)] font-heading">1-Tap Receptionist Phone</p>
-            <p className="text-[16px] text-[#3C5250]">
+            <p className="text-[16px] text-[var(--ink)]">
               Dedicated 360px screen with zero forms for front-desk staff.
             </p>
             <Link href="/receptionist" className="btn w-full text-[16px] gap-2">

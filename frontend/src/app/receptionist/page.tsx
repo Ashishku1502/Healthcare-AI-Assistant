@@ -209,12 +209,12 @@ export default function ReceptionistPage() {
   return (
     <main className="min-h-screen bg-[var(--paper)] text-[var(--ink)] w-full max-w-[360px] mx-auto px-3 py-4 flex flex-col gap-4">
       {/* Compact Header (No Sidebar) */}
-      <header className="flex items-center justify-between gap-2 bg-white border border-[#C8DAD7] rounded-2xl px-3.5 py-2.5">
+      <header className="flex items-center justify-between gap-2 bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl px-3.5 py-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-9 h-9 rounded-xl bg-[var(--teal)] text-white flex items-center justify-center shrink-0">
+          <span className="w-9 h-9 rounded-lg bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0">
             <IconCross className="w-5 h-5 text-white" />
           </span>
-          <h1 className="font-heading text-[18px] font-bold text-[var(--ink)] truncate">
+          <h1 className="font-heading text-[18px] font-extrabold text-[var(--ink)] truncate">
             {clinicName}
           </h1>
         </div>
@@ -222,7 +222,7 @@ export default function ReceptionistPage() {
           type="button"
           onClick={loadData}
           aria-label="Refresh status"
-          className="min-w-[48px] min-h-[48px] inline-flex items-center justify-center rounded-xl border-2 border-[#C8DAD7] bg-white text-[var(--teal)] hover:bg-[#E4EFED]"
+          className="min-w-[48px] min-h-[48px] inline-flex items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-white text-[var(--ink)] shadow-[2px_2px_0_var(--ink)] hover:bg-[#E4EFED]"
         >
           <IconRefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
         </button>
@@ -326,82 +326,80 @@ export default function ReceptionistPage() {
           type="button"
           disabled={updating || !activeDoc}
           onClick={() => setStatus("in", 0)}
-          className={`w-full min-h-[56px] px-4 rounded-2xl border-2 text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
+          className={`w-full min-h-[56px] px-4 rounded-xl border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
             activeDoc?.status_state === "in" && isFresh
-              ? "bg-[var(--teal)] text-white border-[var(--teal)]"
-              : "bg-white text-[var(--ink)] border-[var(--teal)] hover:bg-[#E4EFED]"
+              ? "bg-[var(--teal)] text-white"
+              : "bg-white text-[var(--ink)] hover:bg-[#E4EFED]"
           }`}
         >
           <span className="flex items-center gap-3">
             <IconCheckCircle className="w-6 h-6 shrink-0" />
             <span>Doctor aa gaye</span>
           </span>
-          <span className="text-[16px] font-semibold">Tap</span>
+          <span className="text-[16px] font-bold">Tap</span>
         </button>
 
         <button
           type="button"
           disabled={updating || !activeDoc}
           onClick={() => setStatus("late", 15)}
-          className={`w-full min-h-[56px] px-4 rounded-2xl border-2 text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
+          className={`w-full min-h-[56px] px-4 rounded-xl border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
             activeDoc?.status_state === "late" && isFresh
-              ? "bg-[var(--yellow)] text-[var(--ink)] border-[#B88316]"
-              : "bg-white text-[var(--ink)] border-[#B88316] hover:bg-[#FEF9EC]"
+              ? "bg-[var(--yellow)] text-[var(--ink)]"
+              : "bg-white text-[var(--ink)] hover:bg-[#FEF9EC]"
           }`}
         >
           <span className="flex items-center gap-3">
             <IconClock className="w-6 h-6 shrink-0" />
             <span>15 min late</span>
           </span>
-          <span className="text-[16px] font-semibold">Tap</span>
+          <span className="text-[16px] font-bold">Tap</span>
         </button>
 
         <button
           type="button"
           disabled={updating || !activeDoc}
           onClick={() => setStatus("out", 0)}
-          className={`w-full min-h-[56px] px-4 rounded-2xl border-2 text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
+          className={`w-full min-h-[56px] px-4 rounded-xl border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] text-[18px] font-bold flex items-center justify-between transition-all disabled:opacity-50 ${
             activeDoc?.status_state === "out" && isFresh
-              ? "bg-[var(--red)] text-white border-[var(--red)]"
-              : "bg-white text-[var(--ink)] border-[var(--red)] hover:bg-[#FDF2F1]"
+              ? "bg-[var(--red)] text-white"
+              : "bg-white text-[var(--ink)] hover:bg-[#FDF2F1]"
           }`}
         >
           <span className="flex items-center gap-3">
             <IconXCircle className="w-6 h-6 shrink-0" />
             <span>Aaj nahi hain</span>
           </span>
-          <span className="text-[16px] font-semibold">Tap</span>
+          <span className="text-[16px] font-bold">Tap</span>
         </button>
       </section>
 
       {/* BOTTOM: Missed Calls List (No forms, no sidebar) */}
-      <section aria-label="Missed calls" className="bg-white border-2 border-[#C8DAD7] rounded-3xl p-4 space-y-3">
-        <div className="flex items-center justify-between gap-2">
-          <h2 className="font-heading text-[20px] font-bold text-[var(--ink)] flex items-center gap-2">
+      <section aria-label="Missed calls" className="card p-4 space-y-3">
+        <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--ink)] pb-2.5">
+          <h2 className="font-heading text-[20px] font-extrabold text-[var(--ink)] flex items-center gap-2">
             <IconPhone className="w-5 h-5 text-[var(--teal)] shrink-0" />
             <span>Missed calls</span>
           </h2>
-          <span className="px-3 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-bold">
+          <span className="px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
             {missedCalls.length}
           </span>
         </div>
 
         {missedCalls.length === 0 ? (
-          <p className="text-[17px] text-[#3C5250] py-2">No missed calls right now.</p>
+          <p className="text-[17px] text-[var(--ink)] py-2">No missed calls right now.</p>
         ) : (
           <ul className="space-y-3">
             {missedCalls.map((item) => (
               <li
                 key={item.id}
-                className={`rounded-2xl p-3.5 border-2 space-y-2.5 ${
-                  item.outcome === "urgent"
-                    ? "bg-[#FDF2F1] border-[var(--red)]"
-                    : "bg-[#F5F8F7] border-[#C8DAD7]"
+                className={`rounded-xl p-3.5 border-2 border-[var(--ink)] space-y-2.5 ${
+                  item.outcome === "urgent" ? "bg-[#FDECEA]" : "bg-[var(--paper)]"
                 }`}
               >
                 <div className="flex items-center justify-between gap-2">
                   <span
-                    className={`px-2.5 py-0.5 rounded-full text-[16px] font-bold uppercase ${
+                    className={`px-2.5 py-0.5 rounded-lg border-2 border-[var(--ink)] text-[16px] font-bold uppercase ${
                       item.outcome === "urgent"
                         ? "bg-[var(--red)] text-white"
                         : "bg-[var(--yellow)] text-[var(--ink)]"
@@ -409,7 +407,7 @@ export default function ReceptionistPage() {
                   >
                     {item.outcome === "urgent" ? "Urgent" : "Callback"}
                   </span>
-                  <span className="text-[16px] font-semibold text-[#3C5250]">{item.channel}</span>
+                  <span className="text-[16px] font-bold text-[var(--ink)]">{item.channel}</span>
                 </div>
                 <p className="text-[17px] text-[var(--ink)]">{item.note || "Patient requested callback"}</p>
                 <button

@@ -12,20 +12,20 @@ export default function Home() {
   return (
     <main className="min-h-screen flex flex-col justify-between bg-[var(--paper)] text-[var(--ink)] overflow-x-hidden">
       {/* Top Navigation */}
-      <header className="sticky top-0 z-20 w-full bg-white/95 backdrop-blur-md border-b border-[#C8DAD7]">
+      <header className="sticky top-0 z-20 w-full bg-white border-b-2 border-[var(--ink)]">
         <nav
           className="max-w-6xl mx-auto px-3 sm:px-6 py-3 flex items-center justify-between gap-2 flex-wrap"
           aria-label="Main"
         >
           <a href="/" className="flex items-center gap-2.5 shrink-0 min-h-[48px]">
-            <span className="w-10 h-10 rounded-xl bg-[var(--teal)] text-white flex items-center justify-center shrink-0">
+            <span className="w-10 h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0">
               <IconCross className="w-5 h-5 text-white" />
             </span>
             <div className="flex items-center gap-2">
               <span className="font-heading text-[22px] font-extrabold text-[var(--ink)] tracking-tight whitespace-nowrap">
                 Parchi AI
               </span>
-              <span className="hidden md:inline-block px-3 py-0.5 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-bold whitespace-nowrap">
+              <span className="hidden md:inline-block px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold whitespace-nowrap">
                 Clinic Front Desk
               </span>
             </div>
@@ -34,7 +34,7 @@ export default function Home() {
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
             <a
               href="#pricing"
-              className="hidden sm:inline-flex items-center min-h-[48px] px-3 text-[16px] font-semibold text-[#3C5250] hover:text-[var(--teal)] whitespace-nowrap"
+              className="hidden sm:inline-flex items-center min-h-[48px] px-3 text-[16px] font-bold text-[var(--ink)] hover:text-[var(--teal)] whitespace-nowrap"
             >
               Pricing
             </a>
@@ -52,13 +52,13 @@ export default function Home() {
       <section className="max-w-6xl mx-auto w-full px-3 sm:px-6 py-8 sm:py-12 space-y-8">
         <div className="grid lg:grid-cols-12 gap-6 items-end">
           <div className="lg:col-span-8 space-y-4">
-            <span className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-bold">
+            <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
               Hindi, Hinglish, Marathi &amp; English
             </span>
             <h1 className="font-heading text-[32px] sm:text-[46px] font-extrabold text-[var(--ink)] leading-[1.12]">
               Your clinic&rsquo;s automated front desk—honest wait times, safe triage.
             </h1>
-            <p className="text-[18px] text-[#3C5250] leading-relaxed max-w-2xl">
+            <p className="text-[18px] text-[var(--ink)] leading-relaxed max-w-2xl">
               Answers patient calls and WhatsApp questions from receptionist-confirmed status. Never guesses doctor delays and routes red-flag symptoms straight to 112.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 pt-1">
@@ -72,21 +72,21 @@ export default function Home() {
             </div>
           </div>
 
-          <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5">
-            <div className="bg-white border border-[#C8DAD7] rounded-2xl p-3.5 flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-[#E4EFED] text-[var(--teal)] flex items-center justify-center shrink-0">
+          <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-3">
+            <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-xl p-3.5 flex items-center gap-3">
+              <span className="w-10 h-10 rounded-lg bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0">
                 <IconClock className="w-5 h-5" />
               </span>
               <span className="text-[16px] font-bold text-[var(--ink)]">1-tap live status</span>
             </div>
-            <div className="bg-white border border-[#C8DAD7] rounded-2xl p-3.5 flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-[#DCFCE7] text-[#14532D] flex items-center justify-center shrink-0">
+            <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-xl p-3.5 flex items-center gap-3">
+              <span className="w-10 h-10 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] flex items-center justify-center shrink-0">
                 <IconLock className="w-5 h-5" />
               </span>
               <span className="text-[16px] font-bold text-[var(--ink)]">Confirmed slot booking</span>
             </div>
-            <div className="bg-white border border-[#C8DAD7] rounded-2xl p-3.5 flex items-center gap-3">
-              <span className="w-10 h-10 rounded-xl bg-[#FDECEA] text-[var(--red)] flex items-center justify-center shrink-0">
+            <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-xl p-3.5 flex items-center gap-3">
+              <span className="w-10 h-10 rounded-lg bg-[var(--red)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0">
                 <IconShieldCheck className="w-5 h-5" />
               </span>
               <span className="text-[16px] font-bold text-[var(--ink)]">Pre-model 112 safety</span>
@@ -99,15 +99,15 @@ export default function Home() {
 
       {/* Section 2: Pricing & 14-day Pilot */}
       <section id="pricing" className="max-w-5xl mx-auto w-full px-3 sm:px-6 py-8 sm:py-12">
-        <div className="card p-6 sm:p-8 border-2 border-[var(--teal)] grid md:grid-cols-12 gap-6 items-center">
+        <div className="card p-6 sm:p-8 grid md:grid-cols-12 gap-6 items-center">
           <div className="md:col-span-5 space-y-3 text-center md:text-left">
-            <span className="inline-block px-3.5 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-bold">
+            <span className="inline-block px-3.5 py-1 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
               Simple Clinic Plan
             </span>
             <h2 className="font-heading text-[34px] sm:text-[42px] font-extrabold text-[var(--ink)] leading-tight">
               ₹2,500/month
             </h2>
-            <p className="text-[17px] text-[#3C5250]">
+            <p className="text-[17px] text-[var(--ink)]">
               Per clinic location. Covers front-desk calls, WhatsApp updates, and receptionist controls.
             </p>
             <div className="flex flex-col sm:flex-row gap-2.5 pt-2 justify-center md:justify-start">
@@ -118,7 +118,7 @@ export default function Home() {
             </div>
           </div>
 
-          <ul className="md:col-span-7 space-y-3 bg-[#F5F8F7] border border-[#C8DAD7] rounded-2xl p-5 text-[17px] text-[var(--ink)]">
+          <ul className="md:col-span-7 space-y-3 bg-[var(--paper)] border-2 border-[var(--ink)] rounded-xl p-5 text-[17px] text-[var(--ink)]">
             <li className="flex items-start gap-2.5">
               <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0 mt-1" />
               <span>1-tap 360px receptionist page for doctor status and live token queue</span>

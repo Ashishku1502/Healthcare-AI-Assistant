@@ -52,37 +52,44 @@
 
 @layer components {
   .card {
-    @apply bg-white border border-[#D4E2DF] rounded-3xl p-5 sm:p-6 shadow-sm;
+    @apply bg-white border-2 border-[var(--ink)] rounded-2xl p-5 sm:p-6;
+    box-shadow: 4px 4px 0 var(--ink);
     word-break: break-word;
     overflow-wrap: break-word;
   }
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-2xl bg-[var(--teal)] text-white px-5 min-h-[56px] text-[17px] font-bold hover:bg-[#0B524E] active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100 transition-all;
+    @apply inline-flex items-center justify-center rounded-xl bg-[var(--teal)] text-white border-2 border-[var(--ink)] px-5 min-h-[56px] text-[17px] font-bold hover:bg-[#0B524E] disabled:opacity-50 transition-all;
+    box-shadow: 3px 3px 0 var(--ink);
     white-space: normal;
     text-align: center;
   }
 
+  .btn:active:not(:disabled) {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 var(--ink);
+  }
+
   .btn2 {
-    @apply btn bg-white text-[var(--teal)] border-2 border-[var(--teal)] hover:bg-[#E4EFED];
+    @apply btn bg-white text-[var(--ink)] hover:bg-[#E4EFED];
   }
 
   .inp {
-    @apply w-full min-h-[56px] rounded-2xl border-2 border-[#B8CCC9] px-4 bg-white text-[var(--ink)] text-[17px] transition-colors focus:border-[var(--teal)];
+    @apply w-full min-h-[56px] rounded-xl border-2 border-[var(--ink)] px-4 bg-white text-[var(--ink)] text-[17px] transition-colors focus:border-[var(--teal)];
   }
 
   .ticket-card {
     position: relative;
     overflow: hidden;
     background: #ffffff;
-    border: 2px solid #C8DAD7;
-    border-radius: 1.5rem;
-    box-shadow: 0 4px 16px rgba(15, 107, 102, 0.08);
+    border: 2px solid var(--ink);
+    border-radius: 1rem;
+    box-shadow: 4px 4px 0 var(--ink);
   }
 
   .ticket-notch-row {
     position: relative;
-    border-top: 2px dashed #B8CCC9;
+    border-top: 2px dashed var(--ink);
   }
 
   .ticket-notch-row::before,
@@ -94,7 +101,7 @@
     height: 24px;
     border-radius: 9999px;
     background-color: var(--paper);
-    border: 2px solid #C8DAD7;
+    border: 2px solid var(--ink);
   }
 
   .ticket-notch-row::before {

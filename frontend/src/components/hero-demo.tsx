@@ -149,14 +149,14 @@ export default function HeroDemo() {
   return (
     <div id="live-demo" className="grid lg:grid-cols-12 gap-6 items-start">
       {/* Left: Interactive Patient Chat Demo */}
-      <div className="lg:col-span-7 bg-white border-2 border-[#C8DAD7] rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between gap-2 border-b border-[#D4E2DF] pb-3.5 flex-wrap">
+      <div className="lg:col-span-7 card space-y-4">
+        <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--ink)] pb-3.5 flex-wrap">
           <div className="flex items-center gap-2.5 flex-wrap">
             <span className="font-heading text-[19px] font-bold text-[var(--ink)] flex items-center gap-2">
               <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0" />
               <span>Live Patient Chat Demo</span>
             </span>
-            <span className="px-3 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-bold">
+            <span className="px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
               Automated Assistant
             </span>
           </div>
@@ -175,7 +175,7 @@ export default function HeroDemo() {
         {emergencyActive ? (
           <div
             role="alert"
-            className="rounded-2xl bg-[var(--red)] text-white p-5 sm:p-6 space-y-4"
+            className="rounded-xl bg-[var(--red)] border-2 border-[var(--ink)] text-white p-5 sm:p-6 space-y-4"
           >
             <div className="flex items-center gap-3">
               <IconAlertTriangle className="w-8 h-8 text-white shrink-0" />
@@ -189,7 +189,7 @@ export default function HeroDemo() {
             <button
               type="button"
               onClick={resetDemo}
-              className="w-full sm:w-auto min-h-[56px] px-5 rounded-2xl bg-white text-[var(--ink)] font-bold text-[17px] hover:bg-[#F5F8F7]"
+              className="btn2 w-full sm:w-auto px-5"
             >
               Reset Live Demo
             </button>
@@ -197,15 +197,15 @@ export default function HeroDemo() {
         ) : (
           <div
             ref={feedRef}
-            className="space-y-3 max-h-72 overflow-y-auto p-3.5 bg-[var(--paper)] border border-[#D4E2DF] rounded-2xl"
+            className="space-y-3 max-h-72 overflow-y-auto p-3.5 bg-[var(--paper)] border-2 border-[var(--ink)] rounded-xl"
             aria-live="polite"
           >
             {messages.map((m, idx) => (
               <div
                 key={idx}
-                className={`rounded-2xl p-3.5 max-w-[92%] text-[17px] ${m.who === "patient"
+                className={`rounded-xl p-3.5 max-w-[92%] text-[17px] border-2 border-[var(--ink)] ${m.who === "patient"
                     ? "bg-[var(--teal)] text-white ml-auto"
-                    : "bg-white border border-[#C8DAD7] text-[var(--ink)] shadow-xs"
+                    : "bg-white text-[var(--ink)]"
                   }`}
               >
                 <p>{m.text}</p>
@@ -216,7 +216,7 @@ export default function HeroDemo() {
 
         {/* Quick Demo Scenario Chips */}
         <div className="space-y-2">
-          <p className="text-[16px] font-semibold text-[#3C5250]">Try a scenario in 1 tap:</p>
+          <p className="text-[16px] font-bold text-[var(--ink)]">Try a scenario in 1 tap:</p>
           <div className="flex flex-wrap gap-2">
             <button
               type="button"
@@ -235,14 +235,14 @@ export default function HeroDemo() {
             <button
               type="button"
               onClick={() => processMessage("Chest pain and breathlessness")}
-              className="min-h-[52px] px-4 rounded-2xl border-2 border-[var(--red)] bg-white text-[var(--ink)] font-bold text-[16px] hover:bg-[#FDF2F1]"
+              className="btn min-h-[52px] px-4 text-[16px] !bg-[var(--red)] hover:!bg-[#9E2E24]"
             >
               Chest pain
             </button>
             <button
               type="button"
               onClick={() => processMessage("Child has high fever 103")}
-              className="min-h-[52px] px-4 rounded-2xl border-2 border-[var(--red)] bg-white text-[var(--ink)] font-bold text-[16px] hover:bg-[#FDF2F1]"
+              className="btn min-h-[52px] px-4 text-[16px] !bg-[var(--red)] hover:!bg-[#9E2E24]"
             >
               Child&apos;s high fever
             </button>
@@ -311,9 +311,9 @@ export default function HeroDemo() {
         </div>
 
         {/* Plain-English How It Works Box */}
-        <div className="bg-white border border-[#C8DAD7] rounded-3xl p-4 sm:p-5 space-y-2.5">
+        <div className="card p-4 sm:p-5 space-y-2">
           <p className="font-heading text-[18px] font-bold text-[var(--ink)]">How patients get answered</p>
-          <p className="text-[16px] text-[#3C5250] leading-relaxed">
+          <p className="text-[16px] text-[var(--ink)] leading-relaxed">
             1. Receptionist taps doctor status on mobile &rarr; 2. Parchi shares verified wait time &amp; token &rarr; 3. Red-flag symptoms bypass AI and route straight to 112.
           </p>
         </div>

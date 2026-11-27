@@ -169,29 +169,29 @@ export default function AuthForm({
   return (
     <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col justify-between">
       {/* Top Bar Navigation */}
-      <header className="w-full border-b border-[#D4E2DF] bg-white/95 backdrop-blur-md sticky top-0 z-20">
+      <header className="w-full border-b-2 border-[var(--ink)] bg-white sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
           <a href="/" className="min-h-[48px] flex items-center gap-2 group shrink-0">
-            <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--teal)] text-white flex items-center justify-center font-black shadow-sm group-hover:scale-105 transition-transform shrink-0">
+            <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center font-black shrink-0">
               <IconCross className="w-5 h-5 text-white" />
             </span>
             <div className="flex items-center gap-2">
               <span className="text-[18px] sm:text-xl font-bold text-[var(--ink)] tracking-tight font-heading whitespace-nowrap">Parchi AI</span>
-              <span className="hidden sm:inline-block text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-3 py-1 rounded-full whitespace-nowrap">
+              <span className="hidden sm:inline-block text-[16px] font-bold bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] px-3 py-0.5 rounded-lg whitespace-nowrap">
                 Front Desk
               </span>
             </div>
           </a>
           <nav className="flex items-center gap-1.5 sm:gap-2 text-[16px] shrink-0">
-            <a href="/" className="min-h-[48px] px-2 inline-flex items-center text-[#3C5250] font-semibold hover:text-[var(--teal)] transition-colors whitespace-nowrap">
+            <a href="/" className="min-h-[48px] px-2.5 inline-flex items-center text-[var(--ink)] font-bold hover:text-[var(--teal)] transition-colors whitespace-nowrap">
               Home
             </a>
-            <span className="w-px h-5 bg-[#B8CCC9] shrink-0" aria-hidden="true" />
+            <span className="w-0.5 h-5 bg-[var(--ink)] shrink-0" aria-hidden="true" />
             {mode === "login" ? (
               <button
                 type="button"
                 onClick={() => switchMode("signup")}
-                className="min-h-[48px] px-2 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
+                className="min-h-[48px] px-2.5 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
               >
                 <IconBuilding className="w-4 h-4 shrink-0" />
                 <span>Register Clinic</span>
@@ -200,7 +200,7 @@ export default function AuthForm({
               <button
                 type="button"
                 onClick={() => switchMode("login")}
-                className="min-h-[48px] px-2 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
+                className="min-h-[48px] px-2.5 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
               >
                 <IconLock className="w-4 h-4 shrink-0" />
                 <span>Sign In</span>
@@ -215,65 +215,65 @@ export default function AuthForm({
         {/* Left Column: Full Product Information, Trust & Benefits */}
         <section className="lg:col-span-6 space-y-6 min-w-0 w-full">
           <div>
-            <span className="inline-flex items-center gap-2 bg-[#E4EFED] text-[var(--ink)] px-3.5 py-1.5 rounded-full text-[16px] font-bold">
-              <IconSparkles className="w-4 h-4 text-[var(--teal)] shrink-0" />
+            <span className="inline-flex items-center gap-2 bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] px-3.5 py-1 rounded-lg text-[16px] font-bold">
+              <IconSparkles className="w-4 h-4 text-[var(--ink)] shrink-0" />
               Healthcare AI Assistant
             </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[var(--ink)] mt-3 leading-tight break-words font-heading">
               Your clinic&apos;s 24/7 AI Receptionist.
             </h1>
-            <p className="mt-4 text-[17px] text-[#3C5250] leading-relaxed break-words">
+            <p className="mt-4 text-[17px] text-[var(--ink)] leading-relaxed break-words">
               Parchi handles routine patient phone calls, WhatsApp inquiries, appointment bookings, and doctor wait-time updates in Hindi, Hinglish, Marathi, and English—freeing your staff to focus on in-clinic care.
             </p>
           </div>
 
           {/* Key Pillars & Capabilities */}
           <div className="grid sm:grid-cols-2 gap-4 pt-2">
-            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
-              <div className="w-10 h-10 rounded-xl bg-[#E4EFED] text-[var(--teal)] flex items-center justify-center mb-2.5 shrink-0">
+            <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center mb-2.5 shrink-0">
                 <IconPhone className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">Calls & WhatsApp</h3>
-              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
+              <p className="text-[16px] text-[var(--ink)] mt-1 leading-normal break-words">
                 Answers clinic hours, address, fee structure, and doctor availability in the language patients speak.
               </p>
             </div>
 
-            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
-              <div className="w-10 h-10 rounded-xl bg-[#DCFCE7] text-[#14532D] flex items-center justify-center mb-2.5 shrink-0">
+            <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4">
+              <div className="w-10 h-10 rounded-xl bg-[#DCFCE7] border-2 border-[var(--ink)] text-[#14532D] flex items-center justify-center mb-2.5 shrink-0">
                 <IconLock className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">Zero Double-Booking</h3>
-              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
+              <p className="text-[16px] text-[var(--ink)] mt-1 leading-normal break-words">
                 Strict database unique-slot verification. Appointments book only after explicit patient confirmation.
               </p>
             </div>
 
-            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
-              <div className="w-10 h-10 rounded-xl bg-[var(--yellow)] text-[var(--ink)] flex items-center justify-center mb-2.5 shrink-0">
+            <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] flex items-center justify-center mb-2.5 shrink-0">
                 <IconClock className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">1-Tap Doctor Status</h3>
-              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
+              <p className="text-[16px] text-[var(--ink)] mt-1 leading-normal break-words">
                 Front desk marks doctor delays in 5 seconds. Patients asking &quot;doctor aaye kya?&quot; get accurate live updates.
               </p>
             </div>
 
-            <div className="bg-white border border-[#D4E2DF] rounded-2xl p-4 shadow-sm">
-              <div className="w-10 h-10 rounded-xl bg-[#FDECEA] text-[var(--red)] flex items-center justify-center mb-2.5 shrink-0">
+            <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4">
+              <div className="w-10 h-10 rounded-xl bg-[var(--red)] border-2 border-[var(--ink)] text-white flex items-center justify-center mb-2.5 shrink-0">
                 <IconAlertTriangle className="w-5 h-5" />
               </div>
               <h3 className="font-bold text-[var(--ink)] text-[18px] break-words">Safety & Triage Escalation</h3>
-              <p className="text-[16px] text-[#3C5250] mt-1 leading-normal break-words">
+              <p className="text-[16px] text-[var(--ink)] mt-1 leading-normal break-words">
                 Immediate 112 emergency routing for chest pain or trauma. Medical questions escalate safely to clinic staff.
               </p>
             </div>
           </div>
 
           {/* Small Backend Status Badge */}
-          <div className="inline-flex items-center gap-2.5 bg-white border border-[#D4E2DF] rounded-full px-4 py-2 text-[16px] font-semibold text-[var(--ink)] shadow-xs w-fit">
+          <div className="inline-flex items-center gap-2.5 bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-xl px-4 py-2 text-[16px] font-bold text-[var(--ink)] w-fit">
             <span
-              className={`w-2.5 h-2.5 rounded-full shrink-0 ${apiStatus === "ready"
+              className={`w-3 h-3 rounded-full border border-[var(--ink)] shrink-0 ${apiStatus === "ready"
                   ? "bg-[#0F6B66]"
                   : apiStatus === "waking"
                     ? "bg-[var(--yellow)] animate-pulse"
@@ -290,9 +290,9 @@ export default function AuthForm({
           </div>
 
           {/* Safety & Compliance Badge */}
-          <div className="flex items-center gap-3 text-[16px] text-[var(--ink)] bg-white border border-[#D4E2DF] rounded-2xl p-4">
-            <div className="w-10 h-10 rounded-xl bg-[#E4EFED] flex items-center justify-center shrink-0">
-              <IconShieldCheck className="w-5 h-5 text-[var(--teal)]" />
+          <div className="flex items-center gap-3 text-[16px] text-[var(--ink)] bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4">
+            <div className="w-10 h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] flex items-center justify-center shrink-0">
+              <IconShieldCheck className="w-5 h-5 text-white" />
             </div>
             <span className="break-words">
               <strong>HIPAA & Indian Digital Health Guidelines:</strong> Patient telephone numbers and records are tenant-isolated. Strict opt-out compliance enforced.
@@ -302,17 +302,17 @@ export default function AuthForm({
 
         {/* Right Column: Interactive Login & Signup Form */}
         <section className="lg:col-span-6 w-full max-w-xl mx-auto min-w-0">
-          <div className="card shadow-lg border border-[#D4E2DF] p-5 sm:p-8">
+          <div className="card p-5 sm:p-8">
             {/* Mode Selector Tabs */}
-            <div className="flex rounded-2xl bg-[#E4EFED] p-1.5 mb-6 border border-[#C8DAD7]" role="tablist">
+            <div className="flex rounded-xl bg-[var(--paper)] p-1.5 mb-6 border-2 border-[var(--ink)] gap-1.5" role="tablist">
               <button
                 type="button"
                 role="tab"
                 aria-selected={mode === "login"}
                 onClick={() => switchMode("login")}
-                className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mode === "login"
-                    ? "bg-white text-[var(--teal)] shadow-sm"
-                    : "text-[#3C5250] hover:text-[var(--ink)]"
+                className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mode === "login"
+                    ? "bg-[var(--teal)] text-white border-2 border-[var(--ink)]"
+                    : "text-[var(--ink)] hover:bg-white"
                   }`}
               >
                 <IconLock className="w-4 h-4 shrink-0" />
@@ -323,9 +323,9 @@ export default function AuthForm({
                 role="tab"
                 aria-selected={mode === "signup"}
                 onClick={() => switchMode("signup")}
-                className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${mode === "signup"
-                    ? "bg-white text-[var(--teal)] shadow-sm"
-                    : "text-[#3C5250] hover:text-[var(--ink)]"
+                className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mode === "signup"
+                    ? "bg-[var(--teal)] text-white border-2 border-[var(--ink)]"
+                    : "text-[var(--ink)] hover:bg-white"
                   }`}
               >
                 <IconBuilding className="w-4 h-4 shrink-0" />
