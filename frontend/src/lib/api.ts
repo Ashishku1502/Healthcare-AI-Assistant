@@ -1,5 +1,5 @@
 export function getApiBase(): string {
-  const raw = (process.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
+  const raw = (process.env.NEXT_PUBLIC_API_URL || process.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
   return raw || "http://localhost:8000";
 }
 

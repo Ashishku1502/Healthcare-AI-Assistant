@@ -205,7 +205,7 @@ function Now() {
           </div>
           <Link href="/receptionist" className="btn2 text-[16px] flex items-center gap-2 shrink-0">
             <IconSmartphone className="w-4 h-4 shrink-0" />
-            <span>360px Mobile Desk</span>
+            <span>Reception Desk</span>
             <IconArrowRight className="w-4 h-4 shrink-0" />
           </Link>
         </div>
@@ -1874,7 +1874,7 @@ export default function Dashboard() {
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
             <Link href="/receptionist" className="btn2 text-[16px] px-4 inline-flex items-center gap-2">
               <IconSmartphone className="w-4 h-4 shrink-0" />
-              <span>Mobile Desk</span>
+              <span>Reception Desk</span>
             </Link>
             <a
               href="/"
@@ -1924,17 +1924,7 @@ export default function Dashboard() {
             })}
           </nav>
 
-          {/* Desktop Quick Desk Card */}
-          <div className="hidden lg:block card-warm space-y-3">
-            <p className="text-[16px] font-extrabold text-[var(--ink)] font-heading">1-Tap Receptionist Phone</p>
-            <p className="text-[16px] text-[var(--ink)]">
-              Dedicated 360px screen with zero forms for front-desk staff.
-            </p>
-            <Link href="/receptionist" className="btn w-full text-[16px] gap-2">
-              <IconSmartphone className="w-4 h-4 shrink-0" />
-              <span>Open Desk View</span>
-            </Link>
-          </div>
+
         </aside>
 
         <main className="w-full flex-1 min-w-0">

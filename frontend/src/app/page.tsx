@@ -137,7 +137,7 @@ export default function Home() {
             <ul className="space-y-3 text-[17px] text-[var(--ink)]">
               <li className="flex items-start gap-2.5">
                 <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0 mt-1" />
-                <span>1-tap 360px receptionist page for doctor status and live token queue</span>
+                <span>Dedicated receptionist desk for doctor status and live token queue</span>
               </li>
               <li className="flex items-start gap-2.5">
                 <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0 mt-1" />
