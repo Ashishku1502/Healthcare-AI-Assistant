@@ -9,6 +9,7 @@ import {
   IconAlertTriangle,
   IconPhone,
   IconMic,
+  IconVolume2,
 } from "@/components/icons";
 import { sendChatMessage } from "@/lib/api";
 
@@ -45,6 +46,7 @@ export function AiChatbot() {
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+  const [speakingId, setSpeakingId] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -62,9 +64,50 @@ export function AiChatbot() {
     }
   }, [isOpen]);
 
+  // Close on Escape key
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      if (e.key === "Escape" && isOpen) {
+        setIsOpen(false);
+        stopSpeech();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen]);
+
   // Format current local time
   function getTimestamp() {
     return new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function stopSpeech() {
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      window.speechSynthesis.cancel();
+      setSpeakingId(null);
+    }
+  }
+
+  function speakText(msgId: string, text: string) {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    if (speakingId === msgId) {
+      stopSpeech();
+      return;
+    }
+    stopSpeech();
+
+    const cleanText = text
+      .replace(/[#*_~`]/g, "")
+      .replace(/https?:\/\/\S+/g, "")
+      .trim();
+
+    const utterance = new SpeechSynthesisUtterance(cleanText);
+    utterance.lang = /[\u0900-\u097F]/.test(cleanText) ? "hi-IN" : "en-IN";
+    utterance.rate = 1.0;
+    utterance.onstart = () => setSpeakingId(msgId);
+    utterance.onend = () => setSpeakingId(null);
+    utterance.onerror = () => setSpeakingId(null);
+    window.speechSynthesis.speak(utterance);
   }
 
   async function handleSend(textToSend?: string) {
@@ -134,6 +177,7 @@ export function AiChatbot() {
   }
 
   function handleReset() {
+    stopSpeech();
     setMessages([INITIAL_GREETING]);
     setInput("");
   }
@@ -243,11 +287,26 @@ export function AiChatbot() {
                     }`}
                 >
                   {m.sender === "bot" && (
-                    <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[var(--teal)] uppercase tracking-wider mb-1">
-                      <span>AI Receptionist</span>
-                      {m.isUrgent && (
-                        <span className="ml-auto text-[var(--red)] font-black">URGENT</span>
-                      )}
+                    <div className="flex items-center justify-between gap-1.5 text-[11px] font-extrabold uppercase tracking-wider mb-1">
+                      <div className="flex items-center gap-1.5 text-[var(--teal)]">
+                        <span>AI Receptionist</span>
+                        {m.isUrgent && (
+                          <span className="text-[var(--red)] font-black">URGENT</span>
+                        )}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => speakText(m.id, m.text)}
+                        title={speakingId === m.id ? "Stop voice" : "Listen to answer"}
+                        aria-label={speakingId === m.id ? "Stop reading answer" : "Listen to answer"}
+                        className={`p-1 rounded-md transition-colors ${
+                          speakingId === m.id
+                            ? "bg-[var(--teal)] text-white animate-pulse"
+                            : "text-[var(--muted)] hover:bg-[#E6F4F3] hover:text-[var(--teal)]"
+                        }`}
+                      >
+                        <IconVolume2 className="w-3.5 h-3.5" />
+                      </button>
                     </div>
                   )}
 
@@ -281,6 +340,23 @@ export function AiChatbot() {
                           </a>
                         )}
                       </div>
+                    </div>
+                  )}
+
+                  {/* Non-Urgent Staff Handoff Banner */}
+                  {!m.isUrgent && m.transferTo && (
+                    <div className="mt-2.5 p-2 rounded-xl bg-[#E6F4F3] border border-[var(--teal)] text-[var(--ink)] flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex items-center gap-1.5 text-[var(--teal)] font-bold text-[12px]">
+                        <IconPhone className="w-3.5 h-3.5 shrink-0" />
+                        <span>Staff Available</span>
+                      </div>
+                      <a
+                        href={`tel:${m.transferTo}`}
+                        className="btn text-[12px] py-1 px-3 !bg-[var(--teal)] text-white hover:brightness-105 inline-flex items-center gap-1.5 shadow-none"
+                      >
+                        <IconPhone className="w-3 h-3" />
+                        <span>Call Desk: {m.transferTo}</span>
+                      </a>
                     </div>
                   )}
                 </div>
