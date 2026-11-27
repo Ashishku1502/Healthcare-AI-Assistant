@@ -2,16 +2,13 @@
 
 import { useState, useEffect, useRef } from "react";
 import {
-  IconSparkles,
+  IconMessageSquare,
   IconXCircle,
   IconSend,
   IconRefreshCw,
   IconAlertTriangle,
   IconPhone,
   IconMic,
-  IconCheckCircle,
-  IconCross,
-  IconClock,
 } from "@/components/icons";
 import { sendChatMessage } from "@/lib/api";
 
@@ -194,7 +191,7 @@ export function AiChatbot() {
           <div className="bg-[var(--teal)] text-white px-4 py-3 border-b-2 border-[var(--ink)] flex items-center justify-between gap-2 shrink-0">
             <div className="flex items-center gap-2.5 min-w-0">
               <span className="w-9 h-9 rounded-xl bg-white text-[var(--teal)] border-2 border-[var(--ink)] flex items-center justify-center shrink-0 shadow-[2px_2px_0_var(--ink)]">
-                <IconCross className="w-5 h-5 text-[var(--teal)]" />
+                <IconMessageSquare className="w-5 h-5 text-[var(--teal)]" />
               </span>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5">
@@ -240,15 +237,13 @@ export function AiChatbot() {
               >
                 {/* Message Bubble */}
                 <div
-                  className={`max-w-[85%] rounded-2xl p-3 border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] text-[15px] leading-relaxed ${
-                    m.sender === "user"
-                      ? "bg-[#FFF9E6] text-[var(--ink)] font-semibold rounded-br-sm"
-                      : "bg-white text-[var(--ink)] rounded-bl-sm"
-                  }`}
+                  className={`max-w-[85%] rounded-2xl p-3 border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] text-[15px] leading-relaxed ${m.sender === "user"
+                    ? "bg-[#FFF9E6] text-[var(--ink)] font-semibold rounded-br-sm"
+                    : "bg-white text-[var(--ink)] rounded-bl-sm"
+                    }`}
                 >
                   {m.sender === "bot" && (
                     <div className="flex items-center gap-1.5 text-[11px] font-extrabold text-[var(--teal)] uppercase tracking-wider mb-1">
-                      <IconSparkles className="w-3.5 h-3.5" />
                       <span>AI Receptionist</span>
                       {m.isUrgent && (
                         <span className="ml-auto text-[var(--red)] font-black">URGENT</span>
@@ -343,11 +338,10 @@ export function AiChatbot() {
                 onClick={toggleVoice}
                 title={isListening ? "Listening... click to stop" : "Speak your message"}
                 aria-label="Speak message"
-                className={`w-11 h-11 rounded-xl border-2 border-[var(--ink)] flex items-center justify-center shrink-0 transition-all ${
-                  isListening
-                    ? "bg-[var(--red)] text-white shadow-[2px_2px_0_var(--ink)] animate-pulse"
-                    : "bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--yellow)] shadow-[2px_2px_0_var(--ink)]"
-                }`}
+                className={`w-11 h-11 rounded-xl border-2 border-[var(--ink)] flex items-center justify-center shrink-0 transition-all ${isListening
+                  ? "bg-[var(--red)] text-white shadow-[2px_2px_0_var(--ink)] animate-pulse"
+                  : "bg-[var(--paper)] text-[var(--ink)] hover:bg-[var(--yellow)] shadow-[2px_2px_0_var(--ink)]"
+                  }`}
               >
                 <IconMic className="w-5 h-5" />
               </button>
@@ -394,7 +388,7 @@ export function AiChatbot() {
         </span>
 
         <span className="w-7 h-7 rounded-lg bg-white text-[var(--teal)] flex items-center justify-center shrink-0 border border-[var(--ink)] shadow-[1px_1px_0_var(--ink)]">
-          <IconSparkles className="w-4 h-4" />
+          <IconMessageSquare className="w-4 h-4" />
         </span>
 
         <div className="flex flex-col text-left leading-tight pr-1">
@@ -409,3 +403,4 @@ export function AiChatbot() {
     </div>
   );
 }
+

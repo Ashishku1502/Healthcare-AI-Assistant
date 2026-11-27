@@ -174,8 +174,8 @@ export default function AuthForm({
       <header className="w-full border-b-2 border-[var(--ink)] bg-white sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
           <a href="/" className="min-h-[48px] flex items-center gap-2 group shrink-0">
-            <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center font-black shrink-0">
-              <IconCross className="w-5 h-5 text-white" />
+            <span className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center font-heading font-extrabold text-[19px] shrink-0">
+              P
             </span>
             <div className="flex items-center gap-2">
               <span className="text-[18px] sm:text-xl font-bold text-[var(--ink)] tracking-tight font-heading whitespace-nowrap">Parchi AI</span>
@@ -220,7 +220,6 @@ export default function AuthForm({
         <section className="lg:col-span-6 space-y-6 min-w-0 w-full">
           <div>
             <span className="inline-flex items-center gap-2 bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] px-3.5 py-1 rounded-lg text-[16px] font-bold">
-              <IconSparkles className="w-4 h-4 text-[var(--ink)] shrink-0" />
               Healthcare AI Assistant
             </span>
             <h1 className="text-3xl sm:text-4xl lg:text-5xl font-extrabold text-[var(--ink)] mt-3 leading-tight break-words font-heading">
@@ -283,10 +282,10 @@ export default function AuthForm({
           <div className="inline-flex items-center gap-2.5 bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-xl px-4 py-2 text-[16px] font-bold text-[var(--ink)] w-fit">
             <span
               className={`w-3 h-3 rounded-full border border-[var(--ink)] shrink-0 ${apiStatus === "ready"
-                  ? "bg-[#0F6B66]"
-                  : apiStatus === "waking"
-                    ? "bg-[var(--yellow)] animate-pulse"
-                    : "bg-[var(--red)]"
+                ? "bg-[#0F6B66]"
+                : apiStatus === "waking"
+                  ? "bg-[var(--yellow)] animate-pulse"
+                  : "bg-[var(--red)]"
                 }`}
             ></span>
             <span>
@@ -320,8 +319,8 @@ export default function AuthForm({
                 aria-selected={mode === "login"}
                 onClick={() => switchMode("login")}
                 className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mode === "login"
-                    ? "bg-[var(--teal)] text-white border-2 border-[var(--ink)]"
-                    : "text-[var(--ink)] hover:bg-white"
+                  ? "bg-[var(--teal)] text-white border-2 border-[var(--ink)]"
+                  : "text-[var(--ink)] hover:bg-white"
                   }`}
               >
                 <IconLock className="w-4 h-4 shrink-0" />
@@ -333,8 +332,8 @@ export default function AuthForm({
                 aria-selected={mode === "signup"}
                 onClick={() => switchMode("signup")}
                 className={`min-h-[48px] flex-1 py-2.5 px-3 text-[16px] font-bold rounded-lg transition-all flex items-center justify-center gap-2 ${mode === "signup"
-                    ? "bg-[var(--teal)] text-white border-2 border-[var(--ink)]"
-                    : "text-[var(--ink)] hover:bg-white"
+                  ? "bg-[var(--teal)] text-white border-2 border-[var(--ink)]"
+                  : "text-[var(--ink)] hover:bg-white"
                   }`}
               >
                 <IconBuilding className="w-4 h-4 shrink-0" />
@@ -692,7 +691,6 @@ export default function AuthForm({
                       </span>
                     ) : (
                       <>
-                        <IconSparkles className="w-4 h-4" />
                         Complete Clinic Registration
                       </>
                     )}
@@ -721,8 +719,8 @@ export default function AuthForm({
       <footer className="w-full bg-[var(--ink)] text-white text-[16px] py-6 px-4 text-center sm:text-left border-t-2 border-[var(--ink)] mt-8">
         <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-3">
           <span className="flex items-center gap-2 justify-center sm:justify-start break-words">
-            <span className="w-7 h-7 rounded-md bg-[var(--teal)] text-white flex items-center justify-center shrink-0">
-              <IconCross className="w-4 h-4 text-white" />
+            <span className="w-7 h-7 rounded-md bg-[var(--teal)] text-white flex items-center justify-center shrink-0 font-heading font-extrabold text-[15px]">
+              P
             </span>
             <span>© {new Date().getFullYear()} Parchi AI · Automated Front Desk for Medical Practices</span>
           </span>

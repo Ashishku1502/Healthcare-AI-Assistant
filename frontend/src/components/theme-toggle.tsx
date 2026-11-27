@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { IconSparkles, IconPalette, IconMoon } from "@/components/icons";
+import { IconPalette, IconMoon } from "@/components/icons";
 
 export type ThemeType = "modern" | "editorial" | "dark";
 
@@ -47,8 +47,7 @@ export function ThemeToggle({ className = "" }: { className?: string }) {
             : "text-[var(--ink)] hover:bg-[#E4F2F0]"
         }`}
       >
-        <IconSparkles className="w-4 h-4 shrink-0" />
-        <span className="hidden sm:inline">Modern</span>
+        <span>Modern</span>
       </button>
 
       <button

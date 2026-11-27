@@ -372,7 +372,7 @@ function Now() {
               onClick={() => setShowAddHandoff(!showAddHandoff)}
               className="btn2 text-[15px] min-h-[44px] px-3.5 inline-flex items-center gap-1.5 font-bold"
             >
-              <span>{showAddHandoff ? "Close Form" : "+ Log Callback"}</span>
+              <span>{showAddHandoff ? "Close Form" : "Log Callback"}</span>
             </button>
             {openHandoffs === 0 && (
               <button
@@ -762,7 +762,6 @@ function Doctors() {
             </div>
           </label>
           <button className="btn flex items-center gap-2">
-            <IconCross className="w-4 h-4" />
             <span>Add Doctor</span>
           </button>
         </div>
@@ -906,7 +905,7 @@ function Appointments() {
             onClick={() => setShowAddPatient(!showAddPatient)}
           >
             <IconUser className="w-4 h-4" />
-            <span>{showAddPatient ? "Close Add Patient" : "+ Quick Add Patient"}</span>
+            <span>{showAddPatient ? "Close Add Patient" : "Quick Add Patient"}</span>
           </button>
         </div>
 
@@ -1308,7 +1307,7 @@ function Chat() {
             <div key={i} className={`flex gap-2.5 ${m.who === "me" ? "justify-end" : "justify-start"}`}>
               {m.who === "ai" && (
                 <span className="w-9 h-9 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0 mt-1">
-                  <IconCross className="w-5 h-5 text-white" />
+                  <IconMessageSquare className="w-5 h-5 text-white" />
                 </span>
               )}
               <div
@@ -1369,7 +1368,7 @@ function Chat() {
           {busy && (
             <div className="flex gap-2.5 justify-start">
               <span className="w-9 h-9 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0 mt-1">
-                <IconCross className="w-5 h-5 text-white" />
+                <IconMessageSquare className="w-5 h-5 text-white" />
               </span>
               <p className="rounded-2xl p-3.5 bg-white border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-semibold">
                 Parchi is replying…
@@ -2124,8 +2123,8 @@ export default function Dashboard() {
       <header className="w-full bg-white border-b-2 border-[var(--ink)] sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 min-w-0">
           <div className="flex items-center gap-3 min-w-0">
-            <span className="w-11 h-11 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center font-bold shrink-0">
-              <IconCross className="w-6 h-6 text-white" />
+            <span className="w-11 h-11 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center font-heading font-extrabold text-[22px] shrink-0">
+              P
             </span>
             <div className="min-w-0">
               <div className="flex items-center gap-2 flex-wrap">

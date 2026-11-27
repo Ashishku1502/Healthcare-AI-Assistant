@@ -5,7 +5,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { api } from "@/lib/api";
 import {
-  IconCross,
   IconRefreshCw,
   IconCheckCircle,
   IconAlertTriangle,
@@ -248,8 +247,8 @@ export default function ReceptionistPage() {
       {/* Responsive Header with Back to Dashboard Link */}
       <header className="flex items-center justify-between gap-3 bg-white border-2 border-[var(--ink)] shadow-[4px_4px_0_var(--ink)] rounded-2xl px-4 py-3">
         <div className="flex items-center gap-2.5 min-w-0">
-          <span className="w-10 h-10 rounded-lg bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0">
-            <IconCross className="w-5 h-5 text-white" />
+          <span className="w-10 h-10 rounded-lg bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0 font-heading font-extrabold text-[20px]">
+            P
           </span>
           <div className="min-w-0">
             <h1 className="font-heading text-[18px] sm:text-[20px] font-extrabold text-[var(--ink)] truncate">
@@ -439,7 +438,7 @@ export default function ReceptionistPage() {
               onClick={() => setShowAddCallback(!showAddCallback)}
               className="btn2 text-[15px] min-h-[44px] px-3.5 inline-flex items-center gap-1.5 font-bold"
             >
-              <span>{showAddCallback ? "Close" : "+ Add Callback"}</span>
+              <span>{showAddCallback ? "Close" : "Add Callback"}</span>
             </button>
             {missedCalls.length === 0 && (
               <button
@@ -561,18 +560,16 @@ export default function ReceptionistPage() {
               return (
                 <li
                   key={item.id}
-                  className={`rounded-xl p-4 border-2 border-[var(--ink)] flex flex-col justify-between gap-3 ${
-                    item.outcome === "urgent" ? "bg-[#FDECEA]" : "bg-[var(--paper)]"
-                  }`}
+                  className={`rounded-xl p-4 border-2 border-[var(--ink)] flex flex-col justify-between gap-3 ${item.outcome === "urgent" ? "bg-[#FDECEA]" : "bg-[var(--paper)]"
+                    }`}
                 >
                   <div className="space-y-2">
                     <div className="flex items-center justify-between gap-2 flex-wrap">
                       <span
-                        className={`px-2.5 py-0.5 rounded-lg border-2 border-[var(--ink)] text-[15px] font-bold uppercase ${
-                          item.outcome === "urgent"
-                            ? "bg-[var(--red)] text-white"
-                            : "bg-[var(--yellow)] text-[var(--ink)]"
-                        }`}
+                        className={`px-2.5 py-0.5 rounded-lg border-2 border-[var(--ink)] text-[15px] font-bold uppercase ${item.outcome === "urgent"
+                          ? "bg-[var(--red)] text-white"
+                          : "bg-[var(--yellow)] text-[var(--ink)]"
+                          }`}
                       >
                         {item.outcome === "urgent" ? "Urgent" : "Callback"}
                       </span>

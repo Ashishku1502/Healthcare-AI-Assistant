@@ -5,7 +5,6 @@ import {
   IconArrowRight,
   IconCheckCircle,
   IconClock,
-  IconCross,
   IconLock,
   IconShieldCheck,
 } from "@/components/icons";
@@ -20,8 +19,8 @@ export default function Home() {
           aria-label="Main"
         >
           <a href="/" className="flex items-center gap-2.5 shrink-0 min-h-[48px]">
-            <span className="w-10 h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] text-white flex items-center justify-center shrink-0">
-              <IconCross className="w-5 h-5 text-white" />
+            <span className="w-10 h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] text-white flex items-center justify-center shrink-0 font-heading font-extrabold text-[20px]">
+              P
             </span>
             <div className="flex items-center gap-2">
               <span className="font-heading text-[22px] font-extrabold text-[var(--ink)] tracking-tight whitespace-nowrap">
