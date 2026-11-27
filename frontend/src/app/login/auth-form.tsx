@@ -681,7 +681,7 @@ export default function AuthForm({
                   <button
                     type="submit"
                     className="btn w-full shadow-md hover:shadow-lg transition-all flex items-center justify-center gap-2"
-                    disabled={busy || !consentAcknowledged}
+                    disabled={busy}
                   >
                     {busy ? (
                       <span className="flex items-center gap-2">
