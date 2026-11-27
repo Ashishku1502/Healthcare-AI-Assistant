@@ -72,8 +72,22 @@ def signup(b: Signup, db: Session = Depends(get_db)):
     db.add(Audit(clinic_id=c.id, actor=email, action="clinic registered"))
     db.commit()
     
+    token = make_token(
+        u.id,
+        extra={
+            "cn": c.name,
+            "em": u.email,
+            "rl": u.role,
+            "dn": doc_name,
+            "ad": c.address,
+            "hr": c.hours,
+            "fe": c.fees,
+            "sp": c.staff_phone,
+        },
+    )
+
     return {
-        "token": make_token(u.id),
+        "token": token,
         "role": u.role,
         "clinic_id": u.clinic_id,
         "clinic_name": c.name,
