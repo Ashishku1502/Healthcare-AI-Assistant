@@ -1608,23 +1608,15 @@ function Chat() {
 }
 
 const PRESETS: [string, string][] = [
-  ["Call 1 · doctor aaye?", "Doctor sahab aa gaye kya?"],
-  [
-    "Call 2 · bachche ko bukhar",
-    "Mere 2 saal ke bachche ko 102 bukhar hai, abhi lana zaroori hai ya shaam tak ruk sakte hain?",
-  ],
-  ["Call 3 · report (Verma)", "Main Verma bol raha hoon, meri report aayi kya?"],
-  [
-    "Call 4 · Sharma ji ka beta",
-    "Sharma ji ka beta bol raha hoon, doctor sahab ko bol dena paanch minute mein aa raha hoon",
-  ],
-  [
-    "Call 5 · chest pain",
-    "Follow-up ke liye shaam 6:30 baje book karna hai. Subah se seene mein thoda dard hai.",
-  ],
-  ["Call 6 · pharma rep", "I am a pharma rep, when is the doctor free to meet?"],
-  ["Call 7 · message mat bhejna", "Mujhe visit chahiye. Is number pe message mat bhejna."],
-  ["Marathi · वेळ काय आहे?", "आज क्लिनिकची वेळ काय आहे?"],
+  ["Call 1 · Doctor wait & token", "Doctor sahab aa gaye kya? Kitna wait hai?"],
+  ["Call 2 · Fees & UPI Payment", "Consultation fees kitni hai aur UPI payment chalega?"],
+  ["Call 3 · Address & Landmark", "Clinic kahan par hai aur landmark kya hai?"],
+  ["Call 4 · Clinic Timings", "Clinic kab tak khula rehta hai?"],
+  ["Call 5 · Services & Checkups", "Clinic me kya kya checkup aur facilities available hain?"],
+  ["Call 6 · Walk-in vs Booking", "Kya bina appointment seedhe aa sakte hain?"],
+  ["Call 7 · Marathi (वेळ & डॉक्टर)", "आज क्लिनिकची वेळ काय आहे आणि डॉक्टर कधी भेटतील?"],
+  ["Call 8 · 112 Chest Pain", "Follow-up chahiye, subah se seene mein dard aur saans lene mein dikkat ho rahi hai"],
+  ["Call 9 · Staff Handoff", "Main Verma bol raha hoon, Dr. Neha se baat karni hai report ke liye"],
 ];
 
 function Sim() {
@@ -1638,6 +1630,7 @@ function Sim() {
   const [note, setNote] = useState("");
   const [voicesReady, setVoicesReady] = useState(0);
   const feedRef = useRef<HTMLDivElement>(null);
+  const llmConfig = useLoad<any>("/llm/config");
 
   useEffect(() => {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
@@ -1806,6 +1799,28 @@ function Sim() {
       </div>
 
       <div className="p-4 sm:p-6 space-y-4">
+        {/* Active LLM Provider & Telemetry Banner */}
+        <div className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-2xl p-3.5 flex items-center justify-between flex-wrap gap-2 text-[15px] font-bold">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[var(--ink)]">Voice LLM API:</span>
+            <span className="px-2.5 py-0.5 rounded-lg bg-[var(--teal)] text-white text-[14px]">
+              {llmConfig.data?.has_key
+                ? `${llmConfig.data.presets?.[llmConfig.data.provider]?.name || llmConfig.data.provider} (${llmConfig.data.model})`
+                : "Built-in Multilingual Fast-Path (NLU)"}
+            </span>
+            <span className="px-2.5 py-0.5 rounded-lg bg-[#E4F2F0] border border-[var(--ink)] text-[var(--ink)] text-[14px]">
+              Target: &lt; 1.5s Voice SLA
+            </span>
+          </div>
+          <div className="flex items-center gap-2 text-[14px] text-[#3C5250] flex-wrap">
+            <span className="px-2 py-0.5 rounded bg-[var(--yellow)] text-[var(--ink)] border border-[var(--ink)] text-[13px]">
+              112 Emergency Route: Active
+            </span>
+            <span>·</span>
+            <span>Filler audio: 1500ms</span>
+          </div>
+        </div>
+
         <div className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-2xl p-3.5 flex gap-2.5 flex-wrap items-center">
           <label className="text-[16px] font-bold text-[var(--ink)] flex items-center gap-2">
             <span>Language</span>

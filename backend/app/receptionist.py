@@ -547,8 +547,18 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
     if re.search(r"late|wait|delay|intezaar|aa gaye|aaye|arrived|aale|देर|आ गए|ushir|उशीर|आले|kitna wait|kitni der|token|doctor (?:in|out|hai|aaye|aale)|is (?:the )?doctor in|how long.*wait", low):
         return done(wait_reply(db, s, docs, lang=L, user_token=user_token))
 
+    if re.search(r"service|facility|facilities|treatment|suvidha|subidha|upchar|checkup|ecg|sugar|bp|blood pressure|lab", low):
+        _event(db, s, "services", "answered")
+        return done(llm.generate_receptionist_reply(db, clinic, docs, rules, t, L, is_voice=is_voice))
+
+    if re.search(r"walkin|bina appointment|direct|walk in", low):
+        _event(db, s, "booking", "answered")
+        return done(llm.generate_receptionist_reply(db, clinic, docs, rules, t, L, is_voice=is_voice))
+
     if re.search(r"fee|fees|charge|kitna|price|शुल्क|kiti|दर|फी|फीस", low):
         _event(db, s, "fees", "answered")
+        if re.search(r"upi|gpay|paytm|phonepe|card|cash|payment|pay|mode", low):
+            return done(llm.generate_receptionist_reply(db, clinic, docs, rules, t, L, is_voice=is_voice))
         if L == "mr":
             val = clinic.fees or M["not_set"]["mr"]
             return done(M["fees"]["mr"].format(val=val))

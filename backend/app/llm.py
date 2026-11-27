@@ -425,6 +425,15 @@ def generate_receptionist_reply(
 
     # If external LLM API is configured, use it for rich conversational receptionist answers
     if st.get("api_key"):
+        voice_prompt_rules = (
+            "\nVOICE CALL CONSTRAINTS:\n"
+            "- You are speaking directly on a live phone call.\n"
+            "- Respond in spoken, natural conversational language strictly under 2 sentences.\n"
+            "- Never use markdown formatting, asterisks, bullet points, or numbered lists.\n"
+            "- Never ask the caller to press or dial any buttons or keys."
+            if is_voice else
+            "- Keep replies friendly, concise, and helpful."
+        )
         system_instruction = (
             f"You are Parchi, the friendly automated receptionist at {clinic.name}. "
             f"Clinic facts: Address: {address_info}. Hours: {hours_info}. Fees: {fees_info}. "
@@ -433,8 +442,7 @@ def generate_receptionist_reply(
             "1. NEVER give medical advice, diagnostic opinions, or prescribe medications.\n"
             "2. If the user mentions severe red flags (chest pain, severe bleeding, breathlessness), direct them to call 112 immediately.\n"
             "3. Answer in the caller's language: English, Hindi, Hinglish, or Marathi.\n"
-            "4. For voice calls, keep replies strictly under 2 sentences.\n"
-            "5. Be concise, polite, helpful, and professional."
+            f"{voice_prompt_rules}"
         )
         url = f"{st['base_url']}/chat/completions"
         headers = {"Authorization": f"Bearer {st['api_key']}", "Content-Type": "application/json"}
@@ -445,7 +453,7 @@ def generate_receptionist_reply(
                 {"role": "user", "content": text},
             ],
             "temperature": 0.2,
-            "max_tokens": 120,
+            "max_tokens": 65 if is_voice else 120,
         }
         try:
             client = _get_http_client()
@@ -460,28 +468,28 @@ def generate_receptionist_reply(
     low = text.lower()
     if re.search(r"upi|gpay|paytm|phonepe|card|cash|payment|pay|mode", low):
         if lang == "mr":
-            return f"आम्ही रोख (Cash), UPI (GPay, PhonePe, Paytm) आणि कार्ड स्वीकारतो. कन्सल्टेशन फी: {fees_info}."
+            return f"आम्ही रोख (Cash), UPI आणि कार्ड स्वीकारतो, आणि कन्सल्टेशन फी {fees_info} आहे."
         if lang in ("hi", "hinglish"):
-            return f"Aap Cash, UPI (Google Pay, PhonePe, Paytm) ya Card se payment kar sakte hain. Consultation fee: {fees_info}."
-        return f"We accept Cash, UPI (Google Pay, PhonePe, Paytm), and Cards. Consultation fee is {fees_info}."
+            return f"Aap Cash, UPI (Google Pay, PhonePe) ya Card se payment kar sakte hain, aur consultation fee {fees_info} hai."
+        return f"We accept Cash, UPI (Google Pay, PhonePe), and Cards, and consultation fee is {fees_info}."
 
-    if re.search(r"service|facility|facilities|treatment|test|suvidha|ecg|sugar|bp", low):
+    if re.search(r"service|facility|facilities|treatment|test|tests|suvidha|ecg|sugar|bp", low):
         primary_doc = docs[0].name if docs else "Chief Doctor"
         if lang == "mr":
-            return f"{clinic.name} मध्ये जनरल तपासणी, बीपी, शुगर मॉनिटरिंग आणि डॉ. {primary_doc} यांच्याकडे कन्सल्टेशन उपलब्ध आहे. फी: {fees_info}."
+            return f"{clinic.name} मध्ये जनरल तपासणी, बीपी, शुगर टेस्ट आणि डॉ. {primary_doc} यांच्याकडे कन्सल्टेशन उपलब्ध आहे."
         if lang in ("hi", "hinglish"):
-            return f"{clinic.name} par general physician consultation, routine checkup, BP & sugar testing available hai. Doctor: Dr. {primary_doc}, Fees: {fees_info}."
-        return f"{clinic.name} provides general physician consultations, routine health checkups, BP & sugar tests with Dr. {primary_doc}. Fee: {fees_info}."
+            return f"{clinic.name} par routine checkup, BP, sugar test aur Dr. {primary_doc} ke saath consultation available hai."
+        return f"{clinic.name} provides routine health checkups, BP, sugar tests and consultations with Dr. {primary_doc}."
 
     if re.search(r"walkin|bina appointment|direct|walk in|token", low):
         if lang == "mr":
-            return f"होय, तुम्ही थेट येऊ शकता. क्लिनिकच्या वेळेत ({hours_info}) टोकन क्रमाने तपासणी केली जाते."
+            return f"होय, तुम्ही थेट येऊ शकता आणि क्लिनिकच्या वेळेत ({hours_info}) टोकन क्रमाने तपासणी केली जाते."
         if lang in ("hi", "hinglish"):
-            return f"Haan, aap direct walk-in aa sakte hain. Clinic timing {hours_info} mein token number ke hisaab se consult hota hai."
-        return f"Yes, walk-ins are welcome during OPD hours ({hours_info}). Tokens are issued on a first-come basis."
+            return f"Haan, aap seedhe aa sakte hain aur clinic timing {hours_info} mein token number ke hisaab se consult hota hai."
+        return f"Yes, walk-ins are welcome during OPD hours ({hours_info}) on a first-come token basis."
 
     if lang == "mr":
-        return f"मी क्लिनिकची ऑटोमेटेड रिसेप्शनिस्ट आहे. तुम्ही फी ({fees_info}), वेळ ({hours_info}), पत्ता ({address_info}) किंवा डॉक्टर स्टेटस बद्दल विचारू शकता."
+        return f"{clinic.name} मध्ये स्वागत आहे, तुम्ही डॉक्टर स्टेटस, वेळ, फी ({fees_info}) किंवा पत्ता विचारू शकता."
     if lang in ("hi", "hinglish"):
-        return f"Main clinic ki automated receptionist hoon. Aap fees ({fees_info}), timing ({hours_info}), address ({address_info}) ya doctor status pooch sakte hain."
-    return f"I am {clinic.name}'s automated assistant. You can check consultation fees ({fees_info}), hours ({hours_info}), address ({address_info}), or doctor wait status."
+        return f"{clinic.name} mein aapka swagat hai, aap fees ({fees_info}), timing ({hours_info}) ya doctor wait status pooch sakte hain."
+    return f"Welcome to {clinic.name}. You can check consultation fees ({fees_info}), hours ({hours_info}), or doctor wait status."
