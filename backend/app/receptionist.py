@@ -625,6 +625,13 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
             elif intent in ("availability", "booking"):
                 _event(db, s, "availability", "answered")
                 return done(_format_availability(db, docs, L=L, voice=is_voice))
+            elif intent in ("services", "payment"):
+                _event(db, s, intent, "answered")
+                return done(llm.generate_receptionist_reply(db, clinic, docs, rules, t, L, is_voice=is_voice))
+            elif intent == "other" and len(t.split()) >= 3 and not re.search(r"^(asdf|qwerty|zzz|\?\?+|\.\.+)$", low):
+                reply_gen = llm.generate_receptionist_reply(db, clinic, docs, rules, t, L, is_voice=is_voice)
+                _event(db, s, "other", "answered")
+                return done(reply_gen)
 
     _event(db, s, "other", "handoff", "Not understood: " + t)
     return done(M["unknown"][L])

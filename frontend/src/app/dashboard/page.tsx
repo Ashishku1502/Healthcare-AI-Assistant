@@ -1125,11 +1125,73 @@ function Chat() {
   const [pn, setPn] = useState("Rahul Kumar");
   const [pp, setPp] = useState("9876543210");
   const [llmInfo, setLlmInfo] = useState<any>(null);
+  const [showConfig, setShowConfig] = useState(false);
+  const [cfgProvider, setCfgProvider] = useState("gemini");
+  const [cfgModel, setCfgModel] = useState("gemini-1.5-flash");
+  const [cfgKey, setCfgKey] = useState("");
+  const [cfgBaseUrl, setCfgBaseUrl] = useState("");
+  const [testingKey, setTestingKey] = useState(false);
+  const [testResult, setTestResult] = useState<{ ok: boolean; msg: string } | null>(null);
+  const [savingKey, setSavingKey] = useState(false);
   const logRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     api<any>("/llm/status").then(setLlmInfo).catch(() => {});
+    api<any>("/llm/config").then((c) => {
+      if (c.provider) setCfgProvider(c.provider);
+      if (c.model) setCfgModel(c.model);
+      if (c.base_url) setCfgBaseUrl(c.base_url);
+    }).catch(() => {});
   }, []);
+
+  async function handleTestLlm() {
+    setTestingKey(true);
+    setTestResult(null);
+    try {
+      const res = await api<any>("/llm/test", {
+        method: "POST",
+        body: JSON.stringify({
+          provider: cfgProvider,
+          model: cfgModel,
+          api_key: cfgKey || undefined,
+          base_url: cfgBaseUrl || undefined,
+        }),
+      });
+      if (res.ok) {
+        setTestResult({ ok: true, msg: `Connected successfully! Latency: ${res.latency_ms} ms (${res.model})` });
+      } else {
+        setTestResult({ ok: false, msg: `Failed: ${res.error || "Could not reach provider"}` });
+      }
+    } catch (e: any) {
+      setTestResult({ ok: false, msg: e.message || "Connection test failed" });
+    } finally {
+      setTestingKey(false);
+    }
+  }
+
+  async function handleSaveLlmConfig(e: React.FormEvent) {
+    e.preventDefault();
+    setSavingKey(true);
+    try {
+      const updated = await api<any>("/llm/config", {
+        method: "PUT",
+        body: JSON.stringify({
+          provider: cfgProvider,
+          model: cfgModel,
+          api_key: cfgKey || undefined,
+          base_url: cfgBaseUrl || undefined,
+        }),
+      });
+      const st = await api<any>("/llm/status");
+      setLlmInfo(st);
+      setTestResult({ ok: true, msg: "LLM API settings saved and activated!" });
+      setCfgKey("");
+    } catch (e: any) {
+      setTestResult({ ok: false, msg: e.message || "Could not save settings" });
+    } finally {
+      setSavingKey(false);
+    }
+  }
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -1227,12 +1289,138 @@ function Chat() {
             {llmInfo?.mode === "external_llm" ? `LLM: ${llmInfo.model}` : "Multilingual NLU Active"}
           </span>
         </div>
-        <button type="button" onClick={resetChat} disabled={busy} className="btn2 !min-h-[48px] text-[16px] px-4 shrink-0">
-          New Chat
-        </button>
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => setShowConfig(!showConfig)}
+            className="btn2 !min-h-[48px] text-[16px] px-4 shrink-0 flex items-center gap-1.5"
+          >
+            <span>{showConfig ? "Close Settings" : "LLM API Settings"}</span>
+          </button>
+          <button type="button" onClick={resetChat} disabled={busy} className="btn2 !min-h-[48px] text-[16px] px-4 shrink-0">
+            New Chat
+          </button>
+        </div>
       </div>
 
       <div className="p-4 sm:p-6 space-y-4">
+        {showConfig && (
+          <form onSubmit={handleSaveLlmConfig} className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-2xl p-4 sm:p-5 space-y-4">
+            <div className="flex items-center justify-between gap-2 flex-wrap border-b border-[var(--ink)]/15 pb-2.5">
+              <div>
+                <h3 className="font-heading font-extrabold text-[18px] text-[var(--ink)]">
+                  Connect Live LLM API (Gemini / OpenAI / Groq / OpenRouter)
+                </h3>
+                <p className="text-[14px] text-[#4F6865]">
+                  Select your preferred AI model provider or use the built-in zero-latency neural engine.
+                </p>
+              </div>
+              <span className="px-2.5 py-0.5 rounded-lg bg-[var(--yellow)] border border-[var(--ink)] text-[14px] font-bold text-[var(--ink)]">
+                Active: {llmInfo?.provider || "Built-in"} · {llmInfo?.model || "Standard"}
+              </span>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="text-[14px] font-bold block mb-1">AI Provider</label>
+                <select
+                  value={cfgProvider}
+                  onChange={(e) => {
+                    const prov = e.target.value;
+                    setCfgProvider(prov);
+                    if (prov === "gemini") {
+                      setCfgModel("gemini-1.5-flash");
+                      setCfgBaseUrl("https://generativelanguage.googleapis.com/v1beta/openai");
+                    } else if (prov === "openai") {
+                      setCfgModel("gpt-4o-mini");
+                      setCfgBaseUrl("https://api.openai.com/v1");
+                    } else if (prov === "groq") {
+                      setCfgModel("llama-3.3-70b-versatile");
+                      setCfgBaseUrl("https://api.groq.com/openai/v1");
+                    } else if (prov === "openrouter") {
+                      setCfgModel("meta-llama/llama-3.3-70b-instruct");
+                      setCfgBaseUrl("https://openrouter.ai/api/v1");
+                    }
+                  }}
+                  className="inp min-h-[48px] text-[15px]"
+                >
+                  <option value="gemini">Google Gemini (Recommended · Fast)</option>
+                  <option value="openai">OpenAI (GPT-4o-mini)</option>
+                  <option value="groq">Groq (Ultra-fast Llama 3.3)</option>
+                  <option value="openrouter">OpenRouter (Multi-model)</option>
+                  <option value="custom">Custom OpenAI-Compatible / Ollama</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Model Name</label>
+                <input
+                  type="text"
+                  value={cfgModel}
+                  onChange={(e) => setCfgModel(e.target.value)}
+                  placeholder="e.g. gemini-1.5-flash, gpt-4o-mini"
+                  className="inp min-h-[48px] text-[15px]"
+                />
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="text-[14px] font-bold block mb-1">
+                  API Key {llmInfo?.has_key && <span className="text-[var(--teal)] font-normal">(Configured)</span>}
+                </label>
+                <input
+                  type="password"
+                  value={cfgKey}
+                  onChange={(e) => setCfgKey(e.target.value)}
+                  placeholder={llmInfo?.has_key ? "Leave blank to keep existing key" : "Paste your API key (sk-... or AIza...)"}
+                  className="inp min-h-[48px] text-[15px]"
+                />
+              </div>
+
+              <div>
+                <label className="text-[14px] font-bold block mb-1">API Base URL</label>
+                <input
+                  type="text"
+                  value={cfgBaseUrl}
+                  onChange={(e) => setCfgBaseUrl(e.target.value)}
+                  placeholder="https://..."
+                  className="inp min-h-[48px] text-[15px]"
+                />
+              </div>
+            </div>
+
+            {testResult && (
+              <div
+                className={`rounded-xl p-3 text-[14px] font-bold border-2 flex items-center gap-2 ${
+                  testResult.ok
+                    ? "bg-[#DCFCE7] text-[#14532D] border-[#166534]"
+                    : "bg-[#FDECEA] text-[var(--red)] border-[#F2B8B2]"
+                }`}
+              >
+                <span>{testResult.msg}</span>
+              </div>
+            )}
+
+            <div className="flex gap-2 justify-end flex-wrap">
+              <button
+                type="button"
+                onClick={handleTestLlm}
+                disabled={testingKey}
+                className="btn2 text-[15px] min-h-[44px] px-4"
+              >
+                {testingKey ? "Testing Ping…" : "Test Connection"}
+              </button>
+              <button
+                type="submit"
+                disabled={savingKey}
+                className="btn text-[15px] min-h-[44px] px-5"
+              >
+                {savingKey ? "Saving…" : "Save & Activate LLM"}
+              </button>
+            </div>
+          </form>
+        )}
         {llmInfo && (
           <div className="card-teal !p-3.5 flex items-center justify-between gap-2 flex-wrap text-[16px]">
             <span className="font-bold text-[var(--ink)] flex items-center gap-2">
@@ -1281,6 +1469,9 @@ function Chat() {
             "How much is consultation?",
             "Where is the clinic located?",
             "क्लिनिकची वेळ काय आहे?",
+            "UPI / GPay payment chalega?",
+            "Services & checkup facilities?",
+            "Bina appointment aa sakte hain?",
             "Book tomorrow 11:00",
             "YES",
             "NO",

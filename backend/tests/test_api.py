@@ -531,6 +531,21 @@ def test_public_chat_endpoint():
     assert em_data["handoff"] is True
     assert "112" in em_data["reply"]
 
+def test_llm_config_endpoints():
+    h = H("A@x.com")
+    cfg = cl.get("/llm/config", headers=h).json()
+    assert "provider" in cfg
+    assert "presets" in cfg
+
+    upd = cl.put("/llm/config", json={"provider": "gemini", "model": "gemini-1.5-flash", "api_key": "AIzaSyTestKey1234"}, headers=h).json()
+    assert upd["provider"] == "gemini"
+    assert upd["has_key"] is True
+    assert "••••" in upd["api_key_masked"]
+
+    # Test LLM connection endpoint validation
+    tst = cl.post("/llm/test", json={"api_key": ""}, headers=h).json()
+    assert tst["ok"] is False
+
 
 
 

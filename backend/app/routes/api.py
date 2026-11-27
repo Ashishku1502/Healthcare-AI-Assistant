@@ -256,14 +256,33 @@ def public_chat(b: ChatIn, db: Session = Depends(get_db)):
     return _run_chat_turn(db, c, b, default_name="Web Visitor")
 
 @r.get("/llm/status")
-def llm_status(u: User = Depends(current_user)):
+def llm_status(u: User = Depends(current_user), db: Session = Depends(get_db)):
     from .. import llm
     from ..integrations import twilio as twilio_integration
     from ..config import VOICE_MONTHLY_MINUTE_CAP
     info = llm.get_llm_status(u.clinic_id)
+    cfg = llm.get_clinic_llm_settings(db, u.clinic_id)
+    info["provider"] = cfg["provider"]
+    info["model"] = cfg["model"]
+    info["has_key"] = cfg["has_key"]
     info["voice_minutes_used"] = round(twilio_integration.get_monthly_minutes(u.clinic_id), 1)
     info["voice_minute_cap"] = VOICE_MONTHLY_MINUTE_CAP
     return info
+
+@r.get("/llm/config")
+def llm_config(u: User = Depends(current_user), db: Session = Depends(get_db)):
+    from .. import llm
+    return llm.get_clinic_llm_config(db, u.clinic_id)
+
+@r.put("/llm/config")
+def update_llm_config(b: dict, u: User = Depends(owner_only), db: Session = Depends(get_db)):
+    from .. import llm
+    return llm.update_clinic_llm_config(db, u.clinic_id, b, u.email)
+
+@r.post("/llm/test")
+def test_llm_connection(b: dict, u: User = Depends(owner_only), db: Session = Depends(get_db)):
+    from .. import llm
+    return llm.test_llm_connection(db, u.clinic_id, b)
 @r.get("/analytics")
 def analytics(days: int = 30, u: User = Depends(current_user), db: Session = Depends(get_db)):
     since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
