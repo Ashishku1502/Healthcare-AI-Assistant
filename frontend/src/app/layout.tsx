@@ -1,5 +1,6 @@
 import "./globals.css";
 import { Mukta, Bricolage_Grotesque } from "next/font/google";
+import { AiChatbot } from "@/components/ai-chatbot";
 
 const mukta = Mukta({
   subsets: ["devanagari", "latin"],
@@ -36,7 +37,10 @@ export default function Root({ children }: { children: React.ReactNode }) {
           }}
         />
       </head>
-      <body className="min-h-screen flex flex-col font-sans bg-paper text-ink">{children}</body>
+      <body className="min-h-screen flex flex-col font-sans bg-paper text-ink">
+        {children}
+        <AiChatbot />
+      </body>
     </html>
   );
 }

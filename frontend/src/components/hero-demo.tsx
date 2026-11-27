@@ -10,6 +10,7 @@ import {
   IconShieldCheck,
   IconStethoscope,
 } from "@/components/icons";
+import { sendChatMessage } from "@/lib/api";
 
 interface DemoMessage {
   who: "patient" | "assistant";
@@ -57,7 +58,7 @@ export default function HeroDemo() {
     }
   }, [messages, emergencyActive]);
 
-  function processMessage(raw: string) {
+  async function processMessage(raw: string) {
     const text = raw.trim();
     if (!text) return;
     setInput("");
@@ -72,59 +73,98 @@ export default function HeroDemo() {
         estWait: "Call 112 now",
         confirmedAgo: "Emergency gate triggered",
       }));
+      // Also notify backend safety triage in background
+      sendChatMessage({ message: text }).catch(() => {});
       return;
     }
 
     setEmergencyActive(false);
+    setMessages((prev) => [...prev, { who: "patient", text }]);
 
-    if (/fee|fees|timing|hours|open|vel|band|address/i.test(text)) {
-      setTicket({
-        doctorName: "Dr. Neha Sharma",
-        statusLabel: "Doctor In",
-        statusTone: "teal",
-        token: 14,
-        estWait: "Mon–Sat 9–7",
-        confirmedAgo: "Clinic facts verified",
-      });
-      setMessages((prev) => [
-        ...prev,
-        { who: "patient", text },
-        {
-          who: "assistant",
-          text: "Clinic hours are Mon–Sat, 9 AM to 7 PM. Consultation fee is Rs 300. Ask 'Doctor aaye kya?' for live doctor wait updates.",
-        },
-      ]);
-      return;
+    try {
+      const res = await sendChatMessage({ message: text });
+      const reply = res.reply || "Thank you. Front desk has noted your query.";
+      const isUrgent = res.outcome === "urgent";
+
+      if (isUrgent) {
+        setEmergencyActive(true);
+        setTicket((prev) => ({
+          ...prev,
+          statusLabel: "Staff Alerted",
+          statusTone: "red",
+          estWait: "Call 112 now",
+          confirmedAgo: "Emergency gate triggered",
+        }));
+        return;
+      }
+
+      // Update live status ticket based on classified intent
+      if (res.intent === "fees" || /fee/i.test(text)) {
+        setTicket({
+          doctorName: res.doctor_name || "Dr. Neha Sharma",
+          statusLabel: "Doctor In",
+          statusTone: "teal",
+          token: 14,
+          estWait: "Mon–Sat 9–7",
+          confirmedAgo: "Clinic facts verified",
+        });
+      } else if (res.intent === "wait" || /doctor|aaye|late|wait/i.test(text)) {
+        const isLate = reply.includes("late") || res.doctor_status === "late";
+        setTicket({
+          doctorName: res.doctor_name || "Dr. Neha Sharma",
+          statusLabel: isLate ? "15 min late" : "Doctor In",
+          statusTone: isLate ? "yellow" : "teal",
+          token: 14,
+          estWait: isLate ? "~15 min" : "~5 min",
+          confirmedAgo: "Live status synced",
+        });
+      }
+
+      setMessages((prev) => [...prev, { who: "assistant", text: reply }]);
+    } catch {
+      // Graceful local fallback
+      if (/fee|fees|timing|hours|open|vel|band|address/i.test(text)) {
+        setTicket({
+          doctorName: "Dr. Neha Sharma",
+          statusLabel: "Doctor In",
+          statusTone: "teal",
+          token: 14,
+          estWait: "Mon–Sat 9–7",
+          confirmedAgo: "Clinic facts verified",
+        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            who: "assistant",
+            text: "Clinic hours are Mon–Sat, 9 AM to 7 PM. Consultation fee is Rs 300. Ask 'Doctor aaye kya?' for live doctor wait updates.",
+          },
+        ]);
+      } else if (/doctor|aaye|late|wait|kitna|token|\bin\b/i.test(text)) {
+        setTicket({
+          doctorName: "Dr. Neha Sharma",
+          statusLabel: "15 min late",
+          statusTone: "yellow",
+          token: 14,
+          estWait: "~15 min",
+          confirmedAgo: "Confirmed 4 min ago",
+        });
+        setMessages((prev) => [
+          ...prev,
+          {
+            who: "assistant",
+            text: "Dr. Neha Sharma is on duty (status confirmed by clinic). Current token is #14, estimated wait ~15 min.",
+          },
+        ]);
+      } else {
+        setMessages((prev) => [
+          ...prev,
+          {
+            who: "assistant",
+            text: "I am Parchi, the clinic's automated assistant. Ask 'Doctor aaye kya?' for live wait updates or 'Clinic fees?' for clinic details.",
+          },
+        ]);
+      }
     }
-
-    if (/doctor|aaye|late|wait|kitna|token|\bin\b/i.test(text)) {
-      setTicket({
-        doctorName: "Dr. Neha Sharma",
-        statusLabel: "15 min late",
-        statusTone: "yellow",
-        token: 14,
-        estWait: "~15 min",
-        confirmedAgo: "Confirmed 4 min ago",
-      });
-      setMessages((prev) => [
-        ...prev,
-        { who: "patient", text },
-        {
-          who: "assistant",
-          text: "Dr. Neha Sharma is 15 min late (confirmed by clinic 4 min ago). Current token is #14, estimated wait ~15 min.",
-        },
-      ]);
-      return;
-    }
-
-    setMessages((prev) => [
-      ...prev,
-      { who: "patient", text },
-      {
-        who: "assistant",
-        text: "I am the clinic's automated assistant. Ask 'Doctor aaye kya?' for live wait updates or 'Clinic timing & fees?' for clinic details.",
-      },
-    ]);
   }
 
   function handleSubmit(e: React.FormEvent) {

@@ -218,6 +218,7 @@ def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_d
     outcome = ev.outcome if ev else "answered"
     handoff = outcome in ("handoff", "urgent")
     from .. import llm
+    doc = db.query(Doctor).filter_by(clinic_id=c.id, active=True).first()
     return {
         "reply": reply_text,
         "ai_disclosure": "clinic's automated assistant",
@@ -225,8 +226,55 @@ def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_d
         "outcome": outcome,
         "language": receptionist.lang(b.message),
         "handoff": handoff,
-        "transfer_to": c.staff_phone if (handoff and c.staff_phone) else None,
+        "transfer_to": c.staff_phone if (handoff and c.staff_phone) else ("112" if outcome == "urgent" else None),
         "llm_status": llm.get_llm_status(c.id),
+        "clinic_name": c.name,
+        "doctor_name": doc.name if doc else "Doctor",
+        "doctor_status": doc.status_state if doc else "in",
+    }
+
+@r.post("/chat/public")
+def public_chat(b: ChatIn, db: Session = Depends(get_db)):
+    c = db.query(Clinic).first()
+    if not c:
+        try:
+            from ..main import init_db
+            init_db()
+            c = db.query(Clinic).first()
+        except Exception:
+            pass
+    if not c:
+        raise HTTPException(404, "Clinic not found")
+
+    s = receptionist.get_session(db, c.id, b.channel or "web", b.session_id)
+    p = None
+    if b.patient_phone:
+        p = db.query(Patient).filter_by(clinic_id=c.id, phone=b.patient_phone).first()
+        if not p:
+            p = Patient(clinic_id=c.id, name=b.patient_name or "Web Visitor", phone=b.patient_phone, consent=True)
+            db.add(p); db.flush()
+        elif b.patient_name and p.name != b.patient_name:
+            p.name = b.patient_name; db.flush()
+
+    reply_text = receptionist.reply(db, c, s, p, b.message)
+    ev = db.get(Event, s.event_id) if s.event_id else None
+    intent = ev.intent if ev else "other"
+    outcome = ev.outcome if ev else "answered"
+    handoff = outcome in ("handoff", "urgent")
+    from .. import llm
+    doc = db.query(Doctor).filter_by(clinic_id=c.id, active=True).first()
+    return {
+        "reply": reply_text,
+        "ai_disclosure": "clinic's automated assistant",
+        "intent": intent,
+        "outcome": outcome,
+        "language": receptionist.lang(b.message),
+        "handoff": handoff,
+        "transfer_to": c.staff_phone if (handoff and c.staff_phone) else ("112" if outcome == "urgent" else None),
+        "llm_status": llm.get_llm_status(c.id),
+        "clinic_name": c.name,
+        "doctor_name": doc.name if doc else "Doctor",
+        "doctor_status": doc.status_state if doc else "in",
     }
 
 @r.get("/llm/status")

@@ -135,7 +135,8 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
     typeof window !== "undefined" &&
     cleanPath !== "/auth/login" &&
     cleanPath !== "/auth/signup" &&
-    cleanPath !== "/auth/register"
+    cleanPath !== "/auth/register" &&
+    !cleanPath.startsWith("/chat/public")
   ) {
     sessionStorage.clear();
     window.location.href = "/login";
@@ -161,6 +162,32 @@ export async function api<T = any>(path: string, opts: RequestInit = {}): Promis
   }
 
   return res.status === 204 ? (null as T) : res.json();
+}
+
+export async function sendChatMessage(params: {
+  message: string;
+  sessionId?: string;
+  patientName?: string;
+  patientPhone?: string;
+  channel?: string;
+}) {
+  const token = typeof window !== "undefined" ? sessionStorage.getItem("token") : "";
+  const path = token ? "/chat" : "/chat/public";
+  let sid = params.sessionId;
+  if (!sid && typeof window !== "undefined") {
+    sid = sessionStorage.getItem("parchi_chat_sid") || `web-${Date.now()}`;
+    sessionStorage.setItem("parchi_chat_sid", sid);
+  }
+  return api(path, {
+    method: "POST",
+    body: JSON.stringify({
+      session_id: sid || "web-1",
+      message: params.message,
+      channel: params.channel || "web",
+      patient_name: params.patientName || "Visitor",
+      patient_phone: params.patientPhone || "",
+    }),
+  });
 }
 
 export { getApiBase as BASE };

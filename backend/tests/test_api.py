@@ -513,6 +513,24 @@ def test_semantic_llm_fallback_and_status_endpoint():
     assert body["safety_gate"] == "pre_model_active"
     assert "voice_minute_cap" in body
 
+def test_public_chat_endpoint():
+    # Public chat does not require authentication
+    res = cl.post("/chat/public", json={"session_id": "pub_sess1", "message": "Doctor aaye kya?"})
+    assert res.status_code == 200
+    data = res.json()
+    assert "reply" in data
+    assert "ai_disclosure" in data
+    assert data["intent"] in ("wait", "other")
+    assert "clinic_name" in data
+
+    # Emergency check in public chat
+    emerg = cl.post("/chat/public", json={"session_id": "pub_sess2", "message": "Severe chest pain and breathless"})
+    assert emerg.status_code == 200
+    em_data = emerg.json()
+    assert em_data["outcome"] == "urgent"
+    assert em_data["handoff"] is True
+    assert "112" in em_data["reply"]
+
 
 
 
