@@ -5,6 +5,7 @@ import {
   IconAlertTriangle,
   IconCheckCircle,
   IconClock,
+  IconPhone,
   IconRefreshCw,
   IconSend,
   IconShieldCheck,
@@ -65,16 +66,23 @@ export default function HeroDemo() {
 
     if (EMERGENCY_RE.test(text)) {
       setEmergencyActive(true);
-      setMessages((prev) => [...prev, { who: "patient", text }]);
+      setMessages((prev) => [
+        ...prev,
+        { who: "patient", text },
+        {
+          who: "assistant",
+          text: "🚨 EMERGENCY: Please go to the nearest emergency room or call 112 immediately. Clinic staff have been alerted.",
+        },
+      ]);
       setTicket((prev) => ({
         ...prev,
-        statusLabel: "Staff Alerted",
+        statusLabel: "Call 112",
         statusTone: "red",
         estWait: "Call 112 now",
         confirmedAgo: "Emergency gate triggered",
       }));
       // Also notify backend safety triage in background
-      sendChatMessage({ message: text }).catch(() => {});
+      sendChatMessage({ message: text }).catch(() => { });
       return;
     }
 
@@ -263,13 +271,22 @@ export default function HeroDemo() {
               <p className="text-[18px] font-bold leading-snug text-white">
                 Go to the nearest emergency room or call 112 immediately. Clinic staff have been alerted.
               </p>
-              <button
-                type="button"
-                onClick={resetDemo}
-                className="btn2 w-full sm:w-auto px-5"
-              >
-                Reset Live Demo
-              </button>
+              <div className="flex items-center gap-3 flex-wrap pt-1">
+                <a
+                  href="tel:112"
+                  className="btn !bg-white !text-[var(--red)] border-2 border-[var(--ink)] font-extrabold text-[17px] px-5 py-2.5 inline-flex items-center gap-2 hover:bg-[#FEE] shadow-[2px_2px_0_var(--ink)]"
+                >
+                  <IconPhone className="w-5 h-5 shrink-0" />
+                  <span>Call 112 Now</span>
+                </a>
+                <button
+                  type="button"
+                  onClick={resetDemo}
+                  className="btn2 w-full sm:w-auto px-5"
+                >
+                  Reset Live Demo
+                </button>
+              </div>
             </div>
           ) : (
             <div

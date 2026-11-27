@@ -228,7 +228,7 @@ def _run_chat_turn(db: Session, c: Clinic, b: ChatIn, default_name: str = "Web P
         "outcome": outcome,
         "language": receptionist.lang(b.message),
         "handoff": handoff,
-        "transfer_to": c.staff_phone if (handoff and c.staff_phone) else ("112" if outcome == "urgent" else None),
+        "transfer_to": "112" if outcome == "urgent" else (c.staff_phone if (handoff and c.staff_phone) else None),
         "llm_status": llm.get_llm_status(c.id),
         "clinic_name": c.name,
         "doctor_name": doc.name if doc else "Doctor",

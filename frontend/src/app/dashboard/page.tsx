@@ -1944,7 +1944,15 @@ function Sim() {
                         {m.intent}
                       </span>
                     )}
-                    {m.transfer && (
+                    {m.outcome === "urgent" ? (
+                      <a
+                        href="tel:112"
+                        className="px-3 py-1.5 rounded-lg bg-[var(--red)] border-2 border-[var(--ink)] text-[16px] font-extrabold text-white inline-flex items-center gap-1.5 shadow-[2px_2px_0_var(--ink)] hover:brightness-95 animate-pulse"
+                      >
+                        <IconPhone className="w-4 h-4" />
+                        <span>Emergency: Call 112</span>
+                      </a>
+                    ) : m.transfer ? (
                       <a
                         href={`tel:${m.transfer}`}
                         className="px-2.5 py-0.5 rounded-md bg-[var(--red)] border border-[var(--ink)] text-[16px] font-bold text-white inline-flex items-center gap-1 hover:brightness-95"
@@ -1952,16 +1960,7 @@ function Sim() {
                         <IconPhone className="w-3.5 h-3.5" />
                         <span>Call: {m.transfer}</span>
                       </a>
-                    )}
-                    {m.outcome === "urgent" && m.transfer !== "112" && (
-                      <a
-                        href="tel:112"
-                        className="px-2.5 py-0.5 rounded-md bg-[var(--red)] border border-[var(--ink)] text-[16px] font-bold text-white inline-flex items-center gap-1 hover:brightness-95"
-                      >
-                        <IconPhone className="w-3.5 h-3.5" />
-                        <span>Call 112</span>
-                      </a>
-                    )}
+                    ) : null}
                     <button
                       type="button"
                       onClick={() => speakWithBestVoice(m.t, m.langCode === "mr" ? "mr-IN" : m.langCode === "en" ? "en-IN" : lang)}
