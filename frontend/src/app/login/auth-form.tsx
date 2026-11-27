@@ -18,6 +18,7 @@ import {
   IconCalendar,
   IconSparkles,
 } from "@/components/icons";
+import { AuthReceptionIllustration } from "@/components/graphics";
 
 export default function AuthForm({
   initialMode = "login",
@@ -167,7 +168,7 @@ export default function AuthForm({
   }
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col justify-between">
+    <div className="min-h-screen text-[var(--ink)] flex flex-col justify-between">
       {/* Top Bar Navigation */}
       <header className="w-full border-b-2 border-[var(--ink)] bg-white sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2.5 flex items-center justify-between gap-2">
@@ -228,8 +229,13 @@ export default function AuthForm({
             </p>
           </div>
 
+          {/* Custom Editorial Desk Graphic */}
+          <div className="card p-3 bg-[#FFF8E6]">
+            <AuthReceptionIllustration />
+          </div>
+
           {/* Key Pillars & Capabilities */}
-          <div className="grid sm:grid-cols-2 gap-4 pt-2">
+          <div className="grid sm:grid-cols-2 gap-4 pt-1">
             <div className="bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl p-4">
               <div className="w-10 h-10 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center mb-2.5 shrink-0">
                 <IconPhone className="w-5 h-5" />

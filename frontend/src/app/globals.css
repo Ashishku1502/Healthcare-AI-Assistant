@@ -19,6 +19,8 @@
 
   body {
     background-color: var(--paper);
+    background-image: radial-gradient(rgba(15, 107, 102, 0.14) 1.25px, transparent 1.25px);
+    background-size: 20px 20px;
     color: var(--ink);
     font-family: var(--font-mukta), system-ui, sans-serif;
     font-size: 17px;
@@ -53,9 +55,24 @@
 @layer components {
   .card {
     @apply bg-white border-2 border-[var(--ink)] rounded-2xl p-5 sm:p-6;
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
     word-break: break-word;
     overflow-wrap: break-word;
+  }
+
+  .card-teal {
+    @apply bg-[#E4F2F0] border-2 border-[var(--ink)] rounded-2xl p-4 sm:p-5;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .card-warm {
+    @apply bg-[#FFF8E6] border-2 border-[var(--ink)] rounded-2xl p-4 sm:p-5;
+    box-shadow: 4px 4px 0 var(--ink);
+  }
+
+  .badge-stamp {
+    @apply inline-flex items-center gap-2 px-3.5 py-1 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold;
+    box-shadow: 2px 2px 0 var(--ink);
   }
 
   .btn {
@@ -71,7 +88,7 @@
   }
 
   .btn2 {
-    @apply btn bg-white text-[var(--ink)] hover:bg-[#E4EFED];
+    @apply btn bg-white text-[var(--ink)] hover:bg-[#E4F2F0];
   }
 
   .inp {
@@ -84,7 +101,11 @@
     background: #ffffff;
     border: 2px solid var(--ink);
     border-radius: 1rem;
-    box-shadow: 4px 4px 0 var(--ink);
+    box-shadow: 5px 5px 0 var(--ink);
+  }
+
+  .ticket-ribbon {
+    @apply bg-[var(--teal)] text-white px-4 py-2.5 border-b-2 border-[var(--ink)] flex items-center justify-between gap-2;
   }
 
   .ticket-notch-row {
@@ -117,9 +138,11 @@
   0% {
     transform: scale(1);
   }
+
   45% {
     transform: scale(1.22);
   }
+
   100% {
     transform: scale(1);
   }
@@ -131,6 +154,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+
   *,
   *::before,
   *::after {

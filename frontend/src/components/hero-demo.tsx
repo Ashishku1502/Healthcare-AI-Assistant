@@ -149,21 +149,21 @@ export default function HeroDemo() {
   return (
     <div id="live-demo" className="grid lg:grid-cols-12 gap-6 items-start">
       {/* Left: Interactive Patient Chat Demo */}
-      <div className="lg:col-span-7 card space-y-4">
-        <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--ink)] pb-3.5 flex-wrap">
+      <div className="lg:col-span-7 ticket-card">
+        <div className="ticket-ribbon flex-wrap">
           <div className="flex items-center gap-2.5 flex-wrap">
-            <span className="font-heading text-[19px] font-bold text-[var(--ink)] flex items-center gap-2">
-              <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0" />
+            <span className="font-heading text-[18px] font-extrabold text-white flex items-center gap-2">
+              <IconCheckCircle className="w-5 h-5 text-[var(--yellow)] shrink-0" />
               <span>Live Patient Chat Demo</span>
             </span>
-            <span className="px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
+            <span className="px-2.5 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
               Automated Assistant
             </span>
           </div>
           <button
             type="button"
             onClick={resetDemo}
-            className="btn2 px-3.5 text-[16px] gap-1.5"
+            className="btn2 !min-h-[48px] px-3.5 text-[16px] gap-1.5"
             aria-label="Reset live demo"
           >
             <IconRefreshCw className="w-4 h-4 shrink-0" />
@@ -171,119 +171,124 @@ export default function HeroDemo() {
           </button>
         </div>
 
-        {/* Full Red Emergency Panel (no AI-generated text) */}
-        {emergencyActive ? (
-          <div
-            role="alert"
-            className="rounded-xl bg-[var(--red)] border-2 border-[var(--ink)] text-white p-5 sm:p-6 space-y-4"
-          >
-            <div className="flex items-center gap-3">
-              <IconAlertTriangle className="w-8 h-8 text-white shrink-0" />
-              <h2 className="font-heading text-[22px] font-extrabold text-white">
-                Medical Emergency Detected
-              </h2>
-            </div>
-            <p className="text-[18px] font-bold leading-snug text-white">
-              Go to the nearest emergency room or call 112 immediately. Clinic staff have been alerted.
-            </p>
-            <button
-              type="button"
-              onClick={resetDemo}
-              className="btn2 w-full sm:w-auto px-5"
+        <div className="p-4 sm:p-5 space-y-4">
+          {/* Full Red Emergency Panel (no AI-generated text) */}
+          {emergencyActive ? (
+            <div
+              role="alert"
+              className="rounded-xl bg-[var(--red)] border-2 border-[var(--ink)] text-white p-5 sm:p-6 space-y-4"
             >
-              Reset Live Demo
-            </button>
-          </div>
-        ) : (
-          <div
-            ref={feedRef}
-            className="space-y-3 max-h-72 overflow-y-auto p-3.5 bg-[var(--paper)] border-2 border-[var(--ink)] rounded-xl"
-            aria-live="polite"
-          >
-            {messages.map((m, idx) => (
-              <div
-                key={idx}
-                className={`rounded-xl p-3.5 max-w-[92%] text-[17px] border-2 border-[var(--ink)] ${m.who === "patient"
+              <div className="flex items-center gap-3">
+                <IconAlertTriangle className="w-8 h-8 text-white shrink-0" />
+                <h2 className="font-heading text-[22px] font-extrabold text-white">
+                  Medical Emergency Detected
+                </h2>
+              </div>
+              <p className="text-[18px] font-bold leading-snug text-white">
+                Go to the nearest emergency room or call 112 immediately. Clinic staff have been alerted.
+              </p>
+              <button
+                type="button"
+                onClick={resetDemo}
+                className="btn2 w-full sm:w-auto px-5"
+              >
+                Reset Live Demo
+              </button>
+            </div>
+          ) : (
+            <div
+              ref={feedRef}
+              className="space-y-3 max-h-72 overflow-y-auto p-3.5 bg-[#FFF8E6] border-2 border-[var(--ink)] rounded-xl"
+              aria-live="polite"
+            >
+              {messages.map((m, idx) => (
+                <div
+                  key={idx}
+                  className={`rounded-xl p-3.5 max-w-[92%] text-[17px] border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] ${m.who === "patient"
                     ? "bg-[var(--teal)] text-white ml-auto"
                     : "bg-white text-[var(--ink)]"
-                  }`}
+                    }`}
+                >
+                  <p>{m.text}</p>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Quick Demo Scenario Chips */}
+          <div className="space-y-2">
+            <p className="text-[16px] font-bold text-[var(--ink)]">Try a scenario in 1 tap:</p>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => processMessage("Doctor aaye kya?")}
+                className="btn2 min-h-[52px] px-4 text-[16px]"
               >
-                <p>{m.text}</p>
-              </div>
-            ))}
+                Doctor aaye kya?
+              </button>
+              <button
+                type="button"
+                onClick={() => processMessage("Clinic timing & fees?")}
+                className="btn2 min-h-[52px] px-4 text-[16px]"
+              >
+                Timing &amp; fees?
+              </button>
+              <button
+                type="button"
+                onClick={() => processMessage("Chest pain and breathlessness")}
+                className="btn min-h-[52px] px-4 text-[16px] !bg-[var(--red)] hover:!bg-[#9E2E24]"
+              >
+                Chest pain
+              </button>
+              <button
+                type="button"
+                onClick={() => processMessage("Child has high fever 103")}
+                className="btn min-h-[52px] px-4 text-[16px] !bg-[var(--red)] hover:!bg-[#9E2E24]"
+              >
+                Child&apos;s high fever
+              </button>
+            </div>
           </div>
-        )}
 
-        {/* Quick Demo Scenario Chips */}
-        <div className="space-y-2">
-          <p className="text-[16px] font-bold text-[var(--ink)]">Try a scenario in 1 tap:</p>
-          <div className="flex flex-wrap gap-2">
-            <button
-              type="button"
-              onClick={() => processMessage("Doctor aaye kya?")}
-              className="btn2 min-h-[52px] px-4 text-[16px]"
-            >
-              Doctor aaye kya?
+          {/* Chat Input Form */}
+          <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2.5">
+            <input
+              aria-label="Ask clinic assistant"
+              className="inp flex-1"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Type 'Doctor aaye kya?'..."
+            />
+            <button type="submit" className="btn gap-2 shrink-0 px-6">
+              <IconSend className="w-5 h-5 shrink-0" />
+              <span>Send</span>
             </button>
-            <button
-              type="button"
-              onClick={() => processMessage("Clinic timing & fees?")}
-              className="btn2 min-h-[52px] px-4 text-[16px]"
-            >
-              Timing &amp; fees?
-            </button>
-            <button
-              type="button"
-              onClick={() => processMessage("Chest pain and breathlessness")}
-              className="btn min-h-[52px] px-4 text-[16px] !bg-[var(--red)] hover:!bg-[#9E2E24]"
-            >
-              Chest pain
-            </button>
-            <button
-              type="button"
-              onClick={() => processMessage("Child has high fever 103")}
-              className="btn min-h-[52px] px-4 text-[16px] !bg-[var(--red)] hover:!bg-[#9E2E24]"
-            >
-              Child&apos;s high fever
-            </button>
-          </div>
+          </form>
         </div>
-
-        {/* Chat Input Form */}
-        <form onSubmit={handleSubmit} className="flex flex-col sm:flex-row gap-2.5">
-          <input
-            aria-label="Ask clinic assistant"
-            className="inp flex-1"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Type 'Doctor aaye kya?'..."
-          />
-          <button type="submit" className="btn gap-2 shrink-0 px-6">
-            <IconSend className="w-5 h-5 shrink-0" />
-            <span>Send</span>
-          </button>
-        </form>
       </div>
 
       {/* Right: Ticket-Shaped Live Status Card + Workflow Strip */}
       <div className="lg:col-span-5 space-y-4">
         <div className="ticket-card">
+          <div className="ticket-ribbon">
+            <span className="font-heading text-[16px] font-extrabold tracking-wide uppercase text-white">
+              Clinic Live Parchi
+            </span>
+            <span className={`px-3 py-0.5 rounded-full border-2 border-[var(--ink)] text-[16px] font-bold shrink-0 ${badgeStyle}`}>
+              {ticket.statusLabel}
+            </span>
+          </div>
+
           <div className="p-5 space-y-3.5">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[16px] font-semibold text-[#3C5250]">Clinic Live Ticket</p>
-                <h2 className="font-heading text-[22px] font-extrabold text-[var(--ink)] flex items-center gap-2 mt-0.5">
-                  <IconStethoscope className="w-5 h-5 text-[var(--teal)] shrink-0" />
-                  <span>{ticket.doctorName}</span>
-                </h2>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-[16px] font-bold shrink-0 ${badgeStyle}`}>
-                {ticket.statusLabel}
-              </span>
+            <div className="min-w-0">
+              <h2 className="font-heading text-[22px] font-extrabold text-[var(--ink)] flex items-center gap-2">
+                <IconStethoscope className="w-5 h-5 text-[var(--teal)] shrink-0" />
+                <span>{ticket.doctorName}</span>
+              </h2>
             </div>
 
             <div className="flex items-center justify-between text-[17px]">
-              <span className="text-[#3C5250] flex items-center gap-1.5">
+              <span className="text-[#2F4442] flex items-center gap-1.5 font-medium">
                 <IconClock className="w-5 h-5 text-[var(--teal)] shrink-0" />
                 Estimated wait
               </span>
@@ -291,19 +296,19 @@ export default function HeroDemo() {
             </div>
 
             <div className="flex items-center justify-between text-[16px]">
-              <span className="text-[#3C5250]">Source</span>
+              <span className="text-[#2F4442] font-medium">Source</span>
               <span className="font-semibold text-[var(--ink)]">{ticket.confirmedAgo}</span>
             </div>
           </div>
 
-          <div className="ticket-notch-row px-5 py-4 bg-[#F9FBFA] flex items-center justify-between">
+          <div className="ticket-notch-row px-5 py-4 bg-[#E4F2F0] flex items-center justify-between">
             <div>
-              <p className="text-[16px] font-semibold text-[#3C5250]">Current Token</p>
+              <p className="text-[16px] font-bold text-[#2F4442]">Current Token</p>
               <p className="font-heading text-[34px] font-extrabold text-[var(--ink)] leading-none mt-1">
                 #<span key={ticket.token} className="animate-token">{ticket.token}</span>
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-[16px] font-bold text-[var(--teal)]">
+            <div className="flex items-center gap-1.5 text-[16px] font-bold bg-white border-2 border-[var(--ink)] rounded-xl px-3 py-1.5 text-[var(--teal)]">
               <IconShieldCheck className="w-5 h-5 shrink-0" />
               <span>Verified</span>
             </div>
@@ -311,8 +316,8 @@ export default function HeroDemo() {
         </div>
 
         {/* Plain-English How It Works Box */}
-        <div className="card p-4 sm:p-5 space-y-2">
-          <p className="font-heading text-[18px] font-bold text-[var(--ink)]">How patients get answered</p>
+        <div className="card-teal space-y-1.5">
+          <p className="font-heading text-[18px] font-extrabold text-[var(--ink)]">How patients get answered</p>
           <p className="text-[16px] text-[var(--ink)] leading-relaxed">
             1. Receptionist taps doctor status on mobile &rarr; 2. Parchi shares verified wait time &amp; token &rarr; 3. Red-flag symptoms bypass AI and route straight to 112.
           </p>

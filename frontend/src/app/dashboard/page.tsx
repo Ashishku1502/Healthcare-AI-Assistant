@@ -23,6 +23,7 @@ import {
   IconArrowRight,
   IconZap,
 } from "@/components/icons";
+import { EmptyDeskIllustration } from "@/components/graphics";
 
 const TABS = [
   { id: "Now", label: "Now", desc: "Live status & handoffs", icon: IconClock },
@@ -72,9 +73,7 @@ function State({ loading, err, empty }: { loading: boolean; err: string; empty?:
       </div>
     );
   return empty ? (
-    <p className="text-[#3C5250] text-[16px] py-3 bg-[#F5F8F7] border border-[#D4E2DF] rounded-2xl px-4">
-      Nothing here yet.
-    </p>
+    <EmptyDeskIllustration title="Nothing here yet." />
   ) : null;
 }
 
@@ -233,34 +232,38 @@ function Now() {
 
             return (
               <div key={d.id} className="ticket-card">
-                <div className="p-4 sm:p-5 space-y-3">
-                  <div className="flex items-start justify-between flex-wrap gap-2">
-                    <div className="min-w-0">
-                      <p className="text-[16px] text-[#3C5250] font-semibold">
-                        {d.speciality || "General Physician"}
-                      </p>
-                      <h3 className="text-[20px] font-extrabold text-[var(--ink)] font-heading flex items-center gap-2 flex-wrap">
-                        <IconStethoscope className="w-5 h-5 text-[var(--teal)] shrink-0" />
-                        <span>Dr. {d.name}</span>
-                      </h3>
-                    </div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className={`text-[16px] font-bold px-3 py-1 rounded-full ${stateBadgeCls}`}>
-                        {stateLabel}
-                      </span>
-                      <span
-                        className={`text-[16px] font-bold px-3 py-1 rounded-full ${
-                          fresh ? "bg-[#E4EFED] text-[var(--ink)]" : "bg-[#FFF8EB] text-[var(--ink)] border border-[#F4B73F]"
-                        }`}
-                      >
-                        {fresh ? "Fresh (≤30m)" : "Unconfirmed (>30m)"}
-                      </span>
-                    </div>
+                <div className="ticket-ribbon flex-wrap">
+                  <span className="font-heading text-[16px] font-extrabold uppercase tracking-wide text-white">
+                    Live Clinic Parchi
+                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className={`text-[16px] font-bold px-3 py-0.5 rounded-full border-2 border-[var(--ink)] ${stateBadgeCls}`}>
+                      {stateLabel}
+                    </span>
+                    <span
+                      className={`text-[16px] font-bold px-3 py-0.5 rounded-full border-2 border-[var(--ink)] ${
+                        fresh ? "bg-[#E4F2F0] text-[var(--ink)]" : "bg-[#FFF8E6] text-[var(--ink)]"
+                      }`}
+                    >
+                      {fresh ? "Fresh (≤30m)" : "Unconfirmed (>30m)"}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="p-4 sm:p-5">
+                  <div className="min-w-0">
+                    <p className="text-[16px] text-[#2F4442] font-semibold">
+                      {d.speciality || "General Physician"}
+                    </p>
+                    <h3 className="text-[20px] font-extrabold text-[var(--ink)] font-heading flex items-center gap-2 flex-wrap">
+                      <IconStethoscope className="w-5 h-5 text-[var(--teal)] shrink-0" />
+                      <span>Dr. {d.name}</span>
+                    </h3>
                   </div>
                 </div>
 
                 {/* Notched Tear Row with Token & Action Controls */}
-                <div className="ticket-notch-row px-4 sm:px-5 py-4 bg-[#F9FBFA] space-y-3">
+                <div className="ticket-notch-row px-4 sm:px-5 py-4 bg-[#E4F2F0] space-y-3">
                   <div className="flex items-center justify-between flex-wrap gap-3">
                     <div>
                       <p className="text-[16px] font-semibold text-[#3C5250]">Current Token</p>
@@ -1601,7 +1604,7 @@ export default function Dashboard() {
   if (!ready) return null;
 
   return (
-    <div className="min-h-screen bg-[var(--paper)] text-[var(--ink)] flex flex-col">
+    <div className="min-h-screen text-[var(--ink)] flex flex-col">
       {/* Top Clinic Command Bar */}
       <header className="w-full bg-white border-b-2 border-[var(--ink)] sticky top-0 z-20">
         <div className="max-w-7xl mx-auto px-3 sm:px-6 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 min-w-0">
@@ -1678,8 +1681,8 @@ export default function Dashboard() {
           </nav>
 
           {/* Desktop Quick Desk Card */}
-          <div className="hidden lg:block card p-4 space-y-3">
-            <p className="text-[16px] font-bold text-[var(--ink)] font-heading">1-Tap Receptionist Phone</p>
+          <div className="hidden lg:block card-warm space-y-3">
+            <p className="text-[16px] font-extrabold text-[var(--ink)] font-heading">1-Tap Receptionist Phone</p>
             <p className="text-[16px] text-[var(--ink)]">
               Dedicated 360px screen with zero forms for front-desk staff.
             </p>

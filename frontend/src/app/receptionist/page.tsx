@@ -14,6 +14,7 @@ import {
   IconPhone,
   IconZap,
 } from "@/components/icons";
+import { EmptyDeskIllustration } from "@/components/graphics";
 
 interface Doctor {
   id: number;
@@ -207,9 +208,9 @@ export default function ReceptionistPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--paper)] text-[var(--ink)] w-full max-w-[360px] mx-auto px-3 py-4 flex flex-col gap-4">
+    <main className="min-h-screen text-[var(--ink)] w-full max-w-[360px] mx-auto px-3 py-4 flex flex-col gap-4">
       {/* Compact Header (No Sidebar) */}
-      <header className="flex items-center justify-between gap-2 bg-white border-2 border-[var(--ink)] shadow-[3px_3px_0_var(--ink)] rounded-2xl px-3.5 py-2.5">
+      <header className="flex items-center justify-between gap-2 bg-white border-2 border-[var(--ink)] shadow-[4px_4px_0_var(--ink)] rounded-2xl px-3.5 py-2.5">
         <div className="flex items-center gap-2.5 min-w-0">
           <span className="w-9 h-9 rounded-lg bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0">
             <IconCross className="w-5 h-5 text-white" />
@@ -222,7 +223,7 @@ export default function ReceptionistPage() {
           type="button"
           onClick={loadData}
           aria-label="Refresh status"
-          className="min-w-[48px] min-h-[48px] inline-flex items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-white text-[var(--ink)] shadow-[2px_2px_0_var(--ink)] hover:bg-[#E4EFED]"
+          className="min-w-[48px] min-h-[48px] inline-flex items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[#FFF8E6] text-[var(--ink)] shadow-[2px_2px_0_var(--ink)] hover:bg-[#E4F2F0]"
         >
           <IconRefreshCw className={`w-5 h-5 ${loading ? "animate-spin" : ""}`} />
         </button>
@@ -259,33 +260,37 @@ export default function ReceptionistPage() {
       {/* TOP: Ticket-Shaped Status Card (Notched Edges) */}
       {activeDoc && (
         <section aria-label="Doctor live ticket status" className="ticket-card">
+          <div className="ticket-ribbon">
+            <span className="font-heading text-[16px] font-extrabold uppercase tracking-wide text-white">
+              Live Token Parchi
+            </span>
+            <span className={`px-3 py-0.5 rounded-full border-2 border-[var(--ink)] text-[16px] font-bold shrink-0 ${statusBadgeClass}`}>
+              {statusLabel}
+            </span>
+          </div>
+
           <div className="p-4 space-y-3">
-            <div className="flex items-start justify-between gap-2">
-              <div className="min-w-0">
-                <p className="text-[16px] font-semibold text-[#3C5250]">Consulting Doctor</p>
-                <h2 className="font-heading text-[22px] font-extrabold text-[var(--ink)] leading-tight break-words">
-                  Dr. {activeDoc.name}
-                </h2>
-              </div>
-              <span className={`px-3 py-1 rounded-full text-[16px] font-bold shrink-0 ${statusBadgeClass}`}>
-                {statusLabel}
-              </span>
+            <div className="min-w-0">
+              <p className="text-[16px] font-semibold text-[#2F4442]">Consulting Doctor</p>
+              <h2 className="font-heading text-[22px] font-extrabold text-[var(--ink)] leading-tight break-words">
+                Dr. {activeDoc.name}
+              </h2>
             </div>
 
-            <div className="flex items-center justify-between text-[16px] text-[#3C5250]">
+            <div className="flex items-center justify-between text-[16px] text-[#2F4442]">
               <span>Estimated wait</span>
               <span className="font-bold text-[var(--ink)]">{estWaitLabel}</span>
             </div>
-            <div className="flex items-center justify-between text-[16px] text-[#3C5250]">
+            <div className="flex items-center justify-between text-[16px] text-[#2F4442]">
               <span>Last confirmed</span>
               <span className="font-semibold text-[var(--ink)]">{timeAgoText}</span>
             </div>
           </div>
 
           {/* Perforated Notched Tear Section with Token Number */}
-          <div className="ticket-notch-row px-4 py-4 bg-[#F9FBFA] flex items-center justify-between gap-3">
+          <div className="ticket-notch-row px-4 py-4 bg-[#E4F2F0] flex items-center justify-between gap-3">
             <div>
-              <p className="text-[16px] font-semibold text-[#3C5250]">Current token</p>
+              <p className="text-[16px] font-bold text-[#2F4442]">Current token</p>
               <p className="font-heading text-[34px] font-extrabold leading-none text-[var(--ink)] mt-1">
                 #<span key={activeDoc.current_token} className="animate-token">{activeDoc.current_token || 0}</span>
               </p>
@@ -387,7 +392,10 @@ export default function ReceptionistPage() {
         </div>
 
         {missedCalls.length === 0 ? (
-          <p className="text-[17px] text-[var(--ink)] py-2">No missed calls right now.</p>
+          <EmptyDeskIllustration
+            title="All caught up!"
+            subtitle="No missed calls waiting right now."
+          />
         ) : (
           <ul className="space-y-3">
             {missedCalls.map((item) => (
