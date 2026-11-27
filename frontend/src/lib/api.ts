@@ -1,18 +1,53 @@
+export const PRODUCTION_API_URL = "https://parchi-api.vercel.app";
+
 export function getApiBase(): string {
-  const raw = (process.env.NEXT_PUBLIC_API_URL || process.env.VITE_API_URL || "").trim().replace(/\/+$/, "");
-  return raw || "http://localhost:8000";
+  const envUrl = (
+    process.env.NEXT_PUBLIC_API_URL ||
+    process.env.VITE_API_URL ||
+    ""
+  ).trim().replace(/\/+$/, "");
+
+  // In browser context:
+  if (typeof window !== "undefined") {
+    const host = window.location.hostname;
+    const isLocal =
+      host === "localhost" ||
+      host === "127.0.0.1" ||
+      host.startsWith("192.168.") ||
+      host.endsWith(".local");
+
+    // When accessed on any public URL (e.g. *.vercel.app), NEVER use localhost!
+    if (!isLocal) {
+      if (!envUrl || envUrl.includes("localhost") || envUrl.includes("127.0.0.1") || envUrl.startsWith("http://")) {
+        return PRODUCTION_API_URL;
+      }
+      return envUrl;
+    }
+
+    // On local machine, use env if specified, otherwise local dev backend
+    return envUrl || "http://localhost:8000";
+  }
+
+  // Server-side / static build context
+  if (envUrl && !envUrl.includes("localhost")) {
+    return envUrl;
+  }
+  if (process.env.VERCEL || process.env.NODE_ENV === "production") {
+    return PRODUCTION_API_URL;
+  }
+  return envUrl || "http://localhost:8000";
 }
 
 export type BackendHealthStatus = "waking" | "ready" | "offline";
 
-const HEALTH_TIMEOUT_MS = 60_000;
-const HEALTH_MAX_RETRIES = 3;
+const HEALTH_TIMEOUT_MS = 15_000;
+const HEALTH_MAX_RETRIES = 2;
 
-async function fetchHealthOnce(base: string, timeoutMs: number): Promise<boolean> {
+async function checkUrlHealth(targetUrl: string, timeoutMs: number): Promise<boolean> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const res = await fetch(`${base}/health`, {
+    const res = await fetch(`${targetUrl}/health`, {
       method: "GET",
       signal: controller.signal,
     });
@@ -24,6 +59,20 @@ async function fetchHealthOnce(base: string, timeoutMs: number): Promise<boolean
   } finally {
     clearTimeout(timer);
   }
+}
+
+async function fetchHealthOnce(base: string, timeoutMs: number): Promise<boolean> {
+  // First attempt current base
+  const ok = await checkUrlHealth(base, timeoutMs);
+  if (ok) return true;
+
+  // Fallback to production if current base was unreachable
+  if (base !== PRODUCTION_API_URL) {
+    const fallbackOk = await checkUrlHealth(PRODUCTION_API_URL, 8_000);
+    if (fallbackOk) return true;
+  }
+
+  return false;
 }
 
 export async function pollBackendHealth(
@@ -53,53 +102,65 @@ export async function pollBackendHealth(
 export async function api<T = any>(path: string, opts: RequestInit = {}): Promise<T> {
   const token = typeof window !== "undefined" ? sessionStorage.getItem("token") : "";
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  const base = getApiBase();
-  const url = `${base}${cleanPath}`;
+  let base = getApiBase();
+  let url = `${base}${cleanPath}`;
 
+  const headers = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(opts.headers || {}),
+  };
+
+  let res: Response;
   try {
-    const res = await fetch(url, {
-      ...opts,
-      headers: {
-        "Content-Type": "application/json",
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-        ...(opts.headers || {}),
-      },
-    });
-    if (
-      res.status === 401 &&
-      typeof window !== "undefined" &&
-      cleanPath !== "/auth/login" &&
-      cleanPath !== "/auth/signup" &&
-      cleanPath !== "/auth/register"
-    ) {
-      sessionStorage.clear();
-      window.location.href = "/login";
-    }
-    if (!res.ok) {
-      const rawText = await res.text().catch(() => "");
-      let e: any = {};
-      try {
-        e = rawText ? JSON.parse(rawText) : {};
-      } catch {
-        e = {};
-      }
-      const message =
-        typeof e.detail === "string"
-          ? e.detail
-          : Array.isArray(e.detail)
-            ? e.detail
-              .map((d: any) => (d.loc ? `${d.loc[d.loc.length - 1]}: ${d.msg}` : d.msg))
-              .join(", ")
-            : `Request failed (HTTP ${res.status}).`;
-      throw new Error(message);
-    }
-    return res.status === 204 ? (null as T) : res.json();
+    res = await fetch(url, { ...opts, headers });
   } catch (err: any) {
-    if (err instanceof TypeError) {
+    // If request failed with network error and we weren't already using production URL,
+    // automatically try against the production URL as transparent fallback
+    if (base !== PRODUCTION_API_URL) {
+      try {
+        base = PRODUCTION_API_URL;
+        url = `${base}${cleanPath}`;
+        res = await fetch(url, { ...opts, headers });
+      } catch {
+        throw new Error("Server is waking up or unreachable. Please try again in a moment.");
+      }
+    } else {
       throw new Error("Server is waking up or unreachable. Please try again in a moment.");
     }
-    throw err;
   }
+
+  if (
+    res.status === 401 &&
+    typeof window !== "undefined" &&
+    cleanPath !== "/auth/login" &&
+    cleanPath !== "/auth/signup" &&
+    cleanPath !== "/auth/register"
+  ) {
+    sessionStorage.clear();
+    window.location.href = "/login";
+  }
+
+  if (!res.ok) {
+    const rawText = await res.text().catch(() => "");
+    let e: any = {};
+    try {
+      e = rawText ? JSON.parse(rawText) : {};
+    } catch {
+      e = {};
+    }
+    const message =
+      typeof e.detail === "string"
+        ? e.detail
+        : Array.isArray(e.detail)
+          ? e.detail
+            .map((d: any) => (d.loc ? `${d.loc[d.loc.length - 1]}: ${d.msg}` : d.msg))
+            .join(", ")
+          : `Request failed (HTTP ${res.status}).`;
+    throw new Error(message);
+  }
+
+  return res.status === 204 ? (null as T) : res.json();
 }
 
 export { getApiBase as BASE };
