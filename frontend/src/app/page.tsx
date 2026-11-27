@@ -1,5 +1,6 @@
 import HeroDemo from "@/components/hero-demo";
 import { ClinicHeroScene } from "@/components/graphics";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   IconArrowRight,
   IconCheckCircle,
@@ -33,6 +34,7 @@ export default function Home() {
           </a>
 
           <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            <ThemeToggle />
             <a
               href="#pricing"
               className="hidden sm:inline-flex items-center min-h-[48px] px-3 text-[16px] font-bold text-[var(--ink)] hover:text-[var(--teal)] whitespace-nowrap"

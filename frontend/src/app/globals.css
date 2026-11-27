@@ -3,11 +3,58 @@
 @tailwind utilities;
 
 :root {
+  /* New Modern Healthcare Style (Default) */
+  --teal: #0D7A73;
+  --teal-hover: #085A54;
+  --teal-light: #E6F4F3;
+  --paper: #F8FAFC;
+  --surface: #FFFFFF;
+  --surface-warm: #FFFBEB;
+  --yellow: #F59E0B;
+  --red: #DC2626;
+  --ink: #0F172A;
+  --ink-secondary: #475569;
+  --border-color: #CBD5E1;
+  --card-shadow: 0 4px 18px -2px rgba(15, 23, 42, 0.08), 0 2px 6px -2px rgba(15, 23, 42, 0.04), 0 0 0 1.5px rgba(15, 23, 42, 0.08);
+  --card-hover-shadow: 0 12px 28px -4px rgba(13, 122, 115, 0.16), 0 4px 10px -2px rgba(15, 23, 42, 0.06), 0 0 0 1.5px rgba(13, 122, 115, 0.4);
+  --btn-shadow: 0 2px 6px rgba(13, 122, 115, 0.28), 0 1px 2px rgba(0, 0, 0, 0.08);
+  --bg-pattern: radial-gradient(at 100% 0%, rgba(13, 122, 115, 0.08) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.05) 0px, transparent 45%), linear-gradient(to right, rgba(15, 23, 42, 0.035) 1px, transparent 1px), linear-gradient(to bottom, rgba(15, 23, 42, 0.035) 1px, transparent 1px);
+}
+
+[data-theme="editorial"] {
   --teal: #0F6B66;
+  --teal-hover: #0B524E;
+  --teal-light: #E4F2F0;
   --paper: #F5F8F7;
+  --surface: #FFFFFF;
+  --surface-warm: #FFF8E6;
   --yellow: #F4B73F;
   --red: #C23B2E;
   --ink: #1F2D2C;
+  --ink-secondary: #3C5250;
+  --border-color: #1F2D2C;
+  --card-shadow: 5px 5px 0 var(--ink);
+  --card-hover-shadow: 6px 6px 0 var(--ink);
+  --btn-shadow: 3px 3px 0 var(--ink);
+  --bg-pattern: radial-gradient(rgba(15, 107, 102, 0.14) 1.25px, transparent 1.25px);
+}
+
+[data-theme="dark"] {
+  --teal: #14B8A6;
+  --teal-hover: #0D9488;
+  --teal-light: #134E4A;
+  --paper: #0B0F17;
+  --surface: #111827;
+  --surface-warm: #1F2937;
+  --yellow: #FBBF24;
+  --red: #F87171;
+  --ink: #F9FAFB;
+  --ink-secondary: #9CA3AF;
+  --border-color: #374151;
+  --card-shadow: 0 4px 20px -2px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  --card-hover-shadow: 0 10px 30px -4px rgba(20, 184, 166, 0.3), 0 0 0 1.5px rgba(20, 184, 166, 0.5);
+  --btn-shadow: 0 2px 8px rgba(20, 184, 166, 0.35);
+  --bg-pattern: radial-gradient(at 100% 0%, rgba(20, 184, 166, 0.12) 0px, transparent 50%), radial-gradient(at 0% 100%, rgba(245, 158, 11, 0.06) 0px, transparent 40%), linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px), linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
 }
 
 @layer base {
@@ -19,8 +66,8 @@
 
   body {
     background-color: var(--paper);
-    background-image: radial-gradient(rgba(15, 107, 102, 0.14) 1.25px, transparent 1.25px);
-    background-size: 20px 20px;
+    background-image: var(--bg-pattern);
+    background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
     color: var(--ink);
     font-family: var(--font-mukta), system-ui, sans-serif;
     font-size: 17px;
@@ -28,6 +75,7 @@
     overflow-x: hidden;
     word-break: break-word;
     overflow-wrap: break-word;
+    transition: background-color 0.25s ease, color 0.25s ease;
   }
 
   h1,
@@ -54,83 +102,185 @@
 
 @layer components {
   .card {
-    @apply bg-white border-2 border-[var(--ink)] rounded-2xl p-5 sm:p-6;
-    box-shadow: 5px 5px 0 var(--ink);
+    background-color: var(--surface);
+    border: 1.5px solid var(--border-color);
+    border-radius: 1.25rem;
+    padding: 1.25rem;
+    box-shadow: var(--card-shadow);
     word-break: break-word;
     overflow-wrap: break-word;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  }
+  @media (min-width: 640px) {
+    .card {
+      padding: 1.5rem;
+    }
+  }
+  .card:hover {
+    box-shadow: var(--card-hover-shadow);
   }
 
   .card-teal {
-    @apply bg-[#E4F2F0] border-2 border-[var(--ink)] rounded-2xl p-4 sm:p-5;
-    box-shadow: 4px 4px 0 var(--ink);
+    background-color: var(--teal-light);
+    border: 1.5px solid var(--border-color);
+    border-radius: 1.25rem;
+    padding: 1rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  @media (min-width: 640px) {
+    .card-teal {
+      padding: 1.25rem;
+    }
   }
 
   .card-warm {
-    @apply bg-[#FFF8E6] border-2 border-[var(--ink)] rounded-2xl p-4 sm:p-5;
-    box-shadow: 4px 4px 0 var(--ink);
+    background-color: var(--surface-warm);
+    border: 1.5px solid var(--border-color);
+    border-radius: 1.25rem;
+    padding: 1rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  @media (min-width: 640px) {
+    .card-warm {
+      padding: 1.25rem;
+    }
   }
 
   .badge-stamp {
-    @apply inline-flex items-center gap-2 px-3.5 py-1 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold;
-    box-shadow: 2px 2px 0 var(--ink);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.25rem 0.875rem;
+    border-radius: 9999px;
+    background-color: var(--yellow);
+    border: 1.5px solid var(--border-color);
+    color: #0F172A;
+    font-size: 15px;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
   }
 
   .btn {
-    @apply inline-flex items-center justify-center rounded-xl bg-[var(--teal)] text-white border-2 border-[var(--ink)] px-5 min-h-[56px] text-[17px] font-bold hover:bg-[#0B524E] disabled:opacity-50 transition-all;
-    box-shadow: 3px 3px 0 var(--ink);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.875rem;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-hover) 100%);
+    color: #ffffff;
+    border: 1.5px solid var(--teal-hover);
+    padding: 0 1.25rem;
+    min-height: 52px;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: var(--btn-shadow);
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
     white-space: normal;
     text-align: center;
   }
-
+  .btn:hover:not(:disabled) {
+    filter: brightness(1.08);
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 16px rgba(13, 122, 115, 0.32);
+  }
   .btn:active:not(:disabled) {
-    transform: translate(2px, 2px);
-    box-shadow: 1px 1px 0 var(--ink);
+    transform: translateY(1px);
+    box-shadow: 0 1px 3px rgba(13, 122, 115, 0.2);
+  }
+  .btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
   }
 
   .btn2 {
-    @apply btn bg-white text-[var(--ink)] hover:bg-[#E4F2F0];
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.875rem;
+    background: var(--surface);
+    color: var(--ink);
+    border: 1.5px solid var(--border-color);
+    padding: 0 1.25rem;
+    min-height: 52px;
+    font-size: 16px;
+    font-weight: 700;
+    box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+    transition: all 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .btn2:hover:not(:disabled) {
+    background: var(--teal-light);
+    border-color: var(--teal);
+    color: var(--ink);
+    transform: translateY(-1.5px);
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.08);
+  }
+  .btn2:active:not(:disabled) {
+    transform: translateY(1px);
   }
 
   .inp {
-    @apply w-full min-h-[56px] rounded-xl border-2 border-[var(--ink)] px-4 bg-white text-[var(--ink)] text-[17px] transition-colors focus:border-[var(--teal)];
+    width: 100%;
+    min-height: 52px;
+    border-radius: 0.875rem;
+    border: 1.5px solid var(--border-color);
+    padding: 0 1rem;
+    background-color: var(--surface);
+    color: var(--ink);
+    font-size: 16px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .inp:focus {
+    border-color: var(--teal);
+    box-shadow: 0 0 0 3px rgba(13, 122, 115, 0.2);
+    outline: none;
   }
 
   .ticket-card {
     position: relative;
     overflow: hidden;
-    background: #ffffff;
-    border: 2px solid var(--ink);
-    border-radius: 1rem;
-    box-shadow: 5px 5px 0 var(--ink);
+    background: var(--surface);
+    border: 1.5px solid var(--border-color);
+    border-radius: 1.25rem;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .ticket-card:hover {
+    box-shadow: var(--card-hover-shadow);
   }
 
   .ticket-ribbon {
-    @apply bg-[var(--teal)] text-white px-4 py-2.5 border-b-2 border-[var(--ink)] flex items-center justify-between gap-2;
+    background: linear-gradient(135deg, var(--teal) 0%, var(--teal-hover) 100%);
+    color: #ffffff;
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1.5px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
   }
 
   .ticket-notch-row {
     position: relative;
-    border-top: 2px dashed var(--ink);
+    border-top: 1.5px dashed var(--border-color);
   }
-
   .ticket-notch-row::before,
   .ticket-notch-row::after {
     content: "";
     position: absolute;
-    top: -13px;
-    width: 24px;
-    height: 24px;
+    top: -12px;
+    width: 22px;
+    height: 22px;
     border-radius: 9999px;
     background-color: var(--paper);
-    border: 2px solid var(--ink);
+    border: 1.5px solid var(--border-color);
   }
-
   .ticket-notch-row::before {
-    left: -14px;
+    left: -13px;
   }
-
   .ticket-notch-row::after {
-    right: -14px;
+    right: -13px;
   }
 }
 
@@ -140,7 +290,7 @@
   }
 
   45% {
-    transform: scale(1.22);
+    transform: scale(1.18);
   }
 
   100% {
@@ -154,7 +304,6 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-
   *,
   *::before,
   *::after {

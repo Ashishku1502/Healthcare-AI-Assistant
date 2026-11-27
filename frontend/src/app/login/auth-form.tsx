@@ -19,6 +19,7 @@ import {
   IconSparkles,
 } from "@/components/icons";
 import { AuthReceptionIllustration } from "@/components/graphics";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export default function AuthForm({
   initialMode = "login",
@@ -184,6 +185,7 @@ export default function AuthForm({
             </div>
           </a>
           <nav className="flex items-center gap-1 sm:gap-2 text-[16px] shrink-0">
+            <ThemeToggle />
             <a href="/" className="min-h-[48px] px-2 sm:px-2.5 inline-flex items-center text-[var(--ink)] font-bold hover:text-[var(--teal)] transition-colors whitespace-nowrap">
               Home
             </a>

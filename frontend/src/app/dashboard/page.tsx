@@ -24,6 +24,7 @@ import {
   IconZap,
 } from "@/components/icons";
 import { EmptyDeskIllustration } from "@/components/graphics";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const TABS = [
   { id: "Now", label: "Now", desc: "Live status & handoffs", icon: IconClock },
@@ -1872,6 +1873,7 @@ export default function Dashboard() {
           </div>
 
           <div className="flex items-center gap-2 self-end sm:self-auto shrink-0 flex-wrap">
+            <ThemeToggle />
             <Link href="/receptionist" className="btn2 text-[16px] px-4 inline-flex items-center gap-2">
               <IconSmartphone className="w-4 h-4 shrink-0" />
               <span>Reception Desk</span>

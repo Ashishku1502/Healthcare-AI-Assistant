@@ -15,6 +15,7 @@ import {
   IconZap,
 } from "@/components/icons";
 import { EmptyDeskIllustration } from "@/components/graphics";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 interface Doctor {
   id: number;
@@ -223,6 +224,7 @@ export default function ReceptionistPage() {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <ThemeToggle />
           <Link
             href="/dashboard"
             className="btn2 text-[16px] min-h-[48px] px-3.5 inline-flex items-center gap-1.5"

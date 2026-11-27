@@ -29,6 +29,13 @@ export const viewport = {
 export default function Root({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${mukta.variable} ${bricolage.variable}`}>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem("parchi-theme")||"modern";document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`,
+          }}
+        />
+      </head>
       <body className="min-h-screen flex flex-col font-sans bg-paper text-ink">{children}</body>
     </html>
   );
