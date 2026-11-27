@@ -1653,7 +1653,7 @@ export default function Dashboard() {
       <div className="w-full max-w-7xl mx-auto px-3 sm:px-6 py-5 lg:py-7 flex flex-col lg:flex-row gap-6 items-start min-w-0 flex-1">
         <aside className="w-full lg:w-64 shrink-0 space-y-4 min-w-0">
           <nav
-            className="w-full grid grid-cols-2 sm:flex sm:flex-wrap lg:flex-col gap-2 p-2.5 bg-white border border-[#D4E2DF] rounded-3xl shadow-xs min-w-0"
+            className="w-full flex flex-wrap lg:flex-col gap-2 p-2.5 bg-white border border-[#D4E2DF] rounded-3xl shadow-xs min-w-0"
             aria-label="Dashboard"
           >
             {TABS.map((t) => {
@@ -1664,14 +1664,14 @@ export default function Dashboard() {
                   key={t.id}
                   aria-current={isActive ? "page" : undefined}
                   onClick={() => setTab(t.id)}
-                  className={`min-h-[52px] px-3.5 py-2.5 rounded-2xl text-left font-bold transition-all flex items-center gap-2.5 min-w-0 ${
+                  className={`min-h-[52px] px-3.5 py-2.5 rounded-2xl text-left font-bold transition-all flex items-center gap-2.5 min-w-0 lg:w-full ${
                     isActive
                       ? "bg-[var(--teal)] text-white shadow-sm"
                       : "text-[var(--ink)] hover:bg-[#E4EFED]"
                   }`}
                 >
                   <Icon className={`w-5 h-5 shrink-0 ${isActive ? "text-white" : "text-[var(--teal)]"}`} />
-                  <span className="min-w-0 truncate text-[16px]">{t.label}</span>
+                  <span className="text-[16px] whitespace-nowrap">{t.label}</span>
                 </button>
               );
             })}
