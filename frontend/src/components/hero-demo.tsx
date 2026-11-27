@@ -77,26 +77,6 @@ export default function HeroDemo() {
 
     setEmergencyActive(false);
 
-    if (/doctor|aaye|late|wait|kitna|token|in/i.test(text)) {
-      setTicket({
-        doctorName: "Dr. Neha Sharma",
-        statusLabel: "15 min late",
-        statusTone: "yellow",
-        token: 14,
-        estWait: "~15 min",
-        confirmedAgo: "Confirmed 4 min ago",
-      });
-      setMessages((prev) => [
-        ...prev,
-        { who: "patient", text },
-        {
-          who: "assistant",
-          text: "Dr. Neha Sharma is 15 min late (confirmed by clinic 4 min ago). Current token is #14, estimated wait ~15 min.",
-        },
-      ]);
-      return;
-    }
-
     if (/fee|fees|timing|hours|open|vel|band|address/i.test(text)) {
       setTicket({
         doctorName: "Dr. Neha Sharma",
@@ -112,6 +92,26 @@ export default function HeroDemo() {
         {
           who: "assistant",
           text: "Clinic hours are Mon–Sat, 9 AM to 7 PM. Consultation fee is Rs 300. Ask 'Doctor aaye kya?' for live doctor wait updates.",
+        },
+      ]);
+      return;
+    }
+
+    if (/doctor|aaye|late|wait|kitna|token|\bin\b/i.test(text)) {
+      setTicket({
+        doctorName: "Dr. Neha Sharma",
+        statusLabel: "15 min late",
+        statusTone: "yellow",
+        token: 14,
+        estWait: "~15 min",
+        confirmedAgo: "Confirmed 4 min ago",
+      });
+      setMessages((prev) => [
+        ...prev,
+        { who: "patient", text },
+        {
+          who: "assistant",
+          text: "Dr. Neha Sharma is 15 min late (confirmed by clinic 4 min ago). Current token is #14, estimated wait ~15 min.",
         },
       ]);
       return;
@@ -143,8 +143,8 @@ export default function HeroDemo() {
     ticket.statusTone === "teal"
       ? "bg-[var(--teal)] text-white"
       : ticket.statusTone === "red"
-      ? "bg-[var(--red)] text-white"
-      : "bg-[var(--yellow)] text-[var(--ink)]";
+        ? "bg-[var(--red)] text-white"
+        : "bg-[var(--yellow)] text-[var(--ink)]";
 
   return (
     <div id="live-demo" className="grid lg:grid-cols-12 gap-6 items-start">
@@ -203,11 +203,10 @@ export default function HeroDemo() {
             {messages.map((m, idx) => (
               <div
                 key={idx}
-                className={`rounded-2xl p-3.5 max-w-[92%] text-[17px] ${
-                  m.who === "patient"
+                className={`rounded-2xl p-3.5 max-w-[92%] text-[17px] ${m.who === "patient"
                     ? "bg-[var(--teal)] text-white ml-auto"
                     : "bg-white border border-[#C8DAD7] text-[var(--ink)] shadow-xs"
-                }`}
+                  }`}
               >
                 <p>{m.text}</p>
               </div>
