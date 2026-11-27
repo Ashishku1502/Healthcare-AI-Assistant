@@ -1,3 +1,4 @@
+import time
 from datetime import datetime, timedelta, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import func
@@ -201,14 +202,14 @@ def make_appt(b: ApptIn, u: User = Depends(current_user), db: Session = Depends(
 def cancel(id: int, u: User = Depends(current_user), db: Session = Depends(get_db)):
     a = own(db, Appointment, id, u); a.status = "cancelled"
     db.add(Audit(clinic_id=u.clinic_id, actor=u.email, action=f"cancel appt {id}")); db.commit(); return a
-@r.post("/chat")
-def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
-    c = db.get(Clinic, u.clinic_id); s = receptionist.get_session(db, c.id, b.channel, b.session_id)
+def _run_chat_turn(db: Session, c: Clinic, b: ChatIn, default_name: str = "Web Patient") -> dict:
+    t0 = time.perf_counter()
+    s = receptionist.get_session(db, c.id, b.channel or "web", b.session_id)
     p = None
     if b.patient_phone:
         p = db.query(Patient).filter_by(clinic_id=c.id, phone=b.patient_phone).first()
         if not p:
-            p = Patient(clinic_id=c.id, name=b.patient_name or "Web Patient", phone=b.patient_phone, consent=True)
+            p = Patient(clinic_id=c.id, name=b.patient_name or default_name, phone=b.patient_phone, consent=True)
             db.add(p); db.flush()
         elif b.patient_name and p.name != b.patient_name:
             p.name = b.patient_name; db.flush()
@@ -219,6 +220,7 @@ def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_d
     handoff = outcome in ("handoff", "urgent")
     from .. import llm
     doc = db.query(Doctor).filter_by(clinic_id=c.id, active=True).first()
+    latency_ms = round((time.perf_counter() - t0) * 1000, 1)
     return {
         "reply": reply_text,
         "ai_disclosure": "clinic's automated assistant",
@@ -231,7 +233,13 @@ def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_d
         "clinic_name": c.name,
         "doctor_name": doc.name if doc else "Doctor",
         "doctor_status": doc.status_state if doc else "in",
+        "latency_ms": latency_ms,
     }
+
+@r.post("/chat")
+def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    c = db.get(Clinic, u.clinic_id)
+    return _run_chat_turn(db, c, b, default_name="Web Patient")
 
 @r.post("/chat/public")
 def public_chat(b: ChatIn, db: Session = Depends(get_db)):
@@ -245,37 +253,7 @@ def public_chat(b: ChatIn, db: Session = Depends(get_db)):
             pass
     if not c:
         raise HTTPException(404, "Clinic not found")
-
-    s = receptionist.get_session(db, c.id, b.channel or "web", b.session_id)
-    p = None
-    if b.patient_phone:
-        p = db.query(Patient).filter_by(clinic_id=c.id, phone=b.patient_phone).first()
-        if not p:
-            p = Patient(clinic_id=c.id, name=b.patient_name or "Web Visitor", phone=b.patient_phone, consent=True)
-            db.add(p); db.flush()
-        elif b.patient_name and p.name != b.patient_name:
-            p.name = b.patient_name; db.flush()
-
-    reply_text = receptionist.reply(db, c, s, p, b.message)
-    ev = db.get(Event, s.event_id) if s.event_id else None
-    intent = ev.intent if ev else "other"
-    outcome = ev.outcome if ev else "answered"
-    handoff = outcome in ("handoff", "urgent")
-    from .. import llm
-    doc = db.query(Doctor).filter_by(clinic_id=c.id, active=True).first()
-    return {
-        "reply": reply_text,
-        "ai_disclosure": "clinic's automated assistant",
-        "intent": intent,
-        "outcome": outcome,
-        "language": receptionist.lang(b.message),
-        "handoff": handoff,
-        "transfer_to": c.staff_phone if (handoff and c.staff_phone) else ("112" if outcome == "urgent" else None),
-        "llm_status": llm.get_llm_status(c.id),
-        "clinic_name": c.name,
-        "doctor_name": doc.name if doc else "Doctor",
-        "doctor_status": doc.status_state if doc else "in",
-    }
+    return _run_chat_turn(db, c, b, default_name="Web Visitor")
 
 @r.get("/llm/status")
 def llm_status(u: User = Depends(current_user)):

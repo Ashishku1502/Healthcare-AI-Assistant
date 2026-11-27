@@ -1117,7 +1117,7 @@ function Chat() {
     who: "ai",
     t: "Hello! I'm Parchi, your clinic's automated assistant. Ask about clinic timings, fees, address, doctor wait status, or booking a slot.",
   };
-  const [msgs, setMsgs] = useState<{ who: string; t: string; intent?: string; language?: string; handoff?: boolean; outcome?: string; transfer?: string | null }[]>([initialGreeting]);
+  const [msgs, setMsgs] = useState<{ who: string; t: string; intent?: string; language?: string; handoff?: boolean; outcome?: string; transfer?: string | null; ms?: number }[]>([initialGreeting]);
   const [t, setT] = useState("");
   const [sid, setSid] = useState(() => "web" + Math.random().toString(36).slice(2, 8));
   const [busy, setBusy] = useState(false);
@@ -1162,6 +1162,7 @@ function Chat() {
           handoff: r.handoff,
           outcome: r.outcome,
           transfer: r.transfer_to || null,
+          ms: typeof r.latency_ms === "number" ? Math.round(r.latency_ms) : undefined,
         },
       ]);
     } catch (x: any) {
@@ -1337,6 +1338,11 @@ function Chat() {
                 )}
                 {m.who === "ai" && (m.intent || i > 0) && (
                   <div className="flex items-center gap-2 flex-wrap mt-2.5 pt-2 border-t border-[var(--ink)]/15">
+                    {m.ms !== undefined && (
+                      <span className="px-2.5 py-0.5 rounded-md bg-[var(--paper)] border border-[var(--ink)] text-[14px] font-bold text-[var(--teal)]">
+                        {m.ms} ms
+                      </span>
+                    )}
                     {m.intent && (
                       <span className="px-2.5 py-0.5 rounded-md bg-[var(--paper)] border border-[var(--ink)] text-[16px] font-bold uppercase text-[var(--ink)]">
                         {m.intent}
