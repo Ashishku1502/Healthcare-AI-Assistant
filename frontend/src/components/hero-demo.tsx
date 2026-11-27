@@ -99,14 +99,41 @@ export default function HeroDemo() {
       }
 
       // Update live status ticket based on classified intent
-      if (res.intent === "fees" || /fee/i.test(text)) {
+      if (res.intent === "fees" || /fee|payment|upi|gpay|cash/i.test(text)) {
         setTicket({
           doctorName: res.doctor_name || "Dr. Neha Sharma",
-          statusLabel: "Doctor In",
+          statusLabel: "Rs 300 · Cash/UPI",
+          statusTone: "teal",
+          token: 14,
+          estWait: "Consultation open",
+          confirmedAgo: "Verified fees & UPI",
+        });
+      } else if (res.intent === "hours" || /timing|hours|open|samay|vel/i.test(text)) {
+        setTicket({
+          doctorName: res.doctor_name || "Dr. Neha Sharma",
+          statusLabel: "OPD Open",
           statusTone: "teal",
           token: 14,
           estWait: "Mon–Sat 9–7",
-          confirmedAgo: "Clinic facts verified",
+          confirmedAgo: "Verified OPD hours",
+        });
+      } else if (res.intent === "address" || /address|kahan|location|pata/i.test(text)) {
+        setTicket({
+          doctorName: res.doctor_name || "Dr. Neha Sharma",
+          statusLabel: "12 MG Road",
+          statusTone: "teal",
+          token: 14,
+          estWait: "Landmark: Opp. Metro",
+          confirmedAgo: "Verified location",
+        });
+      } else if (res.intent === "services" || /service|facility|checkup|test|bp|sugar/i.test(text)) {
+        setTicket({
+          doctorName: res.doctor_name || "Dr. Neha Sharma",
+          statusLabel: "Checkup & OPD",
+          statusTone: "teal",
+          token: 14,
+          estWait: "Routine & BP Tests",
+          confirmedAgo: "Verified services",
         });
       } else if (res.intent === "wait" || /doctor|aaye|late|wait/i.test(text)) {
         const isLate = reply.includes("late") || res.doctor_status === "late";
@@ -116,6 +143,15 @@ export default function HeroDemo() {
           statusTone: isLate ? "yellow" : "teal",
           token: 14,
           estWait: isLate ? "~15 min" : "~5 min",
+          confirmedAgo: "Live status synced",
+        });
+      } else {
+        setTicket({
+          doctorName: res.doctor_name || "Dr. Neha Sharma",
+          statusLabel: "Desk Active",
+          statusTone: "teal",
+          token: 14,
+          estWait: "Instant response",
           confirmedAgo: "Live status synced",
         });
       }
@@ -272,6 +308,20 @@ export default function HeroDemo() {
                 className="btn2 min-h-[52px] px-4 text-[16px]"
               >
                 Timing &amp; fees?
+              </button>
+              <button
+                type="button"
+                onClick={() => processMessage("Consultation fees kitni hai aur UPI chalega?")}
+                className="btn2 min-h-[52px] px-4 text-[16px]"
+              >
+                Fees &amp; UPI?
+              </button>
+              <button
+                type="button"
+                onClick={() => processMessage("Clinic kahan par hai aur landmark kya hai?")}
+                className="btn2 min-h-[52px] px-4 text-[16px]"
+              >
+                Address &amp; map?
               </button>
               <button
                 type="button"
