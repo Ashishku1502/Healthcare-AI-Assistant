@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   IconAlertTriangle,
   IconCheckCircle,
   IconClock,
+  IconRefreshCw,
   IconSend,
   IconShieldCheck,
+  IconStethoscope,
 } from "@/components/icons";
 
 interface DemoMessage {
@@ -26,23 +28,34 @@ interface TicketState {
 const EMERGENCY_RE =
   /chest pain|seene mein dard|breathless|can'?t breathe|cannot breathe|saans|child.*fever|bachche.*bukhar|high fever|103|104/i;
 
+const INITIAL_MESSAGES: DemoMessage[] = [
+  {
+    who: "assistant",
+    text: "Namaste! I am Parchi, the clinic's automated assistant. Ask 'Doctor aaye kya?', check fees, or test an urgent symptom.",
+  },
+];
+
+const INITIAL_TICKET: TicketState = {
+  doctorName: "Dr. Neha Sharma",
+  statusLabel: "Unconfirmed",
+  statusTone: "yellow",
+  token: 12,
+  estWait: "Tap Send to check",
+  confirmedAgo: "Waiting for query",
+};
+
 export default function HeroDemo() {
   const [input, setInput] = useState("Doctor aaye kya?");
-  const [messages, setMessages] = useState<DemoMessage[]>([
-    {
-      who: "assistant",
-      text: "Namaste! I am Parchi, the clinic's automated assistant. Ask 'Doctor aaye kya?' or test an urgent symptom.",
-    },
-  ]);
+  const [messages, setMessages] = useState<DemoMessage[]>(INITIAL_MESSAGES);
   const [emergencyActive, setEmergencyActive] = useState(false);
-  const [ticket, setTicket] = useState<TicketState>({
-    doctorName: "Dr. Neha Sharma",
-    statusLabel: "Unconfirmed",
-    statusTone: "yellow",
-    token: 12,
-    estWait: "Tap Send to check",
-    confirmedAgo: "Waiting for query",
-  });
+  const [ticket, setTicket] = useState<TicketState>(INITIAL_TICKET);
+  const feedRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (feedRef.current) {
+      feedRef.current.scrollTop = feedRef.current.scrollHeight;
+    }
+  }, [messages, emergencyActive]);
 
   function processMessage(raw: string) {
     const text = raw.trim();
@@ -84,12 +97,32 @@ export default function HeroDemo() {
       return;
     }
 
+    if (/fee|fees|timing|hours|open|vel|band|address/i.test(text)) {
+      setTicket({
+        doctorName: "Dr. Neha Sharma",
+        statusLabel: "Doctor In",
+        statusTone: "teal",
+        token: 14,
+        estWait: "Mon–Sat 9–7",
+        confirmedAgo: "Clinic facts verified",
+      });
+      setMessages((prev) => [
+        ...prev,
+        { who: "patient", text },
+        {
+          who: "assistant",
+          text: "Clinic hours are Mon–Sat, 9 AM to 7 PM. Consultation fee is Rs 300. Ask 'Doctor aaye kya?' for live doctor wait updates.",
+        },
+      ]);
+      return;
+    }
+
     setMessages((prev) => [
       ...prev,
       { who: "patient", text },
       {
         who: "assistant",
-        text: "Clinic hours are Mon–Sat, 9 AM to 7 PM. Fees: Rs 300. Ask 'Doctor aaye kya?' for live wait updates.",
+        text: "I am the clinic's automated assistant. Ask 'Doctor aaye kya?' for live wait updates or 'Clinic timing & fees?' for clinic details.",
       },
     ]);
   }
@@ -102,20 +135,8 @@ export default function HeroDemo() {
   function resetDemo() {
     setEmergencyActive(false);
     setInput("Doctor aaye kya?");
-    setMessages([
-      {
-        who: "assistant",
-        text: "Namaste! I am Parchi, the clinic's automated assistant. Ask 'Doctor aaye kya?' or test an urgent symptom.",
-      },
-    ]);
-    setTicket({
-      doctorName: "Dr. Neha Sharma",
-      statusLabel: "Unconfirmed",
-      statusTone: "yellow",
-      token: 12,
-      estWait: "Tap Send to check",
-      confirmedAgo: "Waiting for query",
-    });
+    setMessages(INITIAL_MESSAGES);
+    setTicket(INITIAL_TICKET);
   }
 
   const badgeStyle =
@@ -126,17 +147,28 @@ export default function HeroDemo() {
       : "bg-[var(--yellow)] text-[var(--ink)]";
 
   return (
-    <div className="grid lg:grid-cols-12 gap-6 items-start">
-      {/* Left: Interactive Chat Demo */}
+    <div id="live-demo" className="grid lg:grid-cols-12 gap-6 items-start">
+      {/* Left: Interactive Patient Chat Demo */}
       <div className="lg:col-span-7 bg-white border-2 border-[#C8DAD7] rounded-3xl p-4 sm:p-6 shadow-sm space-y-4">
-        <div className="flex items-center justify-between gap-2 border-b border-[#D4E2DF] pb-3 flex-wrap">
-          <span className="font-heading text-[18px] font-bold text-[var(--ink)] flex items-center gap-2">
-            <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0" />
-            <span>Live Patient Chat Demo</span>
-          </span>
-          <span className="px-3 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-semibold">
-            Automated Assistant
-          </span>
+        <div className="flex items-center justify-between gap-2 border-b border-[#D4E2DF] pb-3.5 flex-wrap">
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <span className="font-heading text-[19px] font-bold text-[var(--ink)] flex items-center gap-2">
+              <IconCheckCircle className="w-5 h-5 text-[var(--teal)] shrink-0" />
+              <span>Live Patient Chat Demo</span>
+            </span>
+            <span className="px-3 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)] text-[16px] font-bold">
+              Automated Assistant
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={resetDemo}
+            className="btn2 px-3.5 text-[16px] gap-1.5"
+            aria-label="Reset live demo"
+          >
+            <IconRefreshCw className="w-4 h-4 shrink-0" />
+            <span>Reset</span>
+          </button>
         </div>
 
         {/* Full Red Emergency Panel (no AI-generated text) */}
@@ -146,7 +178,7 @@ export default function HeroDemo() {
             className="rounded-2xl bg-[var(--red)] text-white p-5 sm:p-6 space-y-4"
           >
             <div className="flex items-center gap-3">
-              <IconAlertTriangle className="w-7 h-7 text-white shrink-0" />
+              <IconAlertTriangle className="w-8 h-8 text-white shrink-0" />
               <h2 className="font-heading text-[22px] font-extrabold text-white">
                 Medical Emergency Detected
               </h2>
@@ -163,14 +195,18 @@ export default function HeroDemo() {
             </button>
           </div>
         ) : (
-          <div className="space-y-3 max-h-72 overflow-y-auto pr-1" aria-live="polite">
+          <div
+            ref={feedRef}
+            className="space-y-3 max-h-72 overflow-y-auto p-3.5 bg-[var(--paper)] border border-[#D4E2DF] rounded-2xl"
+            aria-live="polite"
+          >
             {messages.map((m, idx) => (
               <div
                 key={idx}
                 className={`rounded-2xl p-3.5 max-w-[92%] text-[17px] ${
                   m.who === "patient"
                     ? "bg-[var(--teal)] text-white ml-auto"
-                    : "bg-[#E4EFED] text-[var(--ink)]"
+                    : "bg-white border border-[#C8DAD7] text-[var(--ink)] shadow-xs"
                 }`}
               >
                 <p>{m.text}</p>
@@ -179,29 +215,39 @@ export default function HeroDemo() {
           </div>
         )}
 
-        {/* Quick Demo Triggers */}
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            onClick={() => processMessage("Doctor aaye kya?")}
-            className="btn2 min-h-[56px] px-4 text-[16px]"
-          >
-            Doctor aaye kya?
-          </button>
-          <button
-            type="button"
-            onClick={() => processMessage("Chest pain and breathlessness")}
-            className="min-h-[56px] px-4 rounded-2xl border-2 border-[var(--red)] bg-white text-[var(--ink)] font-bold text-[16px] hover:bg-[#FDF2F1]"
-          >
-            Chest pain
-          </button>
-          <button
-            type="button"
-            onClick={() => processMessage("Child has high fever 103")}
-            className="min-h-[56px] px-4 rounded-2xl border-2 border-[var(--red)] bg-white text-[var(--ink)] font-bold text-[16px] hover:bg-[#FDF2F1]"
-          >
-            Child&apos;s high fever
-          </button>
+        {/* Quick Demo Scenario Chips */}
+        <div className="space-y-2">
+          <p className="text-[16px] font-semibold text-[#3C5250]">Try a scenario in 1 tap:</p>
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={() => processMessage("Doctor aaye kya?")}
+              className="btn2 min-h-[52px] px-4 text-[16px]"
+            >
+              Doctor aaye kya?
+            </button>
+            <button
+              type="button"
+              onClick={() => processMessage("Clinic timing & fees?")}
+              className="btn2 min-h-[52px] px-4 text-[16px]"
+            >
+              Timing &amp; fees?
+            </button>
+            <button
+              type="button"
+              onClick={() => processMessage("Chest pain and breathlessness")}
+              className="min-h-[52px] px-4 rounded-2xl border-2 border-[var(--red)] bg-white text-[var(--ink)] font-bold text-[16px] hover:bg-[#FDF2F1]"
+            >
+              Chest pain
+            </button>
+            <button
+              type="button"
+              onClick={() => processMessage("Child has high fever 103")}
+              className="min-h-[52px] px-4 rounded-2xl border-2 border-[var(--red)] bg-white text-[var(--ink)] font-bold text-[16px] hover:bg-[#FDF2F1]"
+            >
+              Child&apos;s high fever
+            </button>
+          </div>
         </div>
 
         {/* Chat Input Form */}
@@ -213,22 +259,23 @@ export default function HeroDemo() {
             onChange={(e) => setInput(e.target.value)}
             placeholder="Type 'Doctor aaye kya?'..."
           />
-          <button type="submit" className="btn gap-2 shrink-0">
+          <button type="submit" className="btn gap-2 shrink-0 px-6">
             <IconSend className="w-5 h-5 shrink-0" />
             <span>Send</span>
           </button>
         </form>
       </div>
 
-      {/* Right: Ticket-Shaped Live Status Card updated by chat */}
-      <div className="lg:col-span-5">
+      {/* Right: Ticket-Shaped Live Status Card + Workflow Strip */}
+      <div className="lg:col-span-5 space-y-4">
         <div className="ticket-card">
-          <div className="p-5 space-y-3">
+          <div className="p-5 space-y-3.5">
             <div className="flex items-start justify-between gap-2">
-              <div>
+              <div className="min-w-0">
                 <p className="text-[16px] font-semibold text-[#3C5250]">Clinic Live Ticket</p>
-                <h2 className="font-heading text-[22px] font-extrabold text-[var(--ink)]">
-                  {ticket.doctorName}
+                <h2 className="font-heading text-[22px] font-extrabold text-[var(--ink)] flex items-center gap-2 mt-0.5">
+                  <IconStethoscope className="w-5 h-5 text-[var(--teal)] shrink-0" />
+                  <span>{ticket.doctorName}</span>
                 </h2>
               </div>
               <span className={`px-3 py-1 rounded-full text-[16px] font-bold shrink-0 ${badgeStyle}`}>
@@ -257,11 +304,19 @@ export default function HeroDemo() {
                 #<span key={ticket.token} className="animate-token">{ticket.token}</span>
               </p>
             </div>
-            <div className="flex items-center gap-1.5 text-[16px] font-semibold text-[var(--teal)]">
+            <div className="flex items-center gap-1.5 text-[16px] font-bold text-[var(--teal)]">
               <IconShieldCheck className="w-5 h-5 shrink-0" />
               <span>Verified</span>
             </div>
           </div>
+        </div>
+
+        {/* Plain-English How It Works Box */}
+        <div className="bg-white border border-[#C8DAD7] rounded-3xl p-4 sm:p-5 space-y-2.5">
+          <p className="font-heading text-[18px] font-bold text-[var(--ink)]">How patients get answered</p>
+          <p className="text-[16px] text-[#3C5250] leading-relaxed">
+            1. Receptionist taps doctor status on mobile &rarr; 2. Parchi shares verified wait time &amp; token &rarr; 3. Red-flag symptoms bypass AI and route straight to 112.
+          </p>
         </div>
       </div>
     </div>
