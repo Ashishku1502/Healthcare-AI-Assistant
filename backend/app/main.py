@@ -48,6 +48,9 @@ def init_db():
                     User(clinic_id=c.id, email="owner@clinic.com", password_hash=hash_pw("clinic1234"), role="owner"),
                     User(clinic_id=c.id, email="desk@clinic.com", password_hash=hash_pw("clinic1234"), role="receptionist"),
                     Doctor(clinic_id=c.id, name="Neha Sharma", speciality="General Physician", days="0,1,2,3,4,5", start_hour=9, end_hour=17, slot_minutes=15, active=True),
+                    Event(clinic_id=c.id, channel="voice", intent="emergency", outcome="urgent", note="Patient reported sudden chest discomfort & shortness of breath. 112 emergency routing advised; staff phone alerted.", resolved=False),
+                    Event(clinic_id=c.id, channel="whatsapp", intent="report", outcome="handoff", note="Sunita Verma (+91 98200 11223) shared CBC lab report; requested Dr. Neha review.", resolved=False),
+                    Event(clinic_id=c.id, channel="voice", intent="prescription", outcome="handoff", note="Ramesh Patil (+91 98450 33445) requested refill for BP medicine (Amlodipine 5mg).", resolved=False),
                 ])
                 db.commit()
         finally:

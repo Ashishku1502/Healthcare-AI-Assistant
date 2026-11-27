@@ -117,6 +117,44 @@ function Now() {
   const doc = useLoad<any[]>("/doctors");
   const att = useLoad<any[]>("/attention");
   const [msg, setMsg] = useState<{ text: string; err?: boolean } | null>(null);
+  const [showAddHandoff, setShowAddHandoff] = useState(false);
+  const [handoffPatient, setHandoffPatient] = useState("");
+  const [handoffPhone, setHandoffPhone] = useState("");
+  const [handoffIntent, setHandoffIntent] = useState("callback");
+  const [handoffOutcome, setHandoffOutcome] = useState<"handoff" | "urgent">("handoff");
+  const [handoffChannel, setHandoffChannel] = useState("phone");
+  const [handoffNote, setHandoffNote] = useState("");
+  const [submittingHandoff, setSubmittingHandoff] = useState(false);
+  const [handoffFeedback, setHandoffFeedback] = useState<string | null>(null);
+
+  async function handleAddHandoff(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmittingHandoff(true);
+    setHandoffFeedback(null);
+    try {
+      const combinedNote = `${handoffPatient.trim()}${handoffPhone.trim() ? ` (${handoffPhone.trim()})` : ""}: ${handoffNote.trim() || "Staff callback requested"}`;
+      await api("/attention", {
+        method: "POST",
+        body: JSON.stringify({
+          intent: handoffIntent,
+          outcome: handoffOutcome,
+          channel: handoffChannel,
+          note: combinedNote,
+        }),
+      });
+      setHandoffFeedback("Patient callback added to queue!");
+      setHandoffPatient("");
+      setHandoffPhone("");
+      setHandoffNote("");
+      setShowAddHandoff(false);
+      att.reload();
+      setTimeout(() => setHandoffFeedback(null), 3500);
+    } catch (err: any) {
+      setHandoffFeedback(err.message || "Failed to add handoff");
+    } finally {
+      setSubmittingHandoff(false);
+    }
+  }
 
   async function set(id: number, state: string, late = 0) {
     setMsg(null);
@@ -328,16 +366,150 @@ function Now() {
               Needs Attention & Staff Handoffs
             </h2>
           </div>
-          <span className="text-[16px] font-bold px-3 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)]">
-            {openHandoffs} pending
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowAddHandoff(!showAddHandoff)}
+              className="btn2 text-[15px] min-h-[44px] px-3.5 inline-flex items-center gap-1.5 font-bold"
+            >
+              <span>{showAddHandoff ? "Close Form" : "+ Log Callback"}</span>
+            </button>
+            {openHandoffs === 0 && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api("/attention/seed", { method: "POST" });
+                    att.reload();
+                    setHandoffFeedback("Seeded 3 demo patient handoffs!");
+                    setTimeout(() => setHandoffFeedback(null), 3000);
+                  } catch (e: any) {
+                    setHandoffFeedback(e.message || "Could not seed test items");
+                  }
+                }}
+                className="btn text-[15px] min-h-[44px] px-3.5 inline-flex items-center gap-1.5 font-bold"
+              >
+                <span>Seed Demo Items</span>
+              </button>
+            )}
+            <span className="text-[15px] font-bold px-3 py-1 rounded-full bg-[#E4EFED] text-[var(--ink)]">
+              {openHandoffs} pending
+            </span>
+          </div>
         </div>
+
+        {handoffFeedback && (
+          <div className="rounded-xl p-3 bg-[#DCFCE7] text-[#14532D] border border-[#166534] text-[15px] font-bold flex items-center gap-2">
+            <IconCheckCircle className="w-4 h-4 shrink-0" />
+            <span>{handoffFeedback}</span>
+          </div>
+        )}
+
+        {showAddHandoff && (
+          <form onSubmit={handleAddHandoff} className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-xl p-4 space-y-3">
+            <p className="font-heading font-extrabold text-[17px] text-[var(--ink)]">Log New Patient Callback / Escalation</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Patient Name</label>
+                <input
+                  type="text"
+                  required
+                  value={handoffPatient}
+                  onChange={(e) => setHandoffPatient(e.target.value)}
+                  placeholder="e.g. Ramesh Kumar"
+                  className="inp min-h-[48px] text-[15px]"
+                />
+              </div>
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={handoffPhone}
+                  onChange={(e) => setHandoffPhone(e.target.value)}
+                  placeholder="e.g. +91 98765 43210"
+                  className="inp min-h-[48px] text-[15px]"
+                />
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-3 gap-3">
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Priority</label>
+                <select
+                  value={handoffOutcome}
+                  onChange={(e) => setHandoffOutcome(e.target.value as any)}
+                  className="inp min-h-[48px] text-[15px]"
+                >
+                  <option value="handoff">Normal Callback (Staff Handoff)</option>
+                  <option value="urgent">Urgent Escalation (Immediate Action)</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Category</label>
+                <select
+                  value={handoffIntent}
+                  onChange={(e) => setHandoffIntent(e.target.value)}
+                  className="inp min-h-[48px] text-[15px]"
+                >
+                  <option value="callback">Doctor Callback</option>
+                  <option value="report">Lab Report Review</option>
+                  <option value="prescription">Prescription Refill</option>
+                  <option value="emergency">Urgent Symptom / Emergency</option>
+                  <option value="other">General Query</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Channel</label>
+                <select
+                  value={handoffChannel}
+                  onChange={(e) => setHandoffChannel(e.target.value)}
+                  className="inp min-h-[48px] text-[15px]"
+                >
+                  <option value="phone">Phone Call</option>
+                  <option value="whatsapp">WhatsApp</option>
+                  <option value="voice">Voice Agent (Simulated)</option>
+                  <option value="desk">Front Desk Walk-in</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[14px] font-bold block mb-1">Notes / Patient Request Details</label>
+              <textarea
+                value={handoffNote}
+                onChange={(e) => setHandoffNote(e.target.value)}
+                placeholder="Details of what the patient needs staff to follow up on..."
+                rows={2}
+                className="w-full rounded-xl border-2 border-[var(--ink)] p-3 text-[15px] bg-white text-[var(--ink)]"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAddHandoff(false)}
+                className="btn2 text-[15px] min-h-[44px] px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingHandoff}
+                className="btn text-[15px] min-h-[44px] px-5"
+              >
+                {submittingHandoff ? "Saving…" : "Save to Attention Queue"}
+              </button>
+            </div>
+          </form>
+        )}
 
         <State loading={att.loading} err={att.err} empty={att.data?.length === 0} />
 
         <div className="space-y-3">
           {att.data?.map((e) => {
             const isUrgent = e.outcome === "urgent";
+            const phoneMatch = e.note?.match(/(\+?\d[\d\s-]{8,}\d)/);
+            const phoneNumber = phoneMatch ? phoneMatch[0].replace(/[\s-]/g, "") : null;
             return (
               <div
                 key={e.id}
@@ -350,36 +522,52 @@ function Now() {
                 <div className="space-y-1.5 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     {isUrgent ? (
-                      <span className="inline-flex items-center gap-1.5 text-[16px] font-bold bg-[var(--red)] text-white px-3 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1.5 text-[15px] font-bold bg-[var(--red)] text-white px-3 py-0.5 rounded-full">
                         <IconAlertTriangle className="w-4 h-4 text-white" />
                         URGENT
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-3 py-0.5 rounded-full">
+                      <span className="inline-flex items-center gap-1.5 text-[15px] font-bold bg-[#E4EFED] text-[var(--ink)] px-3 py-0.5 rounded-full">
                         <IconPhone className="w-4 h-4 text-[var(--teal)]" />
-                        HANDOFF
+                        STAFF HANDOFF
                       </span>
                     )}
                     <span className="font-bold text-[17px] text-[var(--ink)] capitalize">
                       {e.intent}
                     </span>
-                    <span className="text-[16px] text-[#3C5250] font-medium">· via {e.channel}</span>
+                    <span className="text-[15px] text-[#3C5250] font-medium">· via {e.channel}</span>
+                    {e.at && (
+                      <span className="text-[13px] text-[#6B7280]">
+                        {new Date(e.at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                    )}
                   </div>
-                  <p className="text-[16px] text-[var(--ink)] break-words">
+                  <p className="text-[16px] text-[var(--ink)] break-words font-medium">
                     {e.note || "Staff follow-up required"}
                   </p>
                 </div>
 
-                <button
-                  className="btn2 text-[16px] px-4 flex items-center justify-center gap-2 shrink-0 bg-white"
-                  onClick={async () => {
-                    await api(`/attention/${e.id}/resolve`, { method: "POST" });
-                    att.reload();
-                  }}
-                >
-                  <IconCheckCircle className="w-4 h-4 text-[var(--teal)]" />
-                  <span>Mark as Handled</span>
-                </button>
+                <div className="flex items-center gap-2 shrink-0 flex-wrap">
+                  {phoneNumber && (
+                    <a
+                      href={`tel:${phoneNumber}`}
+                      className="btn2 text-[15px] min-h-[44px] px-3.5 inline-flex items-center gap-1.5 bg-white text-[var(--teal)] font-bold"
+                    >
+                      <IconPhone className="w-4 h-4" />
+                      <span>Call</span>
+                    </a>
+                  )}
+                  <button
+                    className="btn2 text-[15px] min-h-[44px] px-4 flex items-center justify-center gap-2 shrink-0 bg-white"
+                    onClick={async () => {
+                      await api(`/attention/${e.id}/resolve`, { method: "POST" });
+                      att.reload();
+                    }}
+                  >
+                    <IconCheckCircle className="w-4 h-4 text-[var(--teal)]" />
+                    <span>Mark as Handled</span>
+                  </button>
+                </div>
               </div>
             );
           })}

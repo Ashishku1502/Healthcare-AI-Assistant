@@ -274,8 +274,69 @@ def set_token(id: int, b: dict, u: User = Depends(current_user), db: Session = D
     return d
 @r.get("/attention")
 def attention(u: User = Depends(current_user), db: Session = Depends(get_db)):
-    rows = db.query(Event).filter(Event.clinic_id == u.clinic_id, Event.outcome.in_(["handoff", "urgent"]), Event.resolved == False).order_by(Event.id.desc()).limit(30).all()
+    rows = db.query(Event).filter(
+        Event.clinic_id == u.clinic_id,
+        Event.outcome.in_(["handoff", "urgent"]),
+        Event.resolved == False
+    ).order_by(Event.id.desc()).limit(30).all()
+
+    # If demo clinic with zero pending rows, auto-seed realistic test items
+    if not rows and u.email in ("owner@clinic.com", "desk@clinic.com"):
+        sample_items = [
+            Event(clinic_id=u.clinic_id, channel="voice", intent="emergency", outcome="urgent", note="Patient reported sudden chest discomfort & shortness of breath. 112 emergency routing advised; staff phone alerted.", resolved=False),
+            Event(clinic_id=u.clinic_id, channel="whatsapp", intent="report", outcome="handoff", note="Sunita Verma (+91 98200 11223) shared CBC lab report; requested Dr. Neha review.", resolved=False),
+            Event(clinic_id=u.clinic_id, channel="voice", intent="prescription", outcome="handoff", note="Ramesh Patil (+91 98450 33445) requested refill for BP medicine (Amlodipine 5mg).", resolved=False),
+        ]
+        db.add_all(sample_items)
+        db.commit()
+        rows = sample_items
+
     return [{"id": e.id, "outcome": e.outcome, "intent": e.intent, "channel": e.channel, "note": e.note, "at": e.created_at} for e in rows]
+
+@r.post("/attention")
+def create_attention(b: dict, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    intent = (b.get("intent") or "callback").strip()
+    outcome = (b.get("outcome") or "handoff").strip()
+    if outcome not in ("handoff", "urgent"):
+        outcome = "handoff"
+    channel = (b.get("channel") or "desk").strip()
+    note = (b.get("note") or "").strip()
+    if not note:
+        note = "Patient callback requested"
+    ev = Event(
+        clinic_id=u.clinic_id,
+        channel=channel,
+        intent=intent,
+        outcome=outcome,
+        note=note,
+        resolved=False,
+    )
+    db.add(ev)
+    db.commit()
+    db.refresh(ev)
+    return {
+        "ok": True,
+        "item": {
+            "id": ev.id,
+            "outcome": ev.outcome,
+            "intent": ev.intent,
+            "channel": ev.channel,
+            "note": ev.note,
+            "at": ev.created_at,
+        }
+    }
+
+@r.post("/attention/seed")
+def seed_attention(u: User = Depends(current_user), db: Session = Depends(get_db)):
+    sample_items = [
+        Event(clinic_id=u.clinic_id, channel="voice", intent="emergency", outcome="urgent", note="Patient reported sudden chest discomfort & shortness of breath. 112 emergency routing advised; staff phone alerted.", resolved=False),
+        Event(clinic_id=u.clinic_id, channel="whatsapp", intent="report", outcome="handoff", note="Sunita Verma (+91 98200 11223) shared CBC lab report; requested Dr. Neha review.", resolved=False),
+        Event(clinic_id=u.clinic_id, channel="voice", intent="prescription", outcome="handoff", note="Ramesh Patil (+91 98450 33445) requested refill for BP medicine (Amlodipine 5mg).", resolved=False),
+    ]
+    db.add_all(sample_items)
+    db.commit()
+    return {"ok": True, "count": len(sample_items)}
+
 @r.get("/safety-logs")
 def safety_logs(u: User = Depends(current_user), db: Session = Depends(get_db)):
     """List every pre-model safety check trigger logged for this clinic."""

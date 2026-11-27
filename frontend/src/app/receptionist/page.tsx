@@ -54,6 +54,41 @@ export default function ReceptionistPage() {
   const [nowTime, setNowTime] = useState<Date>(new Date());
   const msgTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [showAddCallback, setShowAddCallback] = useState(false);
+  const [newPatientName, setNewPatientName] = useState("");
+  const [newPhone, setNewPhone] = useState("");
+  const [newCategory, setNewCategory] = useState("callback");
+  const [newPriority, setNewPriority] = useState<"handoff" | "urgent">("handoff");
+  const [newNote, setNewNote] = useState("");
+  const [submittingCallback, setSubmittingCallback] = useState(false);
+
+  const handleAddCallback = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmittingCallback(true);
+    try {
+      const combinedNote = `${newPatientName.trim()}${newPhone.trim() ? ` (${newPhone.trim()})` : ""}: ${newNote.trim() || "Front desk callback requested"}`;
+      await api("/attention", {
+        method: "POST",
+        body: JSON.stringify({
+          intent: newCategory,
+          outcome: newPriority,
+          channel: "desk",
+          note: combinedNote,
+        }),
+      });
+      showTimedMsg("Callback logged successfully!", "success");
+      setNewPatientName("");
+      setNewPhone("");
+      setNewNote("");
+      setShowAddCallback(false);
+      loadData();
+    } catch (err: any) {
+      showTimedMsg(err.message || "Failed to log callback", "error");
+    } finally {
+      setSubmittingCallback(false);
+    }
+  };
+
   const showTimedMsg = useCallback((text: string, type: "success" | "error", ms = 3500) => {
     if (msgTimerRef.current) clearTimeout(msgTimerRef.current);
     setMsg({ text, type });
@@ -393,15 +428,125 @@ export default function ReceptionistPage() {
 
       {/* BOTTOM: Missed Calls List */}
       <section aria-label="Missed calls" className="card p-4 sm:p-6 space-y-4">
-        <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--ink)] pb-3">
+        <div className="flex items-center justify-between flex-wrap gap-2 border-b-2 border-[var(--ink)] pb-3">
           <h2 className="font-heading text-[20px] font-extrabold text-[var(--ink)] flex items-center gap-2">
             <IconPhone className="w-5 h-5 text-[var(--teal)] shrink-0" />
             <span>Missed calls & callbacks</span>
           </h2>
-          <span className="px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
-            {missedCalls.length}
-          </span>
+          <div className="flex items-center gap-2 flex-wrap">
+            <button
+              type="button"
+              onClick={() => setShowAddCallback(!showAddCallback)}
+              className="btn2 text-[15px] min-h-[44px] px-3.5 inline-flex items-center gap-1.5 font-bold"
+            >
+              <span>{showAddCallback ? "Close" : "+ Add Callback"}</span>
+            </button>
+            {missedCalls.length === 0 && (
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await api("/attention/seed", { method: "POST" });
+                    showTimedMsg("Seeded demo callbacks!", "success");
+                    loadData();
+                  } catch (e: any) {
+                    showTimedMsg(e.message || "Could not seed", "error");
+                  }
+                }}
+                className="btn text-[15px] min-h-[44px] px-3.5 inline-flex items-center gap-1.5 font-bold"
+              >
+                <span>Seed Demo</span>
+              </button>
+            )}
+            <span className="px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
+              {missedCalls.length}
+            </span>
+          </div>
         </div>
+
+        {showAddCallback && (
+          <form onSubmit={handleAddCallback} className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-xl p-4 space-y-3">
+            <p className="font-heading font-extrabold text-[17px] text-[var(--ink)]">Log Front Desk Callback</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Patient Name</label>
+                <input
+                  type="text"
+                  required
+                  value={newPatientName}
+                  onChange={(e) => setNewPatientName(e.target.value)}
+                  placeholder="e.g. Anjali Sharma"
+                  className="inp min-h-[48px] text-[15px]"
+                />
+              </div>
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Phone Number</label>
+                <input
+                  type="tel"
+                  value={newPhone}
+                  onChange={(e) => setNewPhone(e.target.value)}
+                  placeholder="e.g. +91 98111 22233"
+                  className="inp min-h-[48px] text-[15px]"
+                />
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Priority</label>
+                <select
+                  value={newPriority}
+                  onChange={(e) => setNewPriority(e.target.value as any)}
+                  className="inp min-h-[48px] text-[15px]"
+                >
+                  <option value="handoff">Normal Callback</option>
+                  <option value="urgent">Urgent Escalation</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[14px] font-bold block mb-1">Category</label>
+                <select
+                  value={newCategory}
+                  onChange={(e) => setNewCategory(e.target.value)}
+                  className="inp min-h-[48px] text-[15px]"
+                >
+                  <option value="callback">Doctor Callback</option>
+                  <option value="report">Lab Report</option>
+                  <option value="prescription">Prescription</option>
+                  <option value="emergency">Urgent Symptom</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <label className="text-[14px] font-bold block mb-1">Details / Request</label>
+              <input
+                type="text"
+                value={newNote}
+                onChange={(e) => setNewNote(e.target.value)}
+                placeholder="What does the patient need?"
+                className="inp min-h-[48px] text-[15px]"
+              />
+            </div>
+
+            <div className="flex gap-2 justify-end">
+              <button
+                type="button"
+                onClick={() => setShowAddCallback(false)}
+                className="btn2 text-[15px] min-h-[44px] px-4"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={submittingCallback}
+                className="btn text-[15px] min-h-[44px] px-5"
+              >
+                {submittingCallback ? "Saving…" : "Save Callback"}
+              </button>
+            </div>
+          </form>
+        )}
 
         {missedCalls.length === 0 ? (
           <EmptyDeskIllustration
@@ -410,37 +555,56 @@ export default function ReceptionistPage() {
           />
         ) : (
           <ul className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {missedCalls.map((item) => (
-              <li
-                key={item.id}
-                className={`rounded-xl p-4 border-2 border-[var(--ink)] flex flex-col justify-between gap-3 ${
-                  item.outcome === "urgent" ? "bg-[#FDECEA]" : "bg-[var(--paper)]"
-                }`}
-              >
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <span
-                      className={`px-2.5 py-0.5 rounded-lg border-2 border-[var(--ink)] text-[16px] font-bold uppercase ${
-                        item.outcome === "urgent"
-                          ? "bg-[var(--red)] text-white"
-                          : "bg-[var(--yellow)] text-[var(--ink)]"
-                      }`}
-                    >
-                      {item.outcome === "urgent" ? "Urgent" : "Callback"}
-                    </span>
-                    <span className="text-[16px] font-bold text-[var(--ink)]">{item.channel}</span>
-                  </div>
-                  <p className="text-[17px] text-[var(--ink)] leading-snug">{item.note || "Patient requested callback"}</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => resolveMissedCall(item.id)}
-                  className="btn2 w-full min-h-[52px] text-[17px]"
+            {missedCalls.map((item) => {
+              const phoneMatch = item.note?.match(/(\+?\d[\d\s-]{8,}\d)/);
+              const phoneNumber = phoneMatch ? phoneMatch[0].replace(/[\s-]/g, "") : null;
+              return (
+                <li
+                  key={item.id}
+                  className={`rounded-xl p-4 border-2 border-[var(--ink)] flex flex-col justify-between gap-3 ${
+                    item.outcome === "urgent" ? "bg-[#FDECEA]" : "bg-[var(--paper)]"
+                  }`}
                 >
-                  Mark called back
-                </button>
-              </li>
-            ))}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span
+                        className={`px-2.5 py-0.5 rounded-lg border-2 border-[var(--ink)] text-[15px] font-bold uppercase ${
+                          item.outcome === "urgent"
+                            ? "bg-[var(--red)] text-white"
+                            : "bg-[var(--yellow)] text-[var(--ink)]"
+                        }`}
+                      >
+                        {item.outcome === "urgent" ? "Urgent" : "Callback"}
+                      </span>
+                      <span className="text-[15px] font-bold text-[var(--ink)] capitalize">
+                        {item.intent} · via {item.channel}
+                      </span>
+                    </div>
+                    <p className="text-[17px] text-[var(--ink)] leading-snug font-medium">
+                      {item.note || "Patient requested callback"}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    {phoneNumber && (
+                      <a
+                        href={`tel:${phoneNumber}`}
+                        className="btn2 min-h-[52px] px-4 inline-flex items-center justify-center gap-1.5 font-bold bg-white text-[var(--teal)] shrink-0"
+                      >
+                        <IconPhone className="w-4 h-4" />
+                        <span>Call</span>
+                      </a>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => resolveMissedCall(item.id)}
+                      className="btn2 flex-1 min-h-[52px] text-[16px] font-bold"
+                    >
+                      Mark called back
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
           </ul>
         )}
       </section>
