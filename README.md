@@ -1,4 +1,4 @@
-# Parchi AI — AI front desk for small clinics (MVP)
+# Parchi AI front desk for small clinics (MVP)
 Next.js + FastAPI + SQLAlchemy. Admin dashboard, safe rule-based receptionist (Hindi/Hinglish/English), server-enforced booking, WhatsApp webhook, analytics.
 
 ## Live Deployment
