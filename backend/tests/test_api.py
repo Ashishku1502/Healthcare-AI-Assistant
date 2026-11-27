@@ -485,6 +485,36 @@ def test_health_and_vercel_cors():
     assert pre.headers.get("access-control-allow-origin") == origin
 
 
+def test_semantic_llm_fallback_and_status_endpoint():
+    llm.reset_daily_cap()
+    h = H("A@x.com")
+
+    # Built-in multilingual semantic fallback resolves natural queries even without LLM_API_KEY
+    loc_res = cl.post("/chat", json={"session_id": "sem_loc", "message": "Where is your clinic located?"}, headers=h)
+    assert loc_res.status_code == 200
+    assert loc_res.json()["intent"] == "address"
+    assert "Address:" in loc_res.json()["reply"]
+
+    cost_res = cl.post("/chat", json={"session_id": "sem_cost", "message": "How much does a visit cost?"}, headers=h)
+    assert cost_res.status_code == 200
+    assert cost_res.json()["intent"] == "fees"
+    assert "Fees:" in cost_res.json()["reply"]
+
+    hi_res = cl.post("/chat", json={"session_id": "sem_hi", "message": "Namaste"}, headers=h)
+    assert hi_res.status_code == 200
+    assert hi_res.json()["intent"] == "greeting"
+    assert hi_res.json()["handoff"] is False
+
+    # LLM & Voice status endpoint returns telemetry cleanly
+    st = cl.get("/llm/status", headers=h)
+    assert st.status_code == 200
+    body = st.json()
+    assert body["mode"] in ("built_in_semantic", "external_llm")
+    assert body["safety_gate"] == "pre_model_active"
+    assert "voice_minute_cap" in body
+
+
+
 
 
 

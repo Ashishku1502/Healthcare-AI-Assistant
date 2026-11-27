@@ -30,8 +30,8 @@ const TABS = [
   { id: "Overview", label: "Overview", desc: "Activity & safety log", icon: IconActivity },
   { id: "Doctors", label: "Doctors", desc: "Roster & notes", icon: IconStethoscope },
   { id: "Appointments", label: "Appointments", desc: "Patients & slots", icon: IconCalendar },
-  { id: "AI Receptionist", label: "AI Receptionist", desc: "Chat test console", icon: IconMessageSquare },
-  { id: "Call Simulator", label: "Call Simulator", desc: "Voice call test", icon: IconMic },
+  { id: "AI Receptionist", label: "AI Receptionist", desc: "Chat & LLM console", icon: IconMessageSquare },
+  { id: "Call Simulator", label: "Voice Agent", desc: "Live voice call & TTS", icon: IconMic },
   { id: "Settings", label: "Settings", desc: "Clinic, consent & rules", icon: IconSettings },
 ] as const;
 
@@ -886,18 +886,61 @@ function Appointments() {
   );
 }
 
+function speakWithBestVoice(
+  text: string,
+  lang: string,
+  callbacks?: { onStart?: () => void; onEnd?: () => void; onError?: (err: string) => void }
+) {
+  if (typeof window === "undefined" || !("speechSynthesis" in window)) {
+    callbacks?.onError?.("Browser speech synthesis not supported.");
+    return;
+  }
+  try {
+    const synth = window.speechSynthesis;
+    synth.cancel();
+    synth.resume?.();
+    const u = new SpeechSynthesisUtterance(text);
+    const voices = synth.getVoices();
+    const prefix = lang.split("-")[0].toLowerCase();
+    const exact = voices.find((v) => v.lang.toLowerCase() === lang.toLowerCase());
+    const langMatch = voices.find((v) => v.lang.toLowerCase().startsWith(prefix));
+    const hindiFallback = prefix === "mr" ? voices.find((v) => v.lang.toLowerCase().startsWith("hi")) : undefined;
+    const inFallback = voices.find((v) => v.lang.toLowerCase() === "en-in");
+    const enFallback = voices.find((v) => v.lang.toLowerCase().startsWith("en"));
+    const picked = exact || langMatch || hindiFallback || inFallback || enFallback;
+    if (picked) {
+      u.voice = picked;
+      u.lang = picked.lang;
+    } else {
+      u.lang = lang;
+    }
+    u.rate = 0.96;
+    u.onstart = () => callbacks?.onStart?.();
+    u.onend = () => callbacks?.onEnd?.();
+    u.onerror = () => callbacks?.onEnd?.();
+    synth.speak(u);
+  } catch {
+    callbacks?.onError?.("Could not play audio.");
+  }
+}
+
 function Chat() {
   const initialGreeting = {
     who: "ai",
-    t: "Hello! I'm Parchi, your clinic's AI receptionist. Ask about clinic timings, fees, doctor availability, or booking a slot.",
+    t: "Hello! I'm Parchi, your clinic's automated assistant. Ask about clinic timings, fees, address, doctor wait status, or booking a slot.",
   };
-  const [msgs, setMsgs] = useState<{ who: string; t: string }[]>([initialGreeting]);
+  const [msgs, setMsgs] = useState<{ who: string; t: string; intent?: string; language?: string; handoff?: boolean; outcome?: string }[]>([initialGreeting]);
   const [t, setT] = useState("");
   const [sid, setSid] = useState(() => "web" + Math.random().toString(36).slice(2, 8));
   const [busy, setBusy] = useState(false);
   const [pn, setPn] = useState("Rahul Kumar");
   const [pp, setPp] = useState("9876543210");
+  const [llmInfo, setLlmInfo] = useState<any>(null);
   const logRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    api<any>("/llm/status").then(setLlmInfo).catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (logRef.current) logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -910,7 +953,7 @@ function Chat() {
     setMsgs((x) => [...x, { who: "me", t: m }]);
     setBusy(true);
     try {
-      const r = await api("/chat", {
+      const r = await api<any>("/chat", {
         method: "POST",
         body: JSON.stringify({
           session_id: sid,
@@ -919,7 +962,11 @@ function Chat() {
           patient_phone: pp.trim() || undefined,
         }),
       });
-      setMsgs((x) => [...x, { who: "ai", t: r.reply }]);
+      if (r.llm_status) setLlmInfo(r.llm_status);
+      setMsgs((x) => [
+        ...x,
+        { who: "ai", t: r.reply, intent: r.intent, language: r.language, handoff: r.handoff, outcome: r.outcome },
+      ]);
     } catch (x: any) {
       setMsgs((y) => [
         ...y,
@@ -947,126 +994,162 @@ function Chat() {
   }
 
   return (
-    <div className="card space-y-4">
-      <div className="flex items-center justify-between gap-3 border-b border-[#D4E2DF] pb-3 flex-wrap">
-        <div>
-          <h2 className="font-bold text-[var(--ink)] text-xl font-heading flex items-center gap-2">
-            <IconMessageSquare className="w-5 h-5 text-[var(--teal)] shrink-0" />
-            <span>AI Receptionist Live Testing Console</span>
-          </h2>
-          <p className="text-[16px] text-[#3C5250] mt-0.5">
-            Test Hindi, Hinglish, Marathi, or English replies and confirmed slot booking.
-          </p>
+    <div className="ticket-card">
+      <div className="ticket-ribbon flex-wrap">
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <IconMessageSquare className="w-5 h-5 text-[var(--yellow)] shrink-0" />
+          <h2 className="font-bold text-white text-xl font-heading">AI Receptionist &amp; LLM Console</h2>
+          <span className="px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
+            {llmInfo?.mode === "external_llm" ? `LLM: ${llmInfo.model}` : "Multilingual NLU Active"}
+          </span>
         </div>
-        <button type="button" onClick={resetChat} disabled={busy} className="btn2 text-[16px] px-4 shrink-0">
+        <button type="button" onClick={resetChat} disabled={busy} className="btn2 !min-h-[48px] text-[16px] px-4 shrink-0">
           New Chat
         </button>
       </div>
 
-      {/* Caller Identity Row */}
-      <div className="bg-[#F5F8F7] border border-[#C8DAD7] rounded-2xl p-3.5 grid sm:grid-cols-2 gap-3">
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
-            <IconUser className="w-5 h-5" />
-          </span>
-          <input
-            aria-label="Patient name"
-            className="inp pl-11"
-            placeholder="Patient name (e.g. Rahul Kumar)"
-            value={pn}
-            onChange={(e) => setPn(e.target.value)}
-          />
-        </div>
-        <div className="relative">
-          <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#3C5250]">
-            <IconPhone className="w-5 h-5" />
-          </span>
-          <input
-            aria-label="Patient phone"
-            className="inp pl-11"
-            placeholder="Phone e.g. 9876543210"
-            value={pp}
-            onChange={(e) => setPp(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Quick Test Prompt Pills */}
-      <div className="flex gap-2 flex-wrap">
-        {[
-          "Doctor aa gaye kya?",
-          "Fees kitni hai?",
-          "क्लिनिकची वेळ काय आहे?",
-          "Doctor availability?",
-          "Book tomorrow 11:00",
-          "YES",
-          "NO",
-          "Bachche ko 102 bukhar hai",
-          "Seene mein dard hai",
-          "Do not message this number",
-        ].map((promptText) => (
-          <button
-            key={promptText}
-            type="button"
-            disabled={busy}
-            className="btn2 text-[16px] px-3.5 bg-[#E4EFED]/40 hover:bg-[#E4EFED]"
-            onClick={() => quickTest(promptText)}
-          >
-            {promptText}
-          </button>
-        ))}
-      </div>
-
-      <div
-        ref={logRef}
-        className="space-y-3 max-h-96 overflow-auto p-4 bg-[var(--paper)] rounded-2xl border border-[#C8DAD7]"
-        aria-live="polite"
-      >
-        {msgs.map((m, i) => (
-          <div key={i} className={`flex gap-2.5 ${m.who === "me" ? "justify-end" : "justify-start"}`}>
-            {m.who === "ai" && (
-              <span className="w-9 h-9 rounded-xl bg-[var(--teal)] text-white flex items-center justify-center shrink-0 mt-1">
-                <IconCross className="w-5 h-5 text-white" />
-              </span>
-            )}
-            <p
-              className={`rounded-2xl p-3.5 max-w-[85%] whitespace-pre-line text-[16px] ${
-                m.who === "me"
-                  ? "bg-[var(--teal)] text-white"
-                  : "bg-white border border-[#C8DAD7] text-[var(--ink)] shadow-xs"
-              }`}
-            >
-              {m.t}
-            </p>
-          </div>
-        ))}
-        {busy && (
-          <div className="flex gap-2.5 justify-start">
-            <span className="w-9 h-9 rounded-xl bg-[var(--teal)] text-white flex items-center justify-center shrink-0 mt-1">
-              <IconCross className="w-5 h-5 text-white" />
+      <div className="p-4 sm:p-6 space-y-4">
+        {llmInfo && (
+          <div className="card-teal !p-3.5 flex items-center justify-between gap-2 flex-wrap text-[16px]">
+            <span className="font-bold text-[var(--ink)] flex items-center gap-2">
+              <IconShieldCheck className="w-5 h-5 text-[var(--teal)] shrink-0" />
+              <span>Pre-model 112 safety gate active · Never generates medical advice</span>
             </span>
-            <p className="rounded-2xl p-3.5 bg-white border border-[#C8DAD7] text-[#3C5250] text-[16px]">
-              Parchi is replying…
-            </p>
+            <span className="px-3 py-0.5 rounded-lg bg-white border-2 border-[var(--ink)] font-bold text-[var(--ink)]">
+              Cap: {llmInfo.remaining_today}/{llmInfo.daily_cap} today
+            </span>
           </div>
         )}
-      </div>
 
-      <form onSubmit={send} className="flex flex-col sm:flex-row gap-2.5">
-        <input
-          aria-label="Message"
-          className="inp"
-          required
-          maxLength={500}
-          placeholder="Ask a question (e.g. fees kitni hai? doctor kab aayenge?)"
-          value={t}
-          onChange={(e) => setT(e.target.value)}
-        />
-        <button className="btn px-6 flex items-center justify-center gap-2 shrink-0" disabled={busy}>
-          <IconSend className="w-4 h-4" />
-          <span>Send</span>
-        </button>
-      </form>
+        {/* Caller Identity Row */}
+        <div className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-2xl p-3.5 grid sm:grid-cols-2 gap-3">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2F4442]">
+              <IconUser className="w-5 h-5" />
+            </span>
+            <input
+              aria-label="Patient name"
+              className="inp pl-11"
+              placeholder="Patient name (e.g. Rahul Kumar)"
+              value={pn}
+              onChange={(e) => setPn(e.target.value)}
+            />
+          </div>
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-[#2F4442]">
+              <IconPhone className="w-5 h-5" />
+            </span>
+            <input
+              aria-label="Patient phone"
+              className="inp pl-11"
+              placeholder="Phone e.g. 9876543210"
+              value={pp}
+              onChange={(e) => setPp(e.target.value)}
+            />
+          </div>
+        </div>
+
+        {/* Quick Test Prompt Pills */}
+        <div className="flex gap-2 flex-wrap">
+          {[
+            "Namaste",
+            "Doctor aa gaye kya?",
+            "How much is consultation?",
+            "Where is the clinic located?",
+            "क्लिनिकची वेळ काय आहे?",
+            "Book tomorrow 11:00",
+            "YES",
+            "NO",
+            "Bachche ko 102 bukhar hai",
+            "Seene mein dard hai",
+          ].map((promptText) => (
+            <button
+              key={promptText}
+              type="button"
+              disabled={busy}
+              className="btn2 !min-h-[48px] text-[16px] px-3.5"
+              onClick={() => quickTest(promptText)}
+            >
+              {promptText}
+            </button>
+          ))}
+        </div>
+
+        <div
+          ref={logRef}
+          className="space-y-3 max-h-96 overflow-auto p-4 bg-[#FFF8E6] rounded-2xl border-2 border-[var(--ink)]"
+          aria-live="polite"
+        >
+          {msgs.map((m, i) => (
+            <div key={i} className={`flex gap-2.5 ${m.who === "me" ? "justify-end" : "justify-start"}`}>
+              {m.who === "ai" && (
+                <span className="w-9 h-9 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0 mt-1">
+                  <IconCross className="w-5 h-5 text-white" />
+                </span>
+              )}
+              <div
+                className={`rounded-2xl p-3.5 max-w-[85%] whitespace-pre-line text-[16px] border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] ${
+                  m.who === "me"
+                    ? "bg-[var(--teal)] text-white"
+                    : m.outcome === "urgent"
+                    ? "bg-[#FDECEA] text-[var(--ink)]"
+                    : "bg-white text-[var(--ink)]"
+                }`}
+              >
+                <p>{m.t}</p>
+                {m.who === "ai" && (m.intent || i > 0) && (
+                  <div className="flex items-center gap-2 flex-wrap mt-2.5 pt-2 border-t border-[var(--ink)]/15">
+                    {m.intent && (
+                      <span className="px-2.5 py-0.5 rounded-md bg-[var(--paper)] border border-[var(--ink)] text-[16px] font-bold uppercase text-[var(--ink)]">
+                        {m.intent}
+                      </span>
+                    )}
+                    {m.language && (
+                      <span className="px-2.5 py-0.5 rounded-md bg-[var(--yellow)] border border-[var(--ink)] text-[16px] font-bold uppercase text-[var(--ink)]">
+                        {m.language}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => speakWithBestVoice(m.t, m.language === "mr" ? "mr-IN" : m.language === "hi" || m.language === "hinglish" ? "hi-IN" : "en-IN")}
+                      className="min-h-[48px] px-3 rounded-lg border-2 border-[var(--ink)] bg-white hover:bg-[#E4F2F0] text-[16px] font-bold text-[var(--ink)] inline-flex items-center gap-1.5"
+                    >
+                      <IconMic className="w-4 h-4 text-[var(--teal)]" />
+                      <span>Listen</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+          {busy && (
+            <div className="flex gap-2.5 justify-start">
+              <span className="w-9 h-9 rounded-xl bg-[var(--teal)] border-2 border-[var(--ink)] text-white flex items-center justify-center shrink-0 mt-1">
+                <IconCross className="w-5 h-5 text-white" />
+              </span>
+              <p className="rounded-2xl p-3.5 bg-white border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-semibold">
+                Parchi is replying…
+              </p>
+            </div>
+          )}
+        </div>
+
+        <form onSubmit={send} className="flex flex-col sm:flex-row gap-2.5">
+          <input
+            aria-label="Message"
+            className="inp flex-1"
+            required
+            maxLength={500}
+            placeholder="Ask in any phrasing (e.g. how much for visit? doctor aaye kya?)"
+            value={t}
+            onChange={(e) => setT(e.target.value)}
+          />
+          <button className="btn px-6 flex items-center justify-center gap-2 shrink-0" disabled={busy}>
+            <IconSend className="w-4 h-4" />
+            <span>Send</span>
+          </button>
+        </form>
+      </div>
     </div>
   );
 }
@@ -1092,22 +1175,44 @@ const PRESETS: [string, string][] = [
 ];
 
 function Sim() {
-  const [log, setLog] = useState<{ who: string; t: string; ms?: number }[]>([]);
+  const [log, setLog] = useState<{ who: string; t: string; ms?: number; intent?: string; outcome?: string; transfer?: string | null; langCode?: string }[]>([]);
   const [lang, setLang] = useState("hi-IN");
   const [sid, setSid] = useState(() => "sim" + Math.random().toString(36).slice(2, 8));
-  const [listening, setListening] = useState(false);
+  const [callState, setCallState] = useState<"idle" | "listening" | "thinking" | "speaking" | "handoff" | "urgent">("idle");
+  const [autoSpeak, setAutoSpeak] = useState(true);
+  const [voiceInput, setVoiceInput] = useState("");
+  const [transferNum, setTransferNum] = useState<string | null>(null);
   const [note, setNote] = useState("");
+  const [voicesReady, setVoicesReady] = useState(0);
+  const feedRef = useRef<HTMLDivElement>(null);
 
-  function speak(t: string) {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    const u = new SpeechSynthesisUtterance(t);
-    u.lang = lang;
-    window.speechSynthesis.cancel();
-    window.speechSynthesis.speak(u);
+  useEffect(() => {
+    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
+    const syncVoices = () => setVoicesReady(window.speechSynthesis.getVoices().length);
+    syncVoices();
+    window.speechSynthesis.addEventListener?.("voiceschanged", syncVoices);
+    return () => window.speechSynthesis.removeEventListener?.("voiceschanged", syncVoices);
+  }, []);
+
+  useEffect(() => {
+    if (feedRef.current) feedRef.current.scrollTop = feedRef.current.scrollHeight;
+  }, [log]);
+
+  function speak(t: string, overrideLang?: string) {
+    if (!autoSpeak) return;
+    speakWithBestVoice(t, overrideLang || lang, {
+      onStart: () => setCallState((prev) => (prev === "urgent" || prev === "handoff" ? prev : "speaking")),
+      onEnd: () => setCallState((prev) => (prev === "speaking" ? "idle" : prev)),
+      onError: (e) => setNote(e),
+    });
   }
 
   async function turn(text: string) {
-    setLog((l) => [...l, { who: "caller", t: text }]);
+    const clean = text.trim();
+    if (!clean) return;
+    setVoiceInput("");
+    setLog((l) => [...l, { who: "caller", t: clean }]);
+    setCallState("thinking");
     const t0 = performance.now();
     let filled = false;
     const filler = setTimeout(() => {
@@ -1116,140 +1221,279 @@ function Sim() {
       setLog((l) => [...l, { who: "parchi", t: "(filler) Ek second, main dekh rahi hoon" }]);
     }, 1500);
     try {
-      const r = await api("/chat", {
+      const r = await api<any>("/chat", {
         method: "POST",
-        body: JSON.stringify({ session_id: sid, message: text, channel: "voice" }),
+        body: JSON.stringify({ session_id: sid, message: clean, channel: "voice" }),
       });
       clearTimeout(filler);
       const ms = Math.round(performance.now() - t0);
-      setLog((l) => [...l, { who: "parchi", t: r.reply, ms }]);
-      speak(r.reply);
-      setNote(filled ? "Filler played (reply was slower than 1.5 s)" : "");
-    } catch (e: any) {
+      const out = r.outcome || "answered";
+      setTransferNum(r.transfer_to || null);
+      if (out === "urgent") setCallState("urgent");
+      else if (out === "handoff") setCallState("handoff");
+      else setCallState("idle");
+
+      setLog((l) => [
+        ...l,
+        {
+          who: "parchi",
+          t: r.reply,
+          ms,
+          intent: r.intent,
+          outcome: out,
+          transfer: r.transfer_to,
+          langCode: r.language,
+        },
+      ]);
+      const replyLang = r.language === "mr" ? "mr-IN" : r.language === "en" ? "en-IN" : "hi-IN";
+      speak(r.reply, replyLang);
+      setNote(filled ? "Filler played (reply exceeded 1.5s latency threshold)." : "");
+    } catch {
       clearTimeout(filler);
+      setCallState("idle");
       setLog((l) => [...l, { who: "parchi", t: "Network problem. Clinic staff will call you back." }]);
     }
   }
 
   async function unclear() {
-    const r = await api("/chat/unclear", {
-      method: "POST",
-      body: JSON.stringify({ session_id: sid, message: "?" }),
-    });
-    setLog((l) => [...l, { who: "caller", t: "(unclear / noise)" }, { who: "parchi", t: r.reply }]);
-    speak(r.reply);
+    setCallState("thinking");
+    try {
+      const r = await api<any>("/chat/unclear", {
+        method: "POST",
+        body: JSON.stringify({ session_id: sid, message: "?" }),
+      });
+      setTransferNum(r.transfer_to || null);
+      setCallState(r.handoff ? "handoff" : "idle");
+      setLog((l) => [
+        ...l,
+        { who: "caller", t: "(unclear / background noise)" },
+        { who: "parchi", t: r.reply, outcome: r.handoff ? "handoff" : "answered", transfer: r.transfer_to },
+      ]);
+      speak(r.reply, "hi-IN");
+    } catch {
+      setCallState("idle");
+    }
   }
 
   function listen() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
-      setNote("Speech recognition not supported in this browser (use Chrome). Use preset buttons below.");
+      setNote("Microphone SpeechRecognition requires Chrome or Edge. Type your phrase below or click a call scenario.");
       return;
     }
-    const rec = new SR();
-    rec.lang = lang;
-    rec.onstart = () => setListening(true);
-    rec.onend = () => setListening(false);
-    rec.onerror = () => unclear();
-    rec.onresult = (e: any) => {
-      const x = e.results[0][0];
-      if (!x.transcript.trim() || x.confidence < 0.5) unclear();
-      else turn(x.transcript);
-    };
-    rec.start();
+    try {
+      const rec = new SR();
+      rec.lang = lang;
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onstart = () => {
+        setCallState("listening");
+        setNote("Listening… speak clearly into your microphone.");
+      };
+      rec.onend = () => {
+        setCallState((prev) => (prev === "listening" ? "idle" : prev));
+      };
+      rec.onerror = (ev: any) => {
+        setCallState("idle");
+        if (ev?.error === "not-allowed" || ev?.error === "service-not-allowed") {
+          setNote("Microphone permission denied. Allow mic access or type/tap a scenario below.");
+        } else {
+          void unclear();
+        }
+      };
+      rec.onresult = (e: any) => {
+        const x = e.results[0][0];
+        if (!x.transcript.trim() || (typeof x.confidence === "number" && x.confidence > 0 && x.confidence < 0.5)) {
+          void unclear();
+        } else {
+          setNote("");
+          void turn(x.transcript);
+        }
+      };
+      rec.start();
+    } catch {
+      setNote("Could not start microphone. Type your voice prompt below or pick a preset call.");
+    }
   }
 
+  const callStatusText =
+    callState === "urgent"
+      ? "112 EMERGENCY ROUTE"
+      : callState === "handoff"
+      ? `STAFF TRANSFER${transferNum ? ` · ${transferNum}` : ""}`
+      : callState === "listening"
+      ? "Listening (Mic Active)…"
+      : callState === "speaking"
+      ? "Parchi Speaking…"
+      : callState === "thinking"
+      ? "Processing Call Turn…"
+      : `Ready (${voicesReady > 0 ? `${voicesReady} voices ready` : "TTS Ready"})`;
+
+  const callStatusBadge =
+    callState === "urgent"
+      ? "bg-[var(--red)] text-white"
+      : callState === "handoff" || callState === "speaking" || callState === "listening"
+      ? "bg-[var(--yellow)] text-[var(--ink)]"
+      : "bg-[#E4F2F0] text-[var(--ink)]";
+
   return (
-    <div className="card space-y-4">
-      <div className="rounded-2xl bg-[var(--ink)] text-white p-4 sm:p-5 flex items-center justify-between flex-wrap gap-3">
-        <div className="flex items-center gap-3">
-          <span className="w-11 h-11 rounded-2xl bg-[var(--teal)] text-white flex items-center justify-center shrink-0">
-            <IconMic className="w-6 h-6 text-white" />
+    <div className="ticket-card">
+      <div className="ticket-ribbon flex-wrap">
+        <div className="flex items-center gap-3 flex-wrap">
+          <IconMic className="w-5 h-5 text-[var(--yellow)] shrink-0" />
+          <h2 className="font-bold text-white text-xl font-heading">Voice Agent &amp; Call Simulator</h2>
+          <span className="px-3 py-0.5 rounded-lg bg-[var(--yellow)] border-2 border-[var(--ink)] text-[var(--ink)] text-[16px] font-bold">
+            &lt; 2 sentences · No button prompts
           </span>
-          <div>
-            <h2 className="font-bold text-white text-xl font-heading">Inbound Call Speech Simulator</h2>
-            <p className="text-[16px] text-[#E4EFED]">Measures speech-to-audio latency in your browser</p>
-          </div>
         </div>
-        <span className="text-[16px] font-bold bg-[#E4EFED] text-[var(--ink)] px-3.5 py-1.5 rounded-full">
-          Voice Rule: &lt;2 sentences · no button prompts
+        <span className={`px-3 py-0.5 rounded-full border-2 border-[var(--ink)] text-[16px] font-bold ${callStatusBadge}`}>
+          {callStatusText}
         </span>
       </div>
 
-      <div className="bg-[#F5F8F7] border border-[#C8DAD7] rounded-2xl p-3.5 flex gap-2.5 flex-wrap items-center">
-        <label className="text-[16px] font-semibold text-[var(--ink)] flex items-center gap-2">
-          <span>Language</span>
-          <select className="inp w-auto" value={lang} onChange={(e) => setLang(e.target.value)}>
-            <option value="hi-IN">Hindi/Hinglish</option>
-            <option value="en-IN">English</option>
-            <option value="mr-IN">Marathi</option>
-          </select>
-        </label>
-        <button className="btn text-[16px] flex items-center gap-2" onClick={listen}>
-          <IconMic className="w-4 h-4" />
-          <span>{listening ? "Listening…" : "Speak"}</span>
-        </button>
-        <button className="btn2 text-[16px] flex items-center gap-2 bg-white" onClick={unclear}>
-          <IconAlertTriangle className="w-4 h-4 text-[var(--red)]" />
-          <span>Simulate Noise</span>
-        </button>
-        <button className="btn2 text-[16px] bg-white" onClick={() => window.speechSynthesis?.cancel()}>
-          Stop Audio
-        </button>
-        <button
-          className="btn2 text-[16px] bg-white"
-          onClick={() => {
-            window.speechSynthesis?.cancel();
-            setLog([]);
-            setNote("");
-            setSid("sim" + Math.random().toString(36).slice(2, 8));
-          }}
-        >
-          Reset Call
-        </button>
-      </div>
-
-      <div className="space-y-2">
-        <p className="text-[16px] font-bold text-[#3C5250]">Test Call Scenarios</p>
-        <div className="flex gap-2 flex-wrap">
-          {PRESETS.map(([n, t]) => (
-            <button key={n} className="btn2 text-[16px] px-4 bg-[#E4EFED]/40 hover:bg-[#E4EFED]" onClick={() => turn(t)}>
-              {n}
-            </button>
-          ))}
+      <div className="p-4 sm:p-6 space-y-4">
+        <div className="bg-[var(--paper)] border-2 border-[var(--ink)] rounded-2xl p-3.5 flex gap-2.5 flex-wrap items-center">
+          <label className="text-[16px] font-bold text-[var(--ink)] flex items-center gap-2">
+            <span>Language</span>
+            <select className="inp w-auto" value={lang} onChange={(e) => setLang(e.target.value)}>
+              <option value="hi-IN">Hindi / Hinglish</option>
+              <option value="en-IN">English</option>
+              <option value="mr-IN">Marathi</option>
+            </select>
+          </label>
+          <button type="button" className="btn text-[16px] flex items-center gap-2" onClick={listen}>
+            <IconMic className="w-4 h-4" />
+            <span>{callState === "listening" ? "Listening…" : "Speak on Mic"}</span>
+          </button>
+          <button type="button" className="btn2 text-[16px] flex items-center gap-2" onClick={unclear}>
+            <IconAlertTriangle className="w-4 h-4 text-[var(--red)]" />
+            <span>Simulate Noise</span>
+          </button>
+          <button
+            type="button"
+            className="btn2 text-[16px]"
+            onClick={() => setAutoSpeak((v) => !v)}
+          >
+            {autoSpeak ? "Auto-Voice: ON" : "Auto-Voice: OFF"}
+          </button>
+          <button
+            type="button"
+            className="btn2 text-[16px]"
+            onClick={() => {
+              if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+              setCallState("idle");
+            }}
+          >
+            Stop Audio
+          </button>
+          <button
+            type="button"
+            className="btn2 text-[16px]"
+            onClick={() => {
+              if (typeof window !== "undefined") window.speechSynthesis?.cancel();
+              setLog([]);
+              setNote("");
+              setTransferNum(null);
+              setCallState("idle");
+              setSid("sim" + Math.random().toString(36).slice(2, 8));
+            }}
+          >
+            Reset Call
+          </button>
         </div>
-      </div>
 
-      {note && (
-        <p role="status" className="text-[16px] text-[var(--teal)] font-semibold bg-[#E4EFED] px-4 py-2 rounded-xl">
-          {note}
-        </p>
-      )}
+        {/* Custom Typed Voice Turn Input */}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            void turn(voiceInput);
+          }}
+          className="flex flex-col sm:flex-row gap-2.5"
+        >
+          <input
+            aria-label="Speak or type custom call phrase"
+            className="inp flex-1"
+            placeholder="Say/type any patient voice query (e.g. Kal subah slot hai kya? / Clinic kidhar hai?)"
+            value={voiceInput}
+            onChange={(e) => setVoiceInput(e.target.value)}
+          />
+          <button type="submit" className="btn px-6 flex items-center justify-center gap-2 shrink-0">
+            <IconPhone className="w-4 h-4" />
+            <span>Simulate Call Turn</span>
+          </button>
+        </form>
 
-      <div className="space-y-3 max-h-80 overflow-auto p-4 rounded-2xl bg-[var(--paper)] border border-[#C8DAD7]" aria-live="polite">
-        {log.length === 0 && (
-          <p className="text-[#3C5250] text-[16px]">
-            Start a call simulation: click Speak or any scenario button above.
+        <div className="space-y-2">
+          <p className="text-[16px] font-bold text-[var(--ink)]">Test Call Scenarios</p>
+          <div className="flex gap-2 flex-wrap">
+            {PRESETS.map(([n, t]) => (
+              <button key={n} type="button" className="btn2 !min-h-[48px] text-[16px] px-4" onClick={() => turn(t)}>
+                {n}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {note && (
+          <p role="status" className="card-teal !p-3 text-[16px] text-[var(--ink)] font-bold">
+            {note}
           </p>
         )}
-        {log.map((m, i) => (
-          <div key={i} className={`flex ${m.who === "caller" ? "justify-end" : "justify-start"}`}>
-            <p
-              className={`rounded-2xl p-3.5 w-fit max-w-[90%] whitespace-pre-line text-[16px] ${
-                m.who === "caller"
-                  ? "bg-[var(--teal)] text-white"
-                  : "bg-white border border-[#C8DAD7] text-[var(--ink)]"
-              }`}
-            >
-              {m.t}
-              {m.ms !== undefined && (
-                <span className="block text-[16px] font-semibold text-[#3C5250] mt-1">
-                  reply in {m.ms} ms
-                </span>
-              )}
-            </p>
-          </div>
-        ))}
+
+        <div
+          ref={feedRef}
+          className="space-y-3 max-h-80 overflow-auto p-4 rounded-2xl bg-[#FFF8E6] border-2 border-[var(--ink)]"
+          aria-live="polite"
+        >
+          {log.length === 0 && (
+            <EmptyDeskIllustration
+              title="Voice Agent ready for incoming call"
+              subtitle="Click Speak on Mic, type a phrase above, or pick any scenario."
+            />
+          )}
+          {log.map((m, i) => (
+            <div key={i} className={`flex ${m.who === "caller" ? "justify-end" : "justify-start"}`}>
+              <div
+                className={`rounded-2xl p-3.5 w-fit max-w-[90%] whitespace-pre-line text-[16px] border-2 border-[var(--ink)] shadow-[2px_2px_0_var(--ink)] ${
+                  m.who === "caller"
+                    ? "bg-[var(--teal)] text-white"
+                    : m.outcome === "urgent"
+                    ? "bg-[#FDECEA] text-[var(--ink)]"
+                    : "bg-white text-[var(--ink)]"
+                }`}
+              >
+                <p>{m.t}</p>
+                {m.who === "parchi" && (
+                  <div className="flex items-center gap-2 flex-wrap mt-2.5 pt-2 border-t border-[var(--ink)]/15">
+                    {m.ms !== undefined && (
+                      <span className="px-2.5 py-0.5 rounded-md bg-[var(--paper)] border border-[var(--ink)] text-[16px] font-bold text-[var(--ink)]">
+                        {m.ms} ms
+                      </span>
+                    )}
+                    {m.intent && (
+                      <span className="px-2.5 py-0.5 rounded-md bg-[var(--yellow)] border border-[var(--ink)] text-[16px] font-bold uppercase text-[var(--ink)]">
+                        {m.intent}
+                      </span>
+                    )}
+                    {m.transfer && (
+                      <span className="px-2.5 py-0.5 rounded-md bg-[var(--red)] border border-[var(--ink)] text-[16px] font-bold text-white">
+                        Transfer: {m.transfer}
+                      </span>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => speakWithBestVoice(m.t, m.langCode === "mr" ? "mr-IN" : m.langCode === "en" ? "en-IN" : lang)}
+                      className="min-h-[48px] px-3 rounded-lg border-2 border-[var(--ink)] bg-white hover:bg-[#E4F2F0] text-[16px] font-bold text-[var(--ink)] inline-flex items-center gap-1.5"
+                    >
+                      <IconZap className="w-4 h-4 text-[var(--teal)]" />
+                      <span>Replay Audio</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

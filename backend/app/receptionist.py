@@ -585,6 +585,17 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
         _event(db, s, "availability", "answered")
         return done(_format_availability(db, docs, L=L, voice=is_voice))
 
+    # Greeting handling (avoids logging a false missed-call handoff for "Hi" / "Namaste")
+    if re.fullmatch(r"(?:hi+|hello+|hey+|namaste|namaskar|pranam|ram ram|good morning|good afternoon|good evening|नमस्ते|नमस्कार)[!.\s]*", low):
+        _event(db, s, "greeting", "answered")
+        if L == "mr":
+            return done(f"नमस्कार! {clinic.name} मध्ये आपले स्वागत आहे. तुम्ही क्लिनिकची वेळ, फी, पत्ता, डॉक्टर उपलब्धता किंवा बुकिंग बद्दल विचारू शकता.")
+        if L == "hi":
+            return done(f"नमस्ते! {clinic.name} में आपका स्वागत है। आप क्लिनिक का समय, फीस, पता, डॉक्टर स्टेटस या अपॉइंटमेंट के बारे में पूछ सकते हैं।")
+        if L == "hinglish":
+            return done(f"Namaste! {clinic.name} mein aapka swagat hai. Aap clinic timing, fees, doctor wait status ya appointment ke baare mein pooch sakte hain.")
+        return done(f"Welcome to {clinic.name}. You can ask about clinic hours, fees, address, live doctor wait time, or booking an appointment.")
+
     # LLM intent classifier fallback (only if cap not reached and confidence >= 0.7)
     if llm.check_and_increment_cap(clinic.id):
         res = llm.classify(t, L, s.channel)
@@ -594,9 +605,9 @@ def reply(db: Session, clinic: Clinic, s: ChatSession, patient: Patient | None, 
             if intent == "hours":
                 _event(db, s, "hours", "answered")
                 if L == "mr":
-                    val = clinic.hours or M["not_set"]["mr"]
+                    val = effective_hours or M["not_set"]["mr"]
                     return done(M["hours"]["mr"].format(name=clinic.name, val=val))
-                return done(f"{clinic.name} hours: {clinic.hours or 'not set; staff will confirm'}.")
+                return done(f"{clinic.name} hours: {effective_hours or 'not set; staff will confirm'}.")
             elif intent == "address":
                 _event(db, s, "address", "answered")
                 if L == "mr":

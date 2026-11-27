@@ -173,7 +173,32 @@ def chat(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_d
             db.add(p); db.flush()
         elif b.patient_name and p.name != b.patient_name:
             p.name = b.patient_name; db.flush()
-    return {"reply": receptionist.reply(db, c, s, p, b.message), "ai_disclosure": "clinic's automated assistant"}
+    reply_text = receptionist.reply(db, c, s, p, b.message)
+    ev = db.get(Event, s.event_id) if s.event_id else None
+    intent = ev.intent if ev else "other"
+    outcome = ev.outcome if ev else "answered"
+    handoff = outcome in ("handoff", "urgent")
+    from .. import llm
+    return {
+        "reply": reply_text,
+        "ai_disclosure": "clinic's automated assistant",
+        "intent": intent,
+        "outcome": outcome,
+        "language": receptionist.lang(b.message),
+        "handoff": handoff,
+        "transfer_to": c.staff_phone if (handoff and c.staff_phone) else None,
+        "llm_status": llm.get_llm_status(c.id),
+    }
+
+@r.get("/llm/status")
+def llm_status(u: User = Depends(current_user)):
+    from .. import llm
+    from ..integrations import twilio as twilio_integration
+    from ..config import VOICE_MONTHLY_MINUTE_CAP
+    info = llm.get_llm_status(u.clinic_id)
+    info["voice_minutes_used"] = round(twilio_integration.get_monthly_minutes(u.clinic_id), 1)
+    info["voice_minute_cap"] = VOICE_MONTHLY_MINUTE_CAP
+    return info
 @r.get("/analytics")
 def analytics(days: int = 30, u: User = Depends(current_user), db: Session = Depends(get_db)):
     since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)
@@ -261,8 +286,14 @@ def resolve(id: int, u: User = Depends(current_user), db: Session = Depends(get_
 
 @r.post("/chat/unclear")
 def unclear(b: ChatIn, u: User = Depends(current_user), db: Session = Depends(get_db)):
+    c = db.get(Clinic, u.clinic_id)
     s = receptionist.get_session(db, u.clinic_id, "voice-sim", b.session_id)
-    reply, handoff = receptionist.unclear_turn(db, s); return {"reply": reply, "handoff": handoff}
+    reply, handoff = receptionist.unclear_turn(db, s)
+    return {
+        "reply": reply,
+        "handoff": handoff,
+        "transfer_to": c.staff_phone if (handoff and c and c.staff_phone) else None,
+    }
 
 @r.post("/reminders/run")
 def run_reminders(u: User = Depends(owner_only), db: Session = Depends(get_db)):
