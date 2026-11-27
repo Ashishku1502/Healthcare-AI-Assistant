@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import inspect, text
 from .config import ORIGIN, LOGIN_RATE, DB_URL
 from .database import Base, engine, SessionLocal
-from .models import Clinic, User, Doctor
+from .models import Clinic, User, Doctor, Event
 from .security import hash_pw
 from .routes import api, whatsapp, voice
 import time
