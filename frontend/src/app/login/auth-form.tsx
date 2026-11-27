@@ -182,8 +182,8 @@ export default function AuthForm({
               </span>
             </div>
           </a>
-          <nav className="flex items-center gap-1.5 sm:gap-2 text-[16px] shrink-0">
-            <a href="/" className="min-h-[48px] px-2.5 inline-flex items-center text-[var(--ink)] font-bold hover:text-[var(--teal)] transition-colors whitespace-nowrap">
+          <nav className="flex items-center gap-1 sm:gap-2 text-[16px] shrink-0">
+            <a href="/" className="min-h-[48px] px-2 sm:px-2.5 inline-flex items-center text-[var(--ink)] font-bold hover:text-[var(--teal)] transition-colors whitespace-nowrap">
               Home
             </a>
             <span className="w-0.5 h-5 bg-[var(--ink)] shrink-0" aria-hidden="true" />
@@ -191,16 +191,17 @@ export default function AuthForm({
               <button
                 type="button"
                 onClick={() => switchMode("signup")}
-                className="min-h-[48px] px-2.5 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
+                className="min-h-[48px] px-2 sm:px-2.5 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
               >
                 <IconBuilding className="w-4 h-4 shrink-0" />
-                <span>Register Clinic</span>
+                <span className="sm:hidden">Register</span>
+                <span className="hidden sm:inline">Register Clinic</span>
               </button>
             ) : (
               <button
                 type="button"
                 onClick={() => switchMode("login")}
-                className="min-h-[48px] px-2.5 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
+                className="min-h-[48px] px-2 sm:px-2.5 text-[var(--teal)] font-bold hover:underline flex items-center gap-1.5 whitespace-nowrap"
               >
                 <IconLock className="w-4 h-4 shrink-0" />
                 <span>Sign In</span>
@@ -709,16 +710,16 @@ export default function AuthForm({
       </main>
 
       {/* Footer */}
-      <footer className="w-full bg-[var(--ink)] text-white text-[16px] py-6 px-4 text-center sm:text-left border-t border-white/10 mt-8">
-        <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="w-full bg-[var(--ink)] text-white text-[16px] py-6 px-4 text-center sm:text-left border-t-2 border-[var(--ink)] mt-8">
+        <div className="max-w-7xl mx-auto flex flex-col lg:flex-row items-center justify-between gap-3">
           <span className="flex items-center gap-2 justify-center sm:justify-start break-words">
             <span className="w-7 h-7 rounded-md bg-[var(--teal)] text-white flex items-center justify-center shrink-0">
               <IconCross className="w-4 h-4 text-white" />
             </span>
             <span>© {new Date().getFullYear()} Parchi AI · Automated Front Desk for Medical Practices</span>
           </span>
-          <span className="text-[#E4EFED] break-words text-center sm:text-right">
-            For clinic administration & scheduling only · Compliant with telemedicine guidelines
+          <span className="text-[#E4EFED] break-words text-center lg:text-right">
+            Administrative &amp; scheduling tool only · Telemedicine compliant
           </span>
         </div>
       </footer>
