@@ -1118,10 +1118,11 @@ function Chat() {
     who: "ai",
     t: "Hello! I'm Parchi, your clinic's automated assistant. Ask about clinic timings, fees, address, doctor wait status, or booking a slot.",
   };
-  const [msgs, setMsgs] = useState<{ who: string; t: string; intent?: string; language?: string; handoff?: boolean; outcome?: string }[]>([initialGreeting]);
+  const [msgs, setMsgs] = useState<{ who: string; t: string; intent?: string; language?: string; handoff?: boolean; outcome?: string; transfer?: string | null }[]>([initialGreeting]);
   const [t, setT] = useState("");
   const [sid, setSid] = useState(() => "web" + Math.random().toString(36).slice(2, 8));
   const [busy, setBusy] = useState(false);
+  const [listening, setListening] = useState(false);
   const [pn, setPn] = useState("Rahul Kumar");
   const [pp, setPp] = useState("9876543210");
   const [llmInfo, setLlmInfo] = useState<any>(null);
@@ -1154,7 +1155,15 @@ function Chat() {
       if (r.llm_status) setLlmInfo(r.llm_status);
       setMsgs((x) => [
         ...x,
-        { who: "ai", t: r.reply, intent: r.intent, language: r.language, handoff: r.handoff, outcome: r.outcome },
+        {
+          who: "ai",
+          t: r.reply,
+          intent: r.intent,
+          language: r.language,
+          handoff: r.handoff,
+          outcome: r.outcome,
+          transfer: r.transfer_to || null,
+        },
       ]);
     } catch (x: any) {
       setMsgs((y) => [
@@ -1163,6 +1172,32 @@ function Chat() {
       ]);
     } finally {
       setBusy(false);
+    }
+  }
+
+  function startMic() {
+    if (typeof window === "undefined") return;
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!SR) {
+      setMsgs((y) => [...y, { who: "ai", t: "Voice input requires Chrome or Edge. Please type your message below." }]);
+      return;
+    }
+    if (listening) return;
+    try {
+      const rec = new SR();
+      rec.lang = "hi-IN";
+      rec.interimResults = false;
+      rec.maxAlternatives = 1;
+      rec.onstart = () => setListening(true);
+      rec.onend = () => setListening(false);
+      rec.onerror = () => setListening(false);
+      rec.onresult = (e: any) => {
+        const transcript = e.results?.[0]?.[0]?.transcript?.trim();
+        if (transcript) void sendMessage(transcript);
+      };
+      rec.start();
+    } catch {
+      setListening(false);
     }
   }
 
@@ -1286,6 +1321,21 @@ function Chat() {
                 }`}
               >
                 <p>{m.t}</p>
+                {m.who === "ai" && m.outcome === "urgent" && (
+                  <div className="mt-2.5 p-2.5 rounded-xl bg-white border-2 border-[var(--red)] flex items-center justify-between gap-2 flex-wrap">
+                    <span className="text-[14px] font-extrabold text-[var(--red)] flex items-center gap-1.5">
+                      <IconAlertTriangle className="w-4 h-4 shrink-0" />
+                      <span>112 Emergency Gate Triggered · Logged to Attention Queue</span>
+                    </span>
+                    <a
+                      href="tel:112"
+                      className="btn !min-h-[40px] !py-1.5 px-3 text-[14px] !bg-[var(--red)] text-white inline-flex items-center gap-1.5"
+                    >
+                      <IconPhone className="w-3.5 h-3.5" />
+                      <span>Call 112</span>
+                    </a>
+                  </div>
+                )}
                 {m.who === "ai" && (m.intent || i > 0) && (
                   <div className="flex items-center gap-2 flex-wrap mt-2.5 pt-2 border-t border-[var(--ink)]/15">
                     {m.intent && (
@@ -1296,6 +1346,11 @@ function Chat() {
                     {m.language && (
                       <span className="px-2.5 py-0.5 rounded-md bg-[var(--yellow)] border border-[var(--ink)] text-[16px] font-bold uppercase text-[var(--ink)]">
                         {m.language}
+                      </span>
+                    )}
+                    {m.handoff && m.outcome !== "urgent" && (
+                      <span className="px-2.5 py-0.5 rounded-md bg-[#E4F2F0] border border-[var(--ink)] text-[14px] font-bold uppercase text-[var(--teal)]">
+                        Staff Handoff{m.transfer ? ` · ${m.transfer}` : ""}
                       </span>
                     )}
                     <button
@@ -1324,6 +1379,19 @@ function Chat() {
         </div>
 
         <form onSubmit={send} className="flex flex-col sm:flex-row gap-2.5">
+          <button
+            type="button"
+            onClick={startMic}
+            disabled={busy}
+            title="Speak patient message"
+            aria-label="Speak patient message"
+            className={`btn2 !min-h-[48px] px-4 flex items-center justify-center gap-2 shrink-0 ${
+              listening ? "!bg-[var(--red)] !text-white animate-pulse" : ""
+            }`}
+          >
+            <IconMic className="w-4 h-4" />
+            <span>{listening ? "Listening…" : "Speak"}</span>
+          </button>
           <input
             aria-label="Message"
             className="inp flex-1"
@@ -1465,6 +1533,7 @@ function Sim() {
   }
 
   function listen() {
+    if (typeof window !== "undefined") window.speechSynthesis?.cancel();
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
     if (!SR) {
       setNote("Microphone SpeechRecognition requires Chrome or Edge. Type your phrase below or click a call scenario.");
@@ -1665,9 +1734,22 @@ function Sim() {
                       </span>
                     )}
                     {m.transfer && (
-                      <span className="px-2.5 py-0.5 rounded-md bg-[var(--red)] border border-[var(--ink)] text-[16px] font-bold text-white">
-                        Transfer: {m.transfer}
-                      </span>
+                      <a
+                        href={`tel:${m.transfer}`}
+                        className="px-2.5 py-0.5 rounded-md bg-[var(--red)] border border-[var(--ink)] text-[16px] font-bold text-white inline-flex items-center gap-1 hover:brightness-95"
+                      >
+                        <IconPhone className="w-3.5 h-3.5" />
+                        <span>Call: {m.transfer}</span>
+                      </a>
+                    )}
+                    {m.outcome === "urgent" && m.transfer !== "112" && (
+                      <a
+                        href="tel:112"
+                        className="px-2.5 py-0.5 rounded-md bg-[var(--red)] border border-[var(--ink)] text-[16px] font-bold text-white inline-flex items-center gap-1 hover:brightness-95"
+                      >
+                        <IconPhone className="w-3.5 h-3.5" />
+                        <span>Call 112</span>
+                      </a>
                     )}
                     <button
                       type="button"
