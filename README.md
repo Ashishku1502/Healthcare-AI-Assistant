@@ -1,6 +1,6 @@
 # Parchi AI — Automated Clinic Front Desk & Voice Agent
 
-[![Pytest Suite](https://img.shields.io/badge/pytest-84%20passed%20(100%25)-success)](https://github.com/Ashishku1502/Healthcare-AI-Assistant)
+[![Pytest Suite](https://img.shields.io/badge/pytest-100%20passed%20(100%25)-success)](https://github.com/Ashishku1502/Healthcare-AI-Assistant)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict%20clean-blue)](https://github.com/Ashishku1502/Healthcare-AI-Assistant)
 [![Frontend](https://img.shields.io/badge/Vercel-Frontend%20Live-black)](https://frontend-bice-eight-7xnlf654ep.vercel.app)
 [![Backend API](https://img.shields.io/badge/Vercel-API%20Live-009688)](https://parchi-api.vercel.app)
@@ -570,7 +570,7 @@ Open `http://localhost:3000` in your browser.
 cd backend
 pytest -v
 ```
-**Output**: `84 passed` (100% pass rate covering API authentication, booking race conditions, pre-model safety gating, retention purge, Twilio signature verification, and Marathi voice constraints).
+**Output**: `100 passed` (100% pass rate covering API authentication, booking race conditions, pre-model safety gating, retention purge, Twilio signature verification, Marathi voice constraints, and end-to-end telemetry).
 
 ### Run Frontend Typecheck & Build
 ```bash
