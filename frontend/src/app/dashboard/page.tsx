@@ -2192,6 +2192,7 @@ function Settings({ userRole }: { userRole?: string }) {
     livekit_api_secret: "",
     deepgram_api_key: "",
     deepgram_model: "nova-2",
+    deepgram_language: "hi",
   });
   const [voiceMsg, setVoiceMsg] = useState<{ text: string; err?: boolean } | null>(null);
   const [voiceTesting, setVoiceTesting] = useState(false);
@@ -2203,6 +2204,7 @@ function Settings({ userRole }: { userRole?: string }) {
         ...prev,
         livekit_url: voiceConfig.data.livekit_url || "",
         deepgram_model: voiceConfig.data.deepgram_model || "nova-2",
+        deepgram_language: voiceConfig.data.deepgram_language || "hi",
       }));
     }
   }, [voiceConfig.data]);
@@ -2633,6 +2635,18 @@ function Settings({ userRole }: { userRole?: string }) {
                   value={voiceForm.deepgram_api_key || ""}
                   onChange={(e) => setVoiceForm({ ...voiceForm, deepgram_api_key: e.target.value })}
                 />
+              </label>
+              <label className="block text-[16px] font-semibold text-[var(--ink)]">
+                Deepgram Language (Default: Hindi)
+                <select
+                  className="inp mt-1.5"
+                  value={voiceForm.deepgram_language || "hi"}
+                  onChange={(e) => setVoiceForm({ ...voiceForm, deepgram_language: e.target.value })}
+                >
+                  <option value="hi">Hindi (hi)</option>
+                  <option value="en-IN">English India (en-IN)</option>
+                  <option value="mr">Marathi (mr)</option>
+                </select>
               </label>
             </div>
 

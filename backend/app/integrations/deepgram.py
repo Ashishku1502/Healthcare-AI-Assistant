@@ -58,11 +58,14 @@ def transcribe_audio_buffer(
     if not key or not key.strip():
         # Fallback diagnostic response when API key is not supplied
         latency_ms = round((time.perf_counter() - t0) * 1000, 1)
+        # Map language for consistency
+        lang_code = "hi" if "hi" in language.lower() else ("mr" if "mr" in language.lower() else "en-IN")
         return {
             "transcript": "",
             "confidence": 0.0,
             "words": [],
             "model": model,
+            "language": lang_code,
             "latency_ms": latency_ms,
             "error": "DEEPGRAM_API_KEY not configured. Add your key in Dashboard Settings or .env.",
             "status": "unconfigured",
