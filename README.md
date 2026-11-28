@@ -27,14 +27,420 @@ It handles repetitive patient phone calls and WhatsApp questions (doctor delays,
 
 ---
 
-## Key Capabilities & Architecture
+## Codebase Knowledge Graph & System Architecture
 
-### 1. Truthful Wait Times & Token Queuing (Tension 3 & 4)
+### 1. End-to-End System Topology
+
+```mermaid
+flowchart TB
+    subgraph Clients["Patient & Staff Clients"]
+        direction TB
+        PW["Public Website Visitors"]
+        TC["Twilio Voice Callers (Telephony)"]
+        WA["WhatsApp Chat Patients"]
+        RD["Reception Desk Staff (Mobile Web)"]
+        CO["Clinic Owner / Doctor (Dashboard)"]
+    end
+
+    subgraph Edge["Vercel Edge & Ingress Layer"]
+        VFE["Next.js 14 Frontend<br/>(frontend-bice-eight-7xnlf654ep.vercel.app)"]
+        VBE["FastAPI Serverless Backend<br/>(parchi-api.vercel.app)"]
+    end
+
+    subgraph CoreEngine["Backend Core Processing Pipeline"]
+        direction TB
+        Auth["Security & JWT Auth<br/>(security.py)"]
+        Safety["Deterministic Safety Gate<br/>(safety.py)"]
+        Dialogue["Receptionist Dialogue Manager<br/>(receptionist.py)"]
+        Booking["Concurrency Booking Guard<br/>(booking.py)"]
+        LLM["Multi-Provider LLM Engine<br/>(llm.py)"]
+        TwilioAdapter["Twilio Telephony Adapter<br/>(integrations/twilio.py)"]
+        Retention["DPDP 90-Day Retention Purge<br/>(retention.py)"]
+    end
+
+    subgraph DataStore["Persistence & State Layer"]
+        DB[("SQLite / PostgreSQL DB<br/>SQLAlchemy ORM")]
+        IntentCache[("LRU Intent Cache<br/>(512 slots)")]
+    end
+
+    subgraph ExternalServices["External AI & Telephony Providers"]
+        Gemini["Google Gemini 1.5 Flash"]
+        OpenAI["OpenAI GPT-4o-mini"]
+        Groq["Groq Llama-3.3-70b"]
+        OpenRouter["OpenRouter Meta Llama 3.3"]
+        TwilioAPI["Twilio Voice / Webhook Network"]
+        Emergency112["National Emergency Services (112)"]
+    end
+
+    PW -->|HTTPS| VFE
+    RD -->|HTTPS / Mobile View| VFE
+    CO -->|HTTPS / Dashboard View| VFE
+    VFE -->|REST API / JSON| VBE
+    TC -->|HMAC-SHA1 Voice Webhook| VBE
+    WA -->|HMAC-SHA256 WhatsApp Webhook| VBE
+
+    VBE --> Auth
+    VBE --> Safety
+    Safety -->|Red Flag Acute Symptom| Emergency112
+    Safety -->|Safe / Administrative Query| Dialogue
+    Dialogue -->|Slot Reservation| Booking
+    Dialogue -->|Intent Classification & Semantic Fallback| LLM
+    LLM --> IntentCache
+    LLM -->|BYOK REST Client| Gemini
+    LLM -->|BYOK REST Client| OpenAI
+    LLM -->|BYOK REST Client| Groq
+    LLM -->|BYOK REST Client| OpenRouter
+    VBE --> TwilioAdapter
+    TwilioAdapter --> TwilioAPI
+
+    Booking --> DB
+    Dialogue --> DB
+    Retention --> DB
+    Auth --> DB
+```
+
+---
+
+### 2. Frontend Component & Navigation Graph
+
+The Next.js 14 App Router orchestrates public visitors, reception desk staff, and clinic administrators with zero layout shift and sub-second client-side hydration:
+
+```mermaid
+graph TD
+    RootLayout["Root Layout (layout.tsx)<br/>• Mukta & Bricolage Fonts<br/>• Global Theme Provider"]
+    GlobalChatbot["AiChatbot (ai-chatbot.tsx)<br/>• Web Speech STT & TTS<br/>• 112 Triage Call Button<br/>• Staff Dial Link"]
+    
+    RootLayout --> GlobalChatbot
+    RootLayout --> LandingPage["Landing Page (page.tsx)"]
+    RootLayout --> DashboardPage["Dashboard (dashboard/page.tsx)"]
+    RootLayout --> ReceptionistPage["Receptionist Desk (receptionist/page.tsx)"]
+    RootLayout --> AuthPages["Auth & Register (login/auth-form.tsx)"]
+
+    LandingPage --> HeroDemo["HeroDemo (hero-demo.tsx)"]
+    LandingPage --> ThemeToggle["ThemeToggle (theme-toggle.tsx)"]
+    LandingPage --> ClinicGraphics["ClinicHeroScene (graphics.tsx)"]
+
+    HeroDemo --> ApiClient["API Client (lib/api.ts)"]
+    GlobalChatbot --> ApiClient
+    DashboardPage --> ApiClient
+    ReceptionistPage --> ApiClient
+    AuthPages --> ApiClient
+
+    subgraph DashboardTabs["Clinic Owner Command Center (7 Tabs)"]
+        direction TB
+        NowTab["Now (Live Status & Handoffs)"]
+        OverviewTab["Overview (Activity & Safety Log)"]
+        DoctorsTab["Doctors (Roster & Schedules)"]
+        AppointmentsTab["Appointments (Slot Management)"]
+        AiTab["AI Receptionist (Diagnostic Console)"]
+        SimTab["Call Simulator (Voice Telephony & 9 Presets)"]
+        SettingsTab["Settings (LLM BYOK & DPDP Purge)"]
+    end
+
+    DashboardPage --> DashboardTabs
+```
+
+---
+
+### 3. Backend Module Hierarchy & Dependency Map
+
+```mermaid
+graph LR
+    subgraph Ingress["FastAPI Entrypoints"]
+        Main["main.py<br/>App Factory & CORS"]
+        ApiRoute["routes/api.py<br/>REST CRUD & Chat"]
+        VoiceRoute["routes/voice.py<br/>Twilio & Voice Hooks"]
+        WARoute["routes/whatsapp.py<br/>WhatsApp Hooks"]
+    end
+
+    subgraph CoreEngines["Core Logic Engines"]
+        Receptionist["receptionist.py<br/>Dialogue Manager"]
+        Safety["safety.py<br/>Deterministic Safety"]
+        LLM["llm.py<br/>Multi-Provider LLM"]
+        Booking["booking.py<br/>Slot Concurrency"]
+        Security["security.py<br/>JWT & Passwords"]
+        Retention["retention.py<br/>DPDP 90-Day Purge"]
+        TwilioInt["integrations/twilio.py<br/>Signature & Audio Caching"]
+    end
+
+    subgraph Infrastructure["Config & Persistence"]
+        Config["config.py<br/>Environment Vars"]
+        Database["database.py<br/>Engine & Session"]
+        Models["models.py<br/>SQLAlchemy ORM"]
+        Schemas["schemas.py<br/>Pydantic Models"]
+    end
+
+    Main --> ApiRoute
+    Main --> VoiceRoute
+    Main --> WARoute
+
+    ApiRoute --> Receptionist
+    ApiRoute --> Security
+    ApiRoute --> Booking
+    ApiRoute --> Retention
+    ApiRoute --> LLM
+
+    VoiceRoute --> Receptionist
+    VoiceRoute --> TwilioInt
+    WARoute --> Receptionist
+
+    Receptionist --> Safety
+    Receptionist --> LLM
+    Receptionist --> Booking
+
+    Booking --> Models
+    Receptionist --> Models
+    Safety --> Models
+    Security --> Models
+    LLM --> Models
+
+    Models --> Database
+    Database --> Config
+```
+
+---
+
+### 4. Database Architecture (Entity-Relationship Diagram)
+
+```mermaid
+erDiagram
+    CLINICS ||--o{ USERS : "has staff"
+    CLINICS ||--o{ DOCTORS : "employs"
+    CLINICS ||--o{ PATIENTS : "registers"
+    CLINICS ||--o{ APPOINTMENTS : "schedules"
+    CLINICS ||--o{ CHAT_SESSIONS : "conducts"
+    CLINICS ||--o{ EVENTS : "records"
+    CLINICS ||--o{ CLINIC_RULES : "configures"
+    CLINICS ||--o{ SAFETY_TRIGGER_LOGS : "audits"
+
+    DOCTORS ||--o{ APPOINTMENTS : "consults"
+    PATIENTS ||--o{ APPOINTMENTS : "attends"
+
+    CLINICS {
+        int id PK
+        string name
+        string address
+        string hours
+        string fees
+        string staff_phone
+        string consent_line
+        int retention_days
+        boolean is_demo
+    }
+
+    USERS {
+        int id PK
+        int clinic_id FK
+        string email UK
+        string password_hash
+        string role "owner | receptionist"
+    }
+
+    DOCTORS {
+        int id PK
+        int clinic_id FK
+        string name
+        string speciality
+        string days "0,1,2,3,4,5"
+        int start_hour
+        int end_hour
+        int slot_minutes
+        string status_state "in | late | out | unknown"
+        int late_minutes
+        int current_token
+        datetime status_at
+        boolean active
+    }
+
+    PATIENTS {
+        int id PK
+        int clinic_id FK
+        string name
+        string phone
+        boolean consent
+        boolean opted_out
+        boolean no_message
+    }
+
+    APPOINTMENTS {
+        int id PK
+        int clinic_id FK
+        int doctor_id FK
+        int patient_id FK
+        datetime start
+        string status "booked | cancelled"
+        string channel "web | voice | whatsapp"
+        boolean reminded
+    }
+
+    CHAT_SESSIONS {
+        int id PK
+        int clinic_id FK
+        string channel
+        string external_id
+        json pending
+        int event_id
+    }
+
+    EVENTS {
+        int id PK
+        int clinic_id FK
+        string channel
+        string intent "hours | wait | fees | address | other"
+        string outcome "answered | booked | handoff | urgent"
+        string note
+        boolean resolved
+        datetime created_at
+    }
+
+    CLINIC_RULES {
+        int id PK
+        int clinic_id FK
+        string rule_key "llm_provider | llm_api_key | llm_model"
+        string rule_value
+        int version
+        boolean active
+        string created_by
+        datetime created_at
+    }
+
+    SAFETY_TRIGGER_LOGS {
+        int id PK
+        int clinic_id FK
+        string channel
+        string session_id
+        string category "urgent | medical"
+        string trigger_rule
+        string message_excerpt
+        boolean staff_alerted
+        boolean ai_skipped
+        datetime created_at
+    }
+
+    AUDIT {
+        int id PK
+        int clinic_id
+        string actor
+        string action
+        datetime created_at
+    }
+
+    WEBHOOK_LOG {
+        string message_id PK
+    }
+```
+
+---
+
+### 5. AI, Safety Triage & Receptionist-Grounding Pipeline
+
+```mermaid
+flowchart TD
+    UserQuery["Incoming User Query<br/>(Text or Spoken Audio)"]
+    
+    subgraph TriageGate["Stage 1: Pre-Model Safety Triage (Deterministic)"]
+        SafetyRegex{"Contains Red-Flag Symptom?<br/>• Chest pain / Breathlessness<br/>• Seizure / Unconsciousness<br/>• Child under 5 with fever"}
+        SafetyLog["Log to safety_trigger_logs<br/>& Alert Staff (Needs Attention)"]
+        Return112["Return Emergency Action Plan<br/>• Call 112 Direct Dial<br/>• Nearest Emergency Room"]
+    end
+
+    subgraph GroundingEngine["Stage 2: Receptionist-Grounded Context Assembly"]
+        FetchClinic["Fetch Clinic Record<br/>(Hours, Fees, Address, Phone)"]
+        FetchDoctor["Fetch Live Doctor Record<br/>(status_state, late_minutes, current_token, status_at)"]
+        Freshness{"Status fresh?<br/>(Updated < 30 min ago)"}
+        Unsure["State: 'Status is unconfirmed.<br/>The clinic has not confirmed the timing yet.'"]
+        Verified["State: Verified 'Doctor In' / 'X min late' / 'Token #N'"]
+    end
+
+    subgraph LLMOrFallback["Stage 3: Hybrid LLM Classifier & Fast Fallback"]
+        CheckCache{"Exists in<br/>_INTENT_CACHE?"}
+        UseCache["Return Cached Intent & Reply<br/>(Latency: < 2ms)"]
+        CheckKey{"Clinic LLM Key<br/>Configured?"}
+        CallLLM["Call Configured Provider<br/>(Gemini / OpenAI / Groq / OpenRouter)<br/>with System Guardrails"]
+        FastRegexFallback["Built-in Multilingual Classifier<br/>(Hindi, Hinglish, Marathi, English)<br/>Zero Latency & Zero Cost"]
+    end
+
+    subgraph ChannelOutput["Stage 4: Channel Specific Output Formatting"]
+        FormatVoice{"Channel == 'voice'?"}
+        VoiceConstraint["Enforce Telephony Constraints:<br/>• Strictly < 2 sentences<br/>• Strip markdown/asterisks<br/>• No button/IVR prompts"]
+        FormatChat["Enforce Chat Constraints:<br/>• Clear paragraph breaks<br/>• Dynamic action buttons (tel:112, Call Staff)"]
+    end
+
+    UserQuery --> SafetyRegex
+    SafetyRegex -->|YES| SafetyLog --> Return112
+    SafetyRegex -->|NO| FetchClinic --> FetchDoctor --> Freshness
+    Freshness -->|NO| Unsure --> CheckCache
+    Freshness -->|YES| Verified --> CheckCache
+    
+    CheckCache -->|HIT| UseCache --> FormatVoice
+    CheckCache -->|MISS| CheckKey
+    CheckKey -->|YES| CallLLM --> FormatVoice
+    CheckKey -->|NO or Timeout| FastRegexFallback --> FormatVoice
+
+    FormatVoice -->|YES| VoiceConstraint
+    FormatVoice -->|NO| FormatChat
+```
+
+---
+
+### 6. Agent Execution Workflows (Sequence Diagrams)
+
+#### A. Emergency Trigger & 112 Routing
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Patient as Caller / Visitor
+    participant Hook as API / Voice Hook
+    participant Safety as safety.py (Safety Gate)
+    participant DB as Database
+    participant Staff as Staff Attention Queue
+
+    Patient->>Hook: "Follow-up chahiye, subah se seene mein dard aur saans lene mein dikkat ho rahi hai"
+    Hook->>Safety: pre_model_safety_check(message)
+    Note over Safety: Matches chest_pain & breathlessness regex
+    Safety->>DB: INSERT INTO safety_trigger_logs (category='urgent', trigger_rule='chest_pain')
+    Safety->>DB: INSERT INTO events (outcome='urgent', intent='emergency')
+    Safety-->>Hook: SafetyCheckResult(action='emergency', alert_staff=True, transfer_to='112')
+    Hook->>Staff: Flag high-priority urgent callback in /attention
+    Hook-->>Patient: "🚨 Emergency detected. Please call 112 immediately. Directing call to 112."
+```
+
+#### B. Voice Telephony Turn with Latency SLA Filler
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Caller as Phone Caller
+    participant Twilio as Twilio Telecom Gateway
+    participant Webhook as /webhooks/voice/twilio/{id}
+    participant Adapter as twilio.py (Adapter)
+    participant Receptionist as receptionist.py
+    participant LLM as Multi-Provider LLM
+
+    Caller->>Twilio: Spoken audio: "Doctor sahab aa gaye kya?"
+    Twilio->>Webhook: POST with X-Twilio-Signature
+    Webhook->>Adapter: verify_twilio_signature()
+    Note over Adapter: Validates HMAC-SHA1
+    Adapter->>Receptionist: Process speech turn
+    alt Latency > 1.5 seconds
+        Adapter-->>Twilio: Play filler audio: "Ek second, main dekh rahi hoon"
+    end
+    Receptionist->>LLM: Classify intent with live doctor state
+    LLM-->>Receptionist: "Dr. Neha Sharma is on duty. Current token is #14."
+    Receptionist-->>Adapter: Clean text (< 2 sentences, no asterisks)
+    Adapter-->>Twilio: TwiML <Say voice="Polly.Aditi">Dr. Neha Sharma is on duty...</Say>
+    Twilio-->>Caller: Speaks reply in natural voice
+```
+
+---
+
+## Key Capabilities & Core Architectural Principles
+
+### 1. Truthful Wait Times & Token Queuing
 - **Zero Hallucination**: Parchi never fabricates or guesses doctor delays. It communicates only what the receptionist has tapped in the live system (`Doctor In`, `Running Late +X min`, `Not In Today`).
 - **Token Gap Telemetry**: If a patient asks about their token (e.g., *"token 18"*), Parchi calculates the exact queue gap from the doctor's active token and calculates estimated wait time.
 - **Unconfirmed Status Safety**: If doctor status has not been confirmed recently, Parchi honestly admits: *"The clinic has not confirmed the timing yet."*
 
-### 2. Pre-Model 112 Emergency Safety Gate (Tension 2)
+### 2. Pre-Model 112 Emergency Safety Gate
 - **Deterministic Pre-Model Safety Filter**: Executes on **every single message** before any AI/LLM model invocation or booking flow.
 - **Immediate Emergency Override**: If acute red flags appear (chest pain, breathlessness, seizure, heavy bleeding, unconsciousness, or child under 5 with fever):
   - Completely bypasses LLM text generation.
@@ -42,7 +448,7 @@ It handles repetitive patient phone calls and WhatsApp questions (doctor delays,
   - Generates an immediate high-priority staff alert in the **Needs Attention** queue.
   - Automatically routes call transfer to **112**.
 
-### 3. Voice Agent & Telephony Engine (Tension 5 & 7)
+### 3. Voice Agent & Telephony Engine
 - **Telephony Constraints**: Spoken replies are strictly concise (< 2 sentences) and clean of markdown, asterisks, bullet points, and parentheticals.
 - **Zero Button Prompts**: Telephony voice turns never ask callers to press keys or navigate IVR phone trees.
 - **Conversational Latency SLA**: Sub-second execution (400ms – 900ms). Automatically triggers filler audio (*"Ek second, main dekh rahi hoon"*) if latency exceeds 1.5 seconds.
@@ -53,56 +459,13 @@ It handles repetitive patient phone calls and WhatsApp questions (doctor delays,
 - **BYOK (Bring Your Own Key)**: Configurable directly from the Dashboard Settings tab with live diagnostic testing:
   - **Google Gemini** (`gemini-1.5-flash`)
   - **OpenAI** (`gpt-4o-mini`)
-  - **Groq** (`llama-3.1-8b-instant`)
-  - **OpenRouter** (`meta-llama/llama-3.1-8b-instruct`)
+  - **Groq** (`llama-3.3-70b-versatile`)
+  - **OpenRouter** (`meta-llama/llama-3.3-70b-instruct`)
   - **Custom Base URL** (Ollama, vLLM, Azure OpenAI)
 - **Zero-Latency Fallback**: Seamless, high-speed built-in multilingual NLU classifier when external API keys are not supplied or experiencing timeouts.
 
 ### 5. Multi-Language Support
 - Fluent conversational support in **English**, **Hindi**, **Hinglish**, and **Marathi** across both text chat and speech synthesis.
-
----
-
-## Application Structure & Interfaces
-
-```
-parchi-ai/
-├── backend/
-│   ├── app/
-│   │   ├── main.py              # FastAPI application factory & routes
-│   │   ├── models.py            # SQLAlchemy database models (Clinic, Doctor, Appointment, Event, Rule, Safety)
-│   │   ├── schemas.py           # Pydantic v2 validation models
-│   │   ├── receptionist.py      # Core receptionist dialogue engine & safety gating
-│   │   ├── safety.py            # Deterministic pre-model emergency triage
-│   │   ├── llm.py               # Multi-provider LLM engine (Gemini/OpenAI/Groq), caching & pooling
-│   │   ├── security.py          # JWT authentication & password hashing
-│   │   ├── booking.py           # Concurrent slot booking engine with DB unique constraints
-│   │   ├── retention.py         # DPDP 90-day data retention purge routine
-│   │   ├── integrations/
-│   │   │   └── twilio.py        # Twilio voice webhook adapter, signature check & filler audio
-│   │   └── routes/
-│   │       ├── api.py           # Core REST API endpoints & LLM config
-│   │       ├── voice.py         # Voice telephony webhooks
-│   │       └── whatsapp.py      # WhatsApp message webhook
-│   └── tests/                   # Pytest test suite (84 tests, 100% pass)
-│
-└── frontend/
-    └── src/
-        ├── app/
-        │   ├── page.tsx         # Modern Neo-Brutalist landing page
-        │   ├── login/page.tsx   # Login page
-        │   ├── signup/page.tsx  # Clinic onboarding & registration
-        │   ├── dashboard/page.tsx # Owner command center (Now, Overview, Doctors, Appointments, AI Receptionist, Sim, Settings)
-        │   └── receptionist/page.tsx # Mobile-optimized reception desk view
-        ├── components/
-        │   ├── hero-demo.tsx    # Interactive live ticket demo with real-time intent syncing
-        │   ├── ai-chatbot.tsx   # Global floating AI assistant with microphone STT input
-        │   ├── theme-toggle.tsx # Light/Dark mode high-contrast theme switcher
-        │   └── icons.tsx        # Accessible SVG icon suite
-        └── lib/
-            ├── api.ts           # Resilient API client with automatic production fallback
-            └── voice.ts         # Multilingual Web Speech Synthesis voice manager
-```
 
 ---
 
