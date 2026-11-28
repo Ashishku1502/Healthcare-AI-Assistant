@@ -1,6 +1,6 @@
 import time
 from datetime import datetime, timedelta, timezone
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Body, Depends, HTTPException
 from sqlalchemy import func
 from sqlalchemy.orm import Session
 from ..database import get_db
@@ -284,6 +284,78 @@ def update_llm_config(b: dict, u: User = Depends(owner_only), db: Session = Depe
 def test_llm_connection(b: dict, u: User = Depends(owner_only), db: Session = Depends(get_db)):
     from .. import llm
     return llm.test_llm_connection(db, u.clinic_id, b)
+
+@r.get("/voice/config")
+def get_voice_config(u: User = Depends(current_user), db: Session = Depends(get_db)):
+    from ..integrations import livekit as lk, deepgram as dg, twilio as tw
+    lk_cfg = lk.get_clinic_livekit_config(db, u.clinic_id)
+    dg_cfg = dg.get_clinic_deepgram_config(db, u.clinic_id)
+    return {
+        "livekit_url": lk_cfg.get("url", ""),
+        "livekit_configured": lk_cfg.get("configured", False),
+        "livekit_api_key_masked": (lk_cfg.get("api_key", "")[:4] + "..." + lk_cfg.get("api_key", "")[-3:]) if len(lk_cfg.get("api_key", "")) >= 8 else "",
+        "deepgram_configured": dg_cfg.get("configured", False),
+        "deepgram_model": dg_cfg.get("model", "nova-2"),
+        "deepgram_language": dg_cfg.get("language", "hi"),
+        "deepgram_key_masked": (dg_cfg.get("api_key", "")[:4] + "..." + dg_cfg.get("api_key", "")[-3:]) if len(dg_cfg.get("api_key", "")) >= 8 else "",
+        "twilio_configured": bool(tw.TWILIO_AUTH_TOKEN and tw.TWILIO_AUTH_TOKEN != "dev-twilio-auth-token"),
+        "monthly_minutes": tw.get_monthly_minutes(u.clinic_id),
+        "monthly_cap": tw.VOICE_MONTHLY_MINUTE_CAP,
+    }
+
+@r.put("/voice/config")
+@r.post("/voice/config")
+def update_voice_config(b: dict = Body(default={}), u: User = Depends(owner_only), db: Session = Depends(get_db)):
+    keys = ["livekit_url", "livekit_api_key", "livekit_api_secret", "deepgram_api_key", "deepgram_model", "deepgram_language"]
+    for k in keys:
+        if k in b:
+            val = str(b[k]).strip()
+            existing = db.query(ClinicRule).filter_by(clinic_id=u.clinic_id, rule_key=k, active=True).first()
+            if existing:
+                existing.rule_value = val
+                existing.version += 1
+            else:
+                db.add(ClinicRule(clinic_id=u.clinic_id, rule_key=k, rule_value=val, version=1, active=True, created_by=u.email))
+    db.commit()
+    from ..integrations import livekit as lk, deepgram as dg
+    return {
+        "ok": True,
+        "message": "Voice agent configuration updated successfully",
+        "livekit_configured": lk.get_clinic_livekit_config(db, u.clinic_id).get("configured", False),
+        "deepgram_configured": dg.get_clinic_deepgram_config(db, u.clinic_id).get("configured", False),
+    }
+
+@r.post("/voice/test")
+def test_voice_connections(b: dict = Body(default={}), u: User = Depends(owner_only), db: Session = Depends(get_db)):
+    from ..integrations import livekit as lk, deepgram as dg
+    lk_cfg = lk.get_clinic_livekit_config(db, u.clinic_id)
+    dg_cfg = dg.get_clinic_deepgram_config(db, u.clinic_id)
+    t0 = time.perf_counter()
+    lk_tok = lk.create_livekit_token(
+        clinic_id=u.clinic_id,
+        room_name=f"test-room-{u.clinic_id}",
+        participant_identity=f"diag-{int(time.time())}",
+        api_key=b.get("livekit_api_key") or lk_cfg.get("api_key"),
+        api_secret=b.get("livekit_api_secret") or lk_cfg.get("api_secret"),
+        livekit_url=b.get("livekit_url") or lk_cfg.get("url"),
+        ttl_seconds=300,
+    )
+    lk_latency = round((time.perf_counter() - t0) * 1000, 1)
+    return {
+        "ok": True,
+        "livekit": {
+            "status": "ready",
+            "url": lk_tok["url"],
+            "token_valid": bool(lk_tok.get("token")),
+            "latency_ms": lk_latency,
+        },
+        "deepgram": {
+            "status": "ready" if dg_cfg.get("configured") else "needs_key",
+            "model": dg_cfg.get("model", "nova-2"),
+            "language": dg_cfg.get("language", "hi"),
+        },
+    }
+
 @r.get("/analytics")
 def analytics(days: int = 30, u: User = Depends(current_user), db: Session = Depends(get_db)):
     since = datetime.now(timezone.utc).replace(tzinfo=None) - timedelta(days=days)

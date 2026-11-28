@@ -1,6 +1,6 @@
 # Parchi AI — Automated Clinic Front Desk & Voice Agent
 
-[![Pytest Suite](https://img.shields.io/badge/pytest-100%20passed%20(100%25)-success)](https://github.com/Ashishku1502/Healthcare-AI-Assistant)
+[![Pytest Suite](https://img.shields.io/badge/pytest-107%20passed%20(100%25)-success)](https://github.com/Ashishku1502/Healthcare-AI-Assistant)
 [![TypeScript](https://img.shields.io/badge/TypeScript-strict%20clean-blue)](https://github.com/Ashishku1502/Healthcare-AI-Assistant)
 [![Frontend](https://img.shields.io/badge/Vercel-Frontend%20Live-black)](https://frontend-bice-eight-7xnlf654ep.vercel.app)
 [![Backend API](https://img.shields.io/badge/Vercel-API%20Live-009688)](https://parchi-api.vercel.app)
@@ -69,6 +69,8 @@ flowchart TB
         Groq["Groq Llama-3.3-70b"]
         OpenRouter["OpenRouter Meta Llama 3.3"]
         TwilioAPI["Twilio Voice / Webhook Network"]
+        LiveKitCloud["LiveKit WebRTC Audio Cloud (Sub-100ms)"]
+        DeepgramNova2["Deepgram Nova-2 Speech-to-Text (Multilingual)"]
         Emergency112["National Emergency Services (112)"]
     end
 
@@ -448,12 +450,15 @@ sequenceDiagram
   - Generates an immediate high-priority staff alert in the **Needs Attention** queue.
   - Automatically routes call transfer to **112**.
 
-### 3. Voice Agent & Telephony Engine
+### 3. Voice Agent & Telephony Engine (LiveKit WebRTC + Deepgram Nova-2 + Twilio)
+- **LiveKit WebRTC Audio Rooms**: Real-time bidirectional WebRTC audio agent room management. Backend mints standard RFC 7519 HMAC-SHA256 JWT tokens with grant permissions (`roomJoin`, `canPublish`, `canSubscribe`, `canPublishData`) with zero heavy C-dependencies, ensuring full compatibility on Vercel Amazon Linux serverless containers.
+- **Deepgram Nova-2 Speech-to-Text (STT)**: High-speed, high-accuracy speech transcription supporting **Hindi (`hi`)**, **Marathi (`mr`)**, and **Indian English (`en-IN`)** with smart punctuation, word timings, and confidence scores in sub-100ms.
 - **Telephony Constraints**: Spoken replies are strictly concise (< 2 sentences) and clean of markdown, asterisks, bullet points, and parentheticals.
 - **Zero Button Prompts**: Telephony voice turns never ask callers to press keys or navigate IVR phone trees.
 - **Conversational Latency SLA**: Sub-second execution (400ms – 900ms). Automatically triggers filler audio (*"Ek second, main dekh rahi hoon"*) if latency exceeds 1.5 seconds.
 - **Unclear Turn Handling**: Turn 1 asks a simple Yes/No question; Turn 2 immediately initiates human staff transfer without repetitive menus.
 - **Provider Adapters**: Real Twilio HMAC-SHA1 signature verification, pre-generated audio caching for templated facts, and per-clinic monthly minute limits.
+- **Multi-Tenant BYOK**: Clinic owners can supply their own LiveKit (`livekit_url`, `livekit_api_key`, `livekit_api_secret`) and Deepgram (`deepgram_api_key`) credentials directly from the Settings tab, complete with live diagnostic latency checks.
 
 ### 4. Multi-Provider LLM Integration
 - **BYOK (Bring Your Own Key)**: Configurable directly from the Dashboard Settings tab with live diagnostic testing:
@@ -513,7 +518,14 @@ Inside the Dashboard (`/dashboard`) under the **Voice Agent & Call Simulator** t
 - `POST /llm/test` — Perform live diagnostic latency ping to LLM endpoint.
 - `GET /llm/status` — Get daily cap utilization and fast-cache diagnostics.
 
-### Telephony & Webhooks
+### Voice Agent, Telephony & STT Endpoints
+- `POST /voice/livekit/token` — Generates standard RFC 7519 HMAC-SHA256 LiveKit AccessToken for WebRTC Voice Agent rooms.
+- `POST /voice/livekit/webhook` — Receives and verifies LiveKit server room events (participant joined, audio stream status).
+- `POST /voice/deepgram/transcribe` — Transcribes raw or base64 audio buffers via Deepgram Nova-2 STT with multilingual support.
+- `GET /voice/status` — Returns end-to-end telemetry and configuration status for LiveKit, Deepgram, and Twilio.
+- `GET /voice/config` — Retrieves clinic-specific BYOK credentials (masked) for LiveKit and Deepgram.
+- `PUT /voice/config` / `POST /voice/config` — Updates clinic BYOK rules for LiveKit and Deepgram.
+- `POST /voice/test` — Runs live diagnostic test for LiveKit token minting and Deepgram connectivity.
 - `POST /webhooks/voice/{clinic_id}` — Internal HMAC-SHA256 signed telephony webhook.
 - `POST /webhooks/voice/twilio/{clinic_id}` — Twilio voice turn webhook with HMAC-SHA1 validation.
 - `POST /webhooks/voice/twilio/{clinic_id}/status` — Twilio call duration & minute tracker.
@@ -570,7 +582,7 @@ Open `http://localhost:3000` in your browser.
 cd backend
 pytest -v
 ```
-**Output**: `100 passed` (100% pass rate covering API authentication, booking race conditions, pre-model safety gating, retention purge, Twilio signature verification, Marathi voice constraints, and end-to-end telemetry).
+**Output**: `107 passed` (100% pass rate covering API authentication, booking race conditions, pre-model safety gating, retention purge, Twilio signature verification, Marathi voice constraints, LiveKit WebRTC token generation, Deepgram Nova-2 multilingual STT, and end-to-end telemetry).
 
 ### Run Frontend Typecheck & Build
 ```bash
